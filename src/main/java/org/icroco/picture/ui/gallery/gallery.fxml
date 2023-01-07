@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.controlsfx.control.*?>
+
+<BorderPane fx:id="layout" stylesheets="/css/dark.css" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.icroco.picture.ui.gallery.GalleryController">
+    <top>
+        <BreadCrumbBar fx:id="breadCrumbBar" />
+    </top>
+    <center>
+        <GridView fx:id="gridView" horizontalCellSpacing="0" prefHeight="600.0" prefWidth="600.0" verticalCellSpacing="0" />
+    </center>
+    <bottom>
+        <HBox alignment="CENTER" BorderPane.alignment="CENTER">
+            <children>
+                <ToolBar HBox.hgrow="ALWAYS">
+                    <items>
+                        <Slider fx:id="zoomThumbnails" minorTickCount="5" scaleX="0.7" scaleY="0.7" />
+                        <Pane HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" />
+                        <Label fx:id="nbImages" alignment="CENTER_RIGHT" prefWidth="100.0" text="" />
+                        <Label alignment="CENTER_RIGHT" text=" files" />
+                    </items>
+                </ToolBar>
+            </children>
+        </HBox>
+    </bottom>
+    <opaqueInsets>
+        <Insets />
+    </opaqueInsets>
+</BorderPane>

@@ -1,0 +1,15 @@
+module picture.ui {
+    requires javafx.controls;
+    requires javafx.fxml;
+    requires spring.context;
+    requires spring.boot;
+    requires spring.beans;
+    requires spring.core;
+    requires transitive picture.fwk;
+    requires lombok;
+    requires org.slf4j;
+    requires spring.boot.autoconfigure;
+
+    exports org.icroco.picture.ui to javafx.graphics;
+
+}

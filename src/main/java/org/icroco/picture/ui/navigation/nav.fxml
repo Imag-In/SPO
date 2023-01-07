@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.layout.*?>
+<?import org.controlsfx.control.*?>
+
+<HBox fx:id="container" alignment="CENTER" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.icroco.picture.ui.navigation.NavigationController">
+   <children>
+      <SegmentedButton fx:id="btnBar" maxWidth="1.7976931348623157E308">
+         <HBox.margin>
+            <Insets bottom="10.0" left="20.0" right="20.0" top="10.0" />
+         </HBox.margin>
+         <padding>
+            <Insets left="10.0" right="10.0" />
+         </padding>
+      </SegmentedButton>
+   </children>
+</HBox>

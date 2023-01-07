@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+<?import org.kordamp.ikonli.javafx.*?>
+
+<VBox fx:id="layout" maxWidth="200.0" minWidth="200.0" prefWidth="200.0" stylesheets="/css/dark.css" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.icroco.picture.ui.catalog.CollectionController">
+    <HBox fx:id="collectionHeader">
+        <Label fx:id="header" text="Collections" AnchorPane.leftAnchor="5.0" HBox.hgrow="ALWAYS">
+            <font>
+                <Font size="24.0" />
+            </font>
+        </Label>
+        <Region HBox.hgrow="ALWAYS" />
+        <Label fx:id="addCollection" alignment="CENTER" contentDisplay="CENTER" onMouseClicked="#newCollection" prefHeight="24.0">
+            <graphic>
+                <FontIcon style="-fx-icon-color:-fx-text-base-color;-fx-icon-code:fas-plus;-fx-icon-size:18;" />
+
+<!--                <FontIcon iconLiteral="fas-plus" iconColor="-fx-text-base-color"/>-->
+            </graphic>
+        </Label>
+        <!--            <Button fx:id="demo" alignment="CENTER" contentDisplay="CENTER" onMouseClicked="#newCollection">-->
+        <!--                <graphic>-->
+        <!--                    <FontIcon iconLiteral="fas-plus"/>-->
+        <!--                </graphic>-->
+        <!--            </Button>-->
+    </HBox>
+    <Accordion fx:id="paths" />
+   <padding>
+      <Insets right="10.0" />
+   </padding>
+</VBox>
