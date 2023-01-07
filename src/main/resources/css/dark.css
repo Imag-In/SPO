@@ -28,3 +28,9 @@
 .titled-pane > .title > .text {
     -fx-text-overrun: leading-ellipsis;
 }
+
+#plusCollection {
+    -fx-icon-code: fas-plus;
+    -fx-icon-color: -fx-text-base-color;
+    -fx-icon-size:16;
+}

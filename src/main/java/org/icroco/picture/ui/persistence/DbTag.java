@@ -13,7 +13,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "tags")
+@Table(name = "tag")
 public class DbTag {
 
     @Id

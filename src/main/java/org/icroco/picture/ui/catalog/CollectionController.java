@@ -17,12 +17,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
-import org.icroco.picture.ui.event.CatalogSelectedEvent;
 import org.icroco.picture.ui.event.CatalogEntrySelectedEvent;
+import org.icroco.picture.ui.event.CatalogSelectedEvent;
+import org.icroco.picture.ui.event.GenerateThumbnailEvent;
 import org.icroco.picture.ui.event.TaskEvent;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.CatalogueEntry;
 import org.icroco.picture.ui.model.MediaFile;
+import org.icroco.picture.ui.persistence.CollectionRepository;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.util.Constant;
@@ -38,6 +40,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -45,15 +48,16 @@ import java.util.stream.Collectors;
 @FxViewBinding(id = "catalog", fxmlLocation = "collection.fxml")
 @RequiredArgsConstructor
 public class CollectionController extends FxInitOnce {
+    private final CollectionRepository collectionRepository;
     @Qualifier(Constant.APPLICATION_EVENT_MULTICASTER)
     private final ApplicationEventMulticaster eventBus;
     private final PersistenceService          service;
     private final UserPreferenceService       pref;
 
     @FXML
-    private       Accordion       paths;
+    private       Accordion catalogs;
     @FXML
-    private       VBox            layout;
+    private       VBox      layout;
     @FXML
     private       Label           header;
     @FXML
@@ -61,11 +65,6 @@ public class CollectionController extends FxInitOnce {
     @FXML
     private       HBox            collectionHeader;
     private final BooleanProperty disablePathActions = new SimpleBooleanProperty(false);
-
-//    @PostConstruct
-//    public void postConstruct() {
-//        log.info("POST CONSTRUCT");
-//    }
 
     protected void initializedOnce() {
         log.info("Initializing");
@@ -80,7 +79,7 @@ public class CollectionController extends FxInitOnce {
 //            Nodes.hideNodeAfterTime(addCollection, 2, true);
             addCollection.setVisible(false);
         });
-        paths.expandedPaneProperty().addListener(this::titlePaneChanged);
+        catalogs.expandedPaneProperty().addListener(this::titlePaneChanged);
     }
 
     @EventListener(ApplicationStartedEvent.class)
@@ -96,7 +95,7 @@ public class CollectionController extends FxInitOnce {
                    .filter(p -> p.getKey().id() == pref.getUserPreference().getCollection().getLastViewed())
                    .findFirst()
                    .ifPresent(p -> {
-                       paths.setExpandedPane(p.getValue().tp());
+                       catalogs.setExpandedPane(p.getValue().tp());
                    });
         });
     }
@@ -115,17 +114,17 @@ public class CollectionController extends FxInitOnce {
 
         if (selectedDirectory != null) {
             var rootPath = selectedDirectory.toPath().normalize();
-            paths.getPanes()
-                 .stream()
-                 .map(TitledPane::getContent)
-                 .map(TreeView.class::cast)
-                 .map(TreeView::getRoot)
-                 .map(TreeItem::getValue)
-                 .map(Path.class::cast)
-                 .map(Path::normalize)
-                 .filter(p -> rootPath.toString().startsWith(p.toString()))
-                 .findFirst()
-                 .ifPresent(p -> {
+            catalogs.getPanes()
+                    .stream()
+                    .map(TitledPane::getContent)
+                    .map(TreeView.class::cast)
+                    .map(TreeView::getRoot)
+                    .map(TreeItem::getValue)
+                    .map(Path.class::cast)
+                    .map(Path::normalize)
+                    .filter(p -> rootPath.toString().startsWith(p.toString()))
+                    .findFirst()
+                    .ifPresent(p -> {
                      throw new CollectionException("Path: '%s' is already included into collection item: '%s'".formatted(rootPath, p));
                  });
 
@@ -167,9 +166,10 @@ public class CollectionController extends FxInitOnce {
 
             @Override
             protected void succeeded() {
-                var record       = getValue();
-                var paneTreeView = createTreeView(record);
-                paths.setExpandedPane(paneTreeView.getValue().tp);
+                var catalog       = getValue();
+                eventBus.multicastEvent(new GenerateThumbnailEvent(catalog, this));
+                var paneTreeView = createTreeView(catalog);
+                catalogs.setExpandedPane(paneTreeView.getValue().tp);
                 disablePathActions.set(false);
             }
         };
@@ -195,7 +195,8 @@ public class CollectionController extends FxInitOnce {
         final TitledPane tp = new TitledPane(catalog.path().getFileName().toString(), treeView);
         tp.setUserData(catalog);
         tp.setTooltip(new Tooltip(catalog.path() + " (id: " + catalog.id() + ")"));
-        paths.getPanes().add(tp);
+        catalogs.getPanes().add(tp);
+        catalogs.getPanes().sort(Comparator.comparing(TitledPane::getText));
 
         treeView.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
             if (newValue != null) {
@@ -209,7 +210,7 @@ public class CollectionController extends FxInitOnce {
 
     private void addSubDir(TreeItem<Path> current, Path path) {
         for (int i = 0; i < path.getNameCount(); i++) {
-            var child = new TreeItem<>(path.subpath(0, i+1));
+            var child = new TreeItem<>(path.subpath(0, i + 1));
             if (current.getChildren().stream().noneMatch(pathTreeItem -> pathTreeItem.getValue().equals(child.getValue()))) {
                 current.getChildren().add(child);
             }

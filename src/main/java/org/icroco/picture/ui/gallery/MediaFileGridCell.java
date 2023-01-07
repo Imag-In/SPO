@@ -43,7 +43,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 //                this.imageView.setSmooth(item.isSmooth());
             }
 
-            this.imageView.setImage(mediaLoader.loadThumbnail(item.fullPath()));
+            this.imageView.setImage(mediaLoader.loadThumbnail(item));
             this.setGraphic(this.root);
         }
     }

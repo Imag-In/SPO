@@ -14,7 +14,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "medias")
+@Table(name = "media")
 public class DbMediaFile {
 
     @Id
@@ -34,8 +34,4 @@ public class DbMediaFile {
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "tag_id")
     protected Set<DbTag> tags;
-
-    @Lob
-    @Column(name = "thumbnail", columnDefinition="BLOB", nullable = true)
-    byte[] thumbnail;
 }

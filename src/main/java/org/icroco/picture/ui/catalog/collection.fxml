@@ -16,7 +16,7 @@
         <Region HBox.hgrow="ALWAYS" />
         <Label fx:id="addCollection" alignment="CENTER" contentDisplay="CENTER" onMouseClicked="#newCollection" prefHeight="24.0">
             <graphic>
-                <FontIcon style="-fx-icon-color:-fx-text-base-color;-fx-icon-code:fas-plus;-fx-icon-size:18;" />
+                <FontIcon  id="plusCollection" />
 
 <!--                <FontIcon iconLiteral="fas-plus" iconColor="-fx-text-base-color"/>-->
             </graphic>
@@ -27,7 +27,7 @@
         <!--                </graphic>-->
         <!--            </Button>-->
     </HBox>
-    <Accordion fx:id="paths" />
+    <Accordion fx:id="catalogs" />
    <padding>
       <Insets right="10.0" />
    </padding>

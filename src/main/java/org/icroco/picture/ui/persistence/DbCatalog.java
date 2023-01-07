@@ -13,7 +13,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "catalogs")
+@Table(name = "catalog")
 public class DbCatalog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

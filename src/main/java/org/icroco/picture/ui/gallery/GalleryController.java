@@ -16,12 +16,10 @@ import javafx.scene.layout.BorderPane;
 import lombok.RequiredArgsConstructor;
 import org.controlsfx.control.BreadCrumbBar;
 import org.controlsfx.control.GridView;
-import org.eclipse.collections.api.factory.Lists;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.CatalogEntrySelectedEvent;
 import org.icroco.picture.ui.event.CatalogSelectedEvent;
-import org.icroco.picture.ui.event.TaskEvent;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
@@ -32,7 +30,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.context.event.EventListener;
 import org.springframework.lang.Nullable;
-import org.springframework.util.StopWatch;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -103,11 +100,12 @@ public class GalleryController extends FxInitOnce {
         images.clear();
         resetBcbModel(event.getCatalog().path(), null);
         filteredImages.setPredicate(null);
-        Lists.immutable
-                .ofAll(event.getCatalog().medias())
-//                .chunk(event.getFiles().size() / Constant.NB_CORE)
-                .chunk(50)
-                .forEach(p -> eventBus.multicastEvent(new TaskEvent(fillGallery(p.toList()), this)));
+        images.addAll(event.getCatalog().medias());
+//        Lists.immutable
+//                .ofAll(event.getCatalog().medias())
+////                .chunk(event.getFiles().size() / Constant.NB_CORE)
+//                .chunk(50)
+//                .forEach(p -> eventBus.multicastEvent(new TaskEvent(fillGallery(p.toList()), this)));
     }
 
     @EventListener(CatalogEntrySelectedEvent.class)
@@ -132,7 +130,7 @@ public class GalleryController extends FxInitOnce {
 
                 for (int i = 0, filesSize = files.size(); i < filesSize; i++) {
                     MediaFile mediaFile = files.get(i);
-                    mediaLoader.loadThumbnail(mediaFile.fullPath());
+                    mediaLoader.loadThumbnail(mediaFile);
 //                    if (!mediaFile.thumbnail().isLoaded()) {
 //                        if (mediaFile.thumbnail().getImage() == null) {
 //                            mediaFile.thumbnail().setImage(mediaLoader.loadThumbnail(mediaFile.fullPath()));
@@ -155,7 +153,7 @@ public class GalleryController extends FxInitOnce {
 ////                                                    mf.fileName(),
 ////                                                    mf.originalDate(),
 ////                                                    mf.tags(),
-////                                                    new ThumbnailImage(mediaLoader.loadThumbnail(mf.fullPath()), true)));
+////                                                    new Thumbnail(mediaLoader.loadThumbnail(mf.fullPath()), true)));
 //                    updateProgress(i, size);
 //                }
 //                w.stop();
@@ -189,8 +187,10 @@ public class GalleryController extends FxInitOnce {
 
     private void resetBcbModel(final Path root, @Nullable final Path entry) {
         var paths = Stream.concat(Stream.of(root),
-                                  entry == null ? Stream.empty() : StreamSupport.stream(Spliterators.spliteratorUnknownSize(entry.iterator(),
-                                                                                                                            Spliterator.ORDERED)
+                                  entry == null
+                                  ? Stream.empty()
+                                  : StreamSupport.stream(Spliterators.spliteratorUnknownSize(entry.iterator(),
+                                                                                             Spliterator.ORDERED)
                                           , false))
                           .toArray(Path[]::new);
         TreeItem<Path> model = BreadCrumbBar.buildTreeModel(paths);

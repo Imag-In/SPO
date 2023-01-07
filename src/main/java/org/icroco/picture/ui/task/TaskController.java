@@ -49,8 +49,6 @@ public class TaskController extends FxInitOnce {
                     textProperty.unbind();
                     textProperty.bind(Bindings.size(list).map(number -> number + " tasks left ..."));
                 }
-            } else {
-
             }
         };
     }
