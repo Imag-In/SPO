@@ -6,6 +6,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldTreeCell;
 import javafx.scene.input.MouseEvent;
@@ -18,21 +19,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.CatalogEntrySelectedEvent;
-import org.icroco.picture.ui.event.CatalogSelectedEvent;
+import org.icroco.picture.ui.event.CatalogEvent;
+import org.icroco.picture.ui.event.CatalogEvent.EventType;
 import org.icroco.picture.ui.event.GenerateThumbnailEvent;
-import org.icroco.picture.ui.event.TaskEvent;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.CatalogueEntry;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.persistence.CollectionRepository;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
+import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.FileUtil;
+import org.icroco.picture.ui.util.Nodes;
 import org.icroco.picture.ui.util.PathConverter;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
-import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -49,15 +51,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CollectionController extends FxInitOnce {
     private final CollectionRepository collectionRepository;
-    @Qualifier(Constant.APPLICATION_EVENT_MULTICASTER)
-    private final ApplicationEventMulticaster eventBus;
-    private final PersistenceService          service;
-    private final UserPreferenceService       pref;
+    private final TaskService           taskService;
+    private final PersistenceService    service;
+    private final UserPreferenceService pref;
 
     @FXML
-    private       Accordion catalogs;
+    private       Accordion       catalogs;
     @FXML
-    private       VBox      layout;
+    private       VBox            layout;
     @FXML
     private       Label           header;
     @FXML
@@ -103,7 +104,7 @@ public class CollectionController extends FxInitOnce {
     private void titlePaneChanged(ObservableValue<? extends TitledPane> observableValue, TitledPane oldValue, TitledPane newValue) {
         if (newValue != null) {
             pref.getUserPreference().getCollection().setLastViewed(((Catalog) newValue.getUserData()).id());
-            eventBus.multicastEvent(new CatalogSelectedEvent((Catalog) newValue.getUserData(), this));
+            taskService.notifyLater(new CatalogEvent((Catalog) newValue.getUserData(), EventType.SELECTED, this));
         }
     }
 
@@ -125,11 +126,11 @@ public class CollectionController extends FxInitOnce {
                     .filter(p -> rootPath.toString().startsWith(p.toString()))
                     .findFirst()
                     .ifPresent(p -> {
-                     throw new CollectionException("Path: '%s' is already included into collection item: '%s'".formatted(rootPath, p));
-                 });
+                        throw new CollectionException("Path: '%s' is already included into collection item: '%s'".formatted(rootPath, p));
+                    });
 
             disablePathActions.set(true);
-            eventBus.multicastEvent(new TaskEvent(scanDirectory(rootPath), this));
+            taskService.supply(scanDirectory(rootPath));
         }
     }
 
@@ -166,11 +167,12 @@ public class CollectionController extends FxInitOnce {
 
             @Override
             protected void succeeded() {
-                var catalog       = getValue();
-                eventBus.multicastEvent(new GenerateThumbnailEvent(catalog, this));
+                var catalog = getValue();
+                log.info("Entries: {}", catalog.medias().size());
                 var paneTreeView = createTreeView(catalog);
                 catalogs.setExpandedPane(paneTreeView.getValue().tp);
                 disablePathActions.set(false);
+                taskService.notifyLater(new GenerateThumbnailEvent(catalog, this));
             }
         };
     }
@@ -192,20 +194,53 @@ public class CollectionController extends FxInitOnce {
             log.debug("Path: {}", p);
         });
 
-        final TitledPane tp = new TitledPane(catalog.path().getFileName().toString(), treeView);
-        tp.setUserData(catalog);
-        tp.setTooltip(new Tooltip(catalog.path() + " (id: " + catalog.id() + ")"));
-        catalogs.getPanes().add(tp);
+        final TitledPane title = new TitledPane(catalog.path().getFileName().toString(), treeView);
+        title.setUserData(catalog);
+        title.setTooltip(new Tooltip(catalog.path() + " (id: " + catalog.id() + ")"));
+
+        FontIcon delete = new FontIcon();
+        delete.setId("deleteCollection");
+        Label label = new Label("", delete);
+        Nodes.addRightGraphic(title, label);
+        label.setOnMouseClicked(this::onDeleteCollection);
+
+        catalogs.getPanes().add(title);
         catalogs.getPanes().sort(Comparator.comparing(TitledPane::getText));
 
         treeView.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
             if (newValue != null) {
                 log.debug("Tree view selected: {} ", newValue.getValue());
-                eventBus.multicastEvent(new CatalogEntrySelectedEvent(catalog.path(), newValue.getValue(), CollectionController.this));
+                taskService.notifyLater(new CatalogEntrySelectedEvent(catalog.path(), newValue.getValue(), CollectionController.this));
             }
         });
 
-        return new Pair<>(catalog, new PaneTreeView(tp, treeView));
+        return new Pair<>(catalog, new PaneTreeView(title, treeView));
+    }
+
+    private void onDeleteCollection(MouseEvent mouseEvent) {
+        if (mouseEvent.getClickCount() == 1) {
+            Node source = (Node) mouseEvent.getSource();
+            Nodes.getFirstParent(source, TitledPane.class)
+                 .map(Node::getUserData)
+                 .map(Catalog.class::cast)
+                 .ifPresent(c -> {
+                     final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, "");
+                     dlg.setTitle("You do want delete Catalog ?");
+                     dlg.getDialogPane()
+                        .setContentText("Do you want to delete Catalog: " + c.path() + " id: " + c.id());
+
+                     dlg.show();
+                     dlg.resultProperty()
+                        .addListener(o -> {
+                            if (dlg.getResult() == ButtonType.OK) {
+                                service.deleteCatalog(c);
+                                catalogs.getPanes().remove(Nodes.getFirstParent(source, TitledPane.class).orElseThrow());
+                                taskService.notifyLater(new CatalogEvent(c, EventType.DELETED, this));
+                                // TODO: Clean Thumbnail Cache and DB.
+                            }
+                        });
+                 });
+        }
     }
 
     private void addSubDir(TreeItem<Path> current, Path path) {

@@ -1,7 +1,7 @@
 package org.icroco.picture.ui.model.mapper;
 
 import org.icroco.picture.ui.model.Catalog;
-import org.icroco.picture.ui.persistence.DbCatalog;
+import org.icroco.picture.ui.persistence.model.DbCatalog;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 

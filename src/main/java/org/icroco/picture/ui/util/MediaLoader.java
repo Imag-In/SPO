@@ -5,14 +5,13 @@ import javafx.scene.image.Image;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.collections.api.factory.Lists;
+import org.eclipse.collections.api.list.ImmutableList;
 import org.icroco.picture.ui.config.PictureConfiguration;
 import org.icroco.picture.ui.event.GenerateThumbnailEvent;
-import org.icroco.picture.ui.event.TaskEvent;
 import org.icroco.picture.ui.model.MediaFile;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.icroco.picture.ui.task.TaskService;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -21,20 +20,19 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class MediaLoader {
-    private static Image                       loading = loadImage(MediaLoader.class.getResource("/images/Loading_2.gif"));
-    @Qualifier(Constant.APPLICATION_EVENT_MULTICASTER)
-    private final  ApplicationEventMulticaster eventBus;
+    private static Image loading = loadImage(MediaLoader.class.getResource("/images/Loading_2.gif"));
+
+    private final TaskService taskService;
 
     //    @Cacheable(cacheNames = PictureConfiguration.THUMBNAILS, unless = "#result == null")
     private synchronized Image loadThumbnail(Path p) {
         try {
-            log.info("Cache miss: {}", p);
+//            log.info("Cache miss: {}", p);
             return new Image(p.toUri().toString(), 400D, 0, true, false);
         }
         catch (Exception e) {
@@ -76,11 +74,16 @@ public class MediaLoader {
 
     @EventListener(GenerateThumbnailEvent.class)
     public void generateThumbnails(GenerateThumbnailEvent event) {
-        Lists.immutable
-                .ofAll(event.getCatalog().medias())
-                .chunk(event.getCatalog().medias().size() / Constant.NB_CORE)
+        ImmutableList<MediaFile> mediaFiles = Lists.immutable.ofAll(event.getCatalog().medias());
+        log.info("Entries: {}", mediaFiles.size());
+        if (event.getCatalog().medias().isEmpty()) {
+            log.warn("Trying to generate thumbnail for empty list of files: {}", event.getCatalog());
+            return;
+        }
+        mediaFiles
+                .chunk(Math.max(1, mediaFiles.size() / Constant.NB_CORE))
 //                .chunk(50)
-                .forEach(p -> eventBus.multicastEvent(new TaskEvent(thumbnailBatch(p.toList()), this)));
+                .forEach(p -> taskService.supply(thumbnailBatch(p.toList())));
     }
 
     Task<List<MediaFile>> thumbnailBatch(final List<MediaFile> files) {

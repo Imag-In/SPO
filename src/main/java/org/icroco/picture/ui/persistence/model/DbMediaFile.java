@@ -1,6 +1,7 @@
-package org.icroco.picture.ui.persistence;
+package org.icroco.picture.ui.persistence.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.Type;
 
@@ -21,14 +22,17 @@ public class DbMediaFile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     long id;
 
-    @Column(length = 1024, unique = true, nullable = false)
+    @NotNull
+    @Column(length = 1024, unique = true)
     @Type(PathType.class)
     private Path fullPath;
 
-    @Column(length = 128, nullable = false)
+    @NotNull
+    @Column(length = 128)
     private String fileName;
 
-    @Column(nullable = false)
+    @NotNull
+    @Column()
     private LocalDate originalDate;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)

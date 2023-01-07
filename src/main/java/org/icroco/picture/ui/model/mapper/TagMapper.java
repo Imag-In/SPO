@@ -1,9 +1,7 @@
 package org.icroco.picture.ui.model.mapper;
 
-import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Tag;
-import org.icroco.picture.ui.persistence.DbMediaFile;
-import org.icroco.picture.ui.persistence.DbTag;
+import org.icroco.picture.ui.persistence.model.DbTag;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 

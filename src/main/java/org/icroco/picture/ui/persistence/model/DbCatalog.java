@@ -1,6 +1,7 @@
-package org.icroco.picture.ui.persistence;
+package org.icroco.picture.ui.persistence.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.Type;
 
@@ -19,7 +20,8 @@ public class DbCatalog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     int id;
 
-    @Column(length = 1024, unique = true, nullable = false)
+    @NotNull
+    @Column(length = 1024, unique = true)
     @Convert(converter = DbPathConverter.class)
     @Type(PathType.class)
     private Path path;

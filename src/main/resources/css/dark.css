@@ -25,12 +25,27 @@
     -fx-selection-bar-non-focused: rgb(50, 50, 50);
 }
 
+/*
 .titled-pane > .title > .text {
     -fx-text-overrun: leading-ellipsis;
 }
+*/
+
+/*
+.titled-pane > .title {
+    -fx-background-color: transparent;
+    -fx-border-color: linear-gradient(to right, white 0%, grey 30%, grey 70%, white 100%) transparent transparent transparent;
+}
+*/
 
 #plusCollection {
     -fx-icon-code: fas-plus;
     -fx-icon-color: -fx-text-base-color;
     -fx-icon-size:16;
+}
+
+#deleteCollection {
+    -fx-icon-code: far-trash-alt;
+    -fx-icon-color: -fx-text-base-color;
+    -fx-icon-size:12;
 }

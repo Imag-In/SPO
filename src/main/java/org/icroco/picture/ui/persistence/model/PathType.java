@@ -1,4 +1,4 @@
-package org.icroco.picture.ui.persistence;
+package org.icroco.picture.ui.persistence.model;
 
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.usertype.UserType;

@@ -4,10 +4,9 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.ui.event.TaskEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
@@ -17,10 +16,13 @@ import java.util.concurrent.ExecutionException;
 @AllArgsConstructor
 @Slf4j
 public class TaskService {
-    private final TaskController taskController;
-    private final TaskExecutor executor;
+    private final ApplicationEventMulticaster eventBus;
+    private final TaskController              taskController;
 
-    private <T> CompletableFuture<T> supply(final Task<T> task) {
+    /**
+     * Execute Task in background
+     */
+    public <T> CompletableFuture<T> supply(final Task<T> task) {
         log.debug("Start new task: {}", task);
         taskController.addTask(task);
         return CompletableFuture.supplyAsync(() -> {
@@ -34,11 +36,9 @@ public class TaskService {
         });
     }
 
-    /**
-     * Already notified into the Fx Application Thread.
-     */
-    @EventListener
-    public void onEvent(TaskEvent event) {
-        supply(event.getTask());
+
+    public void notifyLater(ApplicationEvent event) {
+        Platform.runLater(() -> eventBus.multicastEvent(event));
     }
+
 }

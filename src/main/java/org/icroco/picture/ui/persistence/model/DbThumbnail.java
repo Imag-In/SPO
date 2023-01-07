@@ -1,4 +1,4 @@
-package org.icroco.picture.ui.persistence;
+package org.icroco.picture.ui.persistence.model;
 
 import jakarta.persistence.*;
 import lombok.*;

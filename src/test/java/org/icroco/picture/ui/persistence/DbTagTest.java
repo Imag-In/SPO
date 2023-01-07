@@ -1,8 +1,7 @@
 package org.icroco.picture.ui.persistence;
 
 import org.icroco.picture.ui.AbstractDataTest;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.icroco.picture.ui.persistence.model.DbTag;
 
 public class DbTagTest extends AbstractDataTest<DbTag> {
     public static DbTag DUMMY = new DbTagTest().buildInstance();

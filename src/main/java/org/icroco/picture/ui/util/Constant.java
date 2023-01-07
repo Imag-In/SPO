@@ -10,7 +10,6 @@ import java.util.regex.Pattern;
 public class Constant {
 
     public static       int     NB_CORE                       = Runtime.getRuntime().availableProcessors();
-    public static final String  APPLICATION_EVENT_MULTICASTER = "applicationEventMulticaster";
     public              Pattern SUPPORTED_EXT                 = Pattern.compile(".*\\.(png|jpg|jpeg)$", Pattern.CASE_INSENSITIVE);
 
     private static final String imageTypes = "jpg,tif,tiff,jpeg,png,psd,cr2,nef,raf,dng,x3f,heic";

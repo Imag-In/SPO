@@ -19,15 +19,12 @@ import org.controlsfx.control.GridView;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.CatalogEntrySelectedEvent;
-import org.icroco.picture.ui.event.CatalogSelectedEvent;
+import org.icroco.picture.ui.event.CatalogEvent;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
-import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.MediaLoader;
 import org.slf4j.Logger;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.context.event.EventListener;
 import org.springframework.lang.Nullable;
 
@@ -39,12 +36,11 @@ import java.util.stream.StreamSupport;
 @FxViewBinding(id = "gallery", fxmlLocation = "gallery.fxml")
 @RequiredArgsConstructor
 public class GalleryController extends FxInitOnce {
-    private static final Logger                      log = org.slf4j.LoggerFactory.getLogger(GalleryController.class);
-    @Qualifier(Constant.APPLICATION_EVENT_MULTICASTER)
-    private final        ApplicationEventMulticaster eventBus;
-    private final        MediaLoader                 mediaLoader;
-    private final        UserPreferenceService       pref;
-    private final        PersistenceService          persistenceService;
+    private static final Logger log = org.slf4j.LoggerFactory.getLogger(GalleryController.class);
+
+    private final MediaLoader           mediaLoader;
+    private final UserPreferenceService pref;
+    private final PersistenceService    persistenceService;
 
     @FXML
     public  Label               nbImages;
@@ -94,18 +90,21 @@ public class GalleryController extends FxInitOnce {
         });
     }
 
-    @EventListener(CatalogSelectedEvent.class)
-    public void updateImages(CatalogSelectedEvent event) {
-        log.info("Add images to grid view: {}", event.getCatalog().medias().size());
+    @EventListener(CatalogEvent.class)
+    public void updateImages(CatalogEvent event) {
+        log.info("Event: {}, Add images to grid view: {}", event.getType(), event.getCatalog().medias().size());
         images.clear();
-        resetBcbModel(event.getCatalog().path(), null);
         filteredImages.setPredicate(null);
-        images.addAll(event.getCatalog().medias());
-//        Lists.immutable
-//                .ofAll(event.getCatalog().medias())
-////                .chunk(event.getFiles().size() / Constant.NB_CORE)
-//                .chunk(50)
-//                .forEach(p -> eventBus.multicastEvent(new TaskEvent(fillGallery(p.toList()), this)));
+
+        switch (event.getType()) {
+            case DELETED -> {
+                breadCrumbBar.setSelectedCrumb(null);
+            }
+            case SELECTED, CREATED, UPDATED -> {
+                resetBcbModel(event.getCatalog().path(), null);
+                images.addAll(event.getCatalog().medias());
+            }
+        }
     }
 
     @EventListener(CatalogEntrySelectedEvent.class)
