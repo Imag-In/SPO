@@ -38,6 +38,21 @@
 }
 */
 
+.grid-view .grid-cell:hover {
+    -fx-background-color:rgb(80, 80, 80);
+    -fx-background-radius: 3.0;
+    -fx-padding: 8;
+}
+
+/*
+.grid-view .grid-cell:selected {
+    -fx-background-color:white;
+    -fx-border-style: solid;
+    -fx-border-width: 3 3 3 3; *//* its make really one-pixel-border */
+/*    -fx-border-color: white;
+}
+*/
+
 #plusCollection {
     -fx-icon-code: fas-plus;
     -fx-icon-color: -fx-text-base-color;

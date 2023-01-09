@@ -53,7 +53,7 @@ public class GalleryController extends FxInitOnce {
     @FXML
     private GridView<MediaFile> gridView;
 
-    private final ObservableList<MediaFile> images         = FXCollections.observableArrayList();
+    private final ObservableList<MediaFile> images         = FXCollections.observableArrayList(MediaFile.extractor());
     private final FilteredList<MediaFile>   filteredImages = new FilteredList<>(images);
     private final SortedList<MediaFile>     sortedImages   = new SortedList<>(filteredImages);
 
@@ -75,7 +75,7 @@ public class GalleryController extends FxInitOnce {
         gridView.setCellWidth(gridCellWidth);
         gridView.setCellHeight(gridCellHeight);
 //        gridView.setCellFactory(gv -> new ImageGridCell());
-        gridView.setCellFactory(gv -> new MediaFileGridCell(true, mediaLoader));
+        gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader));
         zoomThumbnails.valueProperty().addListener((ObservableValue<? extends Number> ov, Number oldValue, Number newValue) -> {
             gridView.setCellWidth(gridCellWidth + 3 * newValue.doubleValue());
             gridView.setCellHeight(gridCellHeight + 3 * newValue.doubleValue());
@@ -129,7 +129,7 @@ public class GalleryController extends FxInitOnce {
 
                 for (int i = 0, filesSize = files.size(); i < filesSize; i++) {
                     MediaFile mediaFile = files.get(i);
-                    mediaLoader.loadThumbnail(mediaFile);
+//                    mediaLoader.loadThumbnail(mediaFile);
 //                    if (!mediaFile.thumbnail().isLoaded()) {
 //                        if (mediaFile.thumbnail().getImage() == null) {
 //                            mediaFile.thumbnail().setImage(mediaLoader.loadThumbnail(mediaFile.fullPath()));

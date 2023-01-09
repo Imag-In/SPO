@@ -1,5 +1,6 @@
 package org.icroco.picture.ui.util;
 
+import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.scene.image.Image;
 import lombok.RequiredArgsConstructor;
@@ -8,8 +9,11 @@ import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.ImmutableList;
 import org.icroco.picture.ui.config.PictureConfiguration;
 import org.icroco.picture.ui.event.GenerateThumbnailEvent;
+import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.task.TaskService;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.Cache;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.event.EventListener;
@@ -20,35 +24,66 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class MediaLoader {
-    private static Image loading = loadImage(MediaLoader.class.getResource("/images/Loading_2.gif"));
+    public static Image LOADING = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
 
+    @Qualifier(PictureConfiguration.THUMBNAILS)
+    private final Cache       thumbnailCache;
     private final TaskService taskService;
+    private final Map<Long, CompletableFuture<Image>> taskCache = new ConcurrentHashMap<>();
 
-    //    @Cacheable(cacheNames = PictureConfiguration.THUMBNAILS, unless = "#result == null")
-    private synchronized Image loadThumbnail(Path p) {
+    @Cacheable(cacheNames = PictureConfiguration.THUMBNAILS, key = "#id", unless = "#result == null")
+    public synchronized Image loadThumbnail(long id, Path p) {
         try {
 //            log.info("Cache miss: {}", p);
-            return new Image(p.toUri().toString(), 400D, 0, true, false);
+            return new Image(p.toUri().toString(), 300D, 0, true, true);
         }
         catch (Exception e) {
             log.error("invalid file: {}", p, e);
         }
+        // TODO: Add better error management if cannot read the image
         return null;
     }
 
-    @Cacheable(cacheNames = PictureConfiguration.THUMBNAILS, key = "#file.id", unless = "#result == null")
-    public Image loadThumbnail(MediaFile file) {
-        return loadThumbnail(file.fullPath());
+    public void loadThumbnail(final MediaFile file) {
+        var image = thumbnailCache.get(file.id(), Image.class);
+//
+        if (image == null) {
+            taskCache.computeIfAbsent(file.id(), (k) -> {
+                var f = CompletableFuture.supplyAsync(() -> loadThumbnail(k, file.fullPath()));
+                f.thenAccept(i -> {
+                    thumbnailCache.put(k, i);
+                    taskCache.remove(k);
+                    Platform.runLater(() -> file.cachedInfo().setThumbnail(i));
+                });
+                return f;
+            });
+        } else {
+            file.cachedInfo().setThumbnail(image);
+        }
+//        return LOADING;
+//        var image = tumbnailCache.get(file.id(), Image.class);
+//
+//        if (image == null) {
+//            CompletableFuture.supplyAsync(() -> loadThumbnail(file.id(), file.fullPath()))
+//                             .thenAccept(i -> Platform.runLater(() -> consumer.accept(i)));
+//            return loading;
+//        }
+//        return image;
+
     }
+
 
     private static Image loadImage(URL url) {
         try {
-            return new Image(url.toURI().toString());
+            return new Image(url.toURI().toString(), 64, 64, true, true);
         }
         catch (URISyntaxException e) {
             throw new RuntimeException(e);
@@ -56,7 +91,7 @@ public class MediaLoader {
     }
 
     @Cacheable(cacheNames = PictureConfiguration.FULL_SIZE, unless = "#result == null")
-    public Image loadImage(Path p) {
+    private Image loadImage(Path p) {
         try {
             return new Image(p.toUri().toString(), 1024D, 0, true, true);
         }
@@ -83,10 +118,10 @@ public class MediaLoader {
         mediaFiles
                 .chunk(Math.max(1, mediaFiles.size() / Constant.NB_CORE))
 //                .chunk(50)
-                .forEach(p -> taskService.supply(thumbnailBatch(p.toList())));
+                .forEach(p -> taskService.supply(thumbnailBatch(event.getCatalog(), p.toList())));
     }
 
-    Task<List<MediaFile>> thumbnailBatch(final List<MediaFile> files) {
+    Task<List<MediaFile>> thumbnailBatch(Catalog catalog, final List<MediaFile> files) {
         return new Task<>() {
 //            StopWatch w = new StopWatch("Load Task");
 
@@ -95,12 +130,13 @@ public class MediaLoader {
                 var size          = files.size();
                 var imagesResults = new ArrayList<>(files);
 //                w.start("Build Thumbnail");
+                log.info("Generate Thumbnails for: {}", catalog.path());
                 updateMessage("Thumbnail generation for '" + size + " images");
                 updateProgress(0, size);
 
                 for (int i = 0, filesSize = files.size(); i < filesSize; i++) {
                     MediaFile mediaFile = files.get(i);
-                    loadThumbnail(mediaFile);
+                    loadThumbnail(mediaFile.id(), mediaFile.fullPath());
                     updateProgress(i, size);
                 }
 

@@ -170,7 +170,7 @@ public class CollectionController extends FxInitOnce {
                 var catalog = getValue();
                 log.info("Entries: {}", catalog.medias().size());
                 var paneTreeView = createTreeView(catalog);
-                catalogs.setExpandedPane(paneTreeView.getValue().tp);
+//                catalogs.setExpandedPane(paneTreeView.getValue().tp);
                 disablePathActions.set(false);
                 taskService.notifyLater(new GenerateThumbnailEvent(catalog, this));
             }
