@@ -2,6 +2,10 @@ package org.icroco.picture.ui.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.icroco.picture.ui.util.Constant;
+import org.icroco.picture.ui.util.metadata.DefaultMetadataExtractor;
+import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
+import org.icroco.picture.ui.util.thumbnail.IThumbnailGenerator;
+import org.icroco.picture.ui.util.thumbnail.ImgscalrGenerator;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.context.annotation.Bean;
@@ -13,10 +17,10 @@ import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableCaching
-public class PictureConfiguration {
+public class ImageInConfiguration {
 
     public static final String THUMBNAILS = "thumbnails";
-    public static final String FULL_SIZE = "fullSize";
+    public static final String FULL_SIZE  = "fullSize";
 
     @Bean(name = THUMBNAILS)
     public CaffeineCache thumbnails() {
@@ -48,5 +52,15 @@ public class PictureConfiguration {
         executor.initialize();
 
         return executor;
+    }
+
+    @Bean
+    public IMetadataExtractor metadataExtractor() {
+        return new DefaultMetadataExtractor();
+    }
+
+    @Bean
+    public IThumbnailGenerator thumbnailGenerator(final IMetadataExtractor metadataExtractor) {
+        return new ImgscalrGenerator(metadataExtractor);
     }
 }

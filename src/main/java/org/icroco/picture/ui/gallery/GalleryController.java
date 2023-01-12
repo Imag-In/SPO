@@ -20,6 +20,7 @@ import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.CatalogEntrySelectedEvent;
 import org.icroco.picture.ui.event.CatalogEvent;
+import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
@@ -60,6 +61,8 @@ public class GalleryController extends FxInitOnce {
     private double gridCellWidth;
     private double gridCellHeight;
 
+    private Optional<Catalog> currentCatalog = Optional.empty();
+
     @Override
     protected void initializedOnce() {
         log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
@@ -99,8 +102,10 @@ public class GalleryController extends FxInitOnce {
         switch (event.getType()) {
             case DELETED -> {
                 breadCrumbBar.setSelectedCrumb(null);
+                currentCatalog = Optional.empty();
             }
             case SELECTED, CREATED, UPDATED -> {
+                currentCatalog = Optional.of(event.getCatalog());
                 resetBcbModel(event.getCatalog().path(), null);
                 images.addAll(event.getCatalog().medias());
             }

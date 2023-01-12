@@ -7,11 +7,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.ImmutableList;
-import org.icroco.picture.ui.config.PictureConfiguration;
+import org.icroco.picture.ui.config.ImageInConfiguration;
 import org.icroco.picture.ui.event.GenerateThumbnailEvent;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.task.TaskService;
+import org.icroco.picture.ui.util.thumbnail.IThumbnailGenerator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
 import org.springframework.cache.annotation.CachePut;
@@ -19,6 +20,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -32,18 +34,21 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 @Slf4j
 public class MediaLoader {
-    public static Image LOADING = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
-
-    @Qualifier(PictureConfiguration.THUMBNAILS)
-    private final Cache       thumbnailCache;
-    private final TaskService taskService;
+    public static Image                               LOADING   = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
+    private final IThumbnailGenerator                 thumbnailGenerator;
+    @Qualifier(ImageInConfiguration.THUMBNAILS)
+    private final Cache                               thumbnailCache;
+    private final TaskService                         taskService;
     private final Map<Long, CompletableFuture<Image>> taskCache = new ConcurrentHashMap<>();
 
-    @Cacheable(cacheNames = PictureConfiguration.THUMBNAILS, key = "#id", unless = "#result == null")
+    private final Dimension DEFAULT_THUMB_SIZE = new Dimension(600, 600);
+
+    @Cacheable(cacheNames = ImageInConfiguration.THUMBNAILS, key = "#id", unless = "#result == null")
     public synchronized Image loadThumbnail(long id, Path p) {
         try {
 //            log.info("Cache miss: {}", p);
-            return new Image(p.toUri().toString(), 300D, 0, true, true);
+//            return new Image(p.toUri().toString(), 300D, 0, true, true);
+            return thumbnailGenerator.generate(p, DEFAULT_THUMB_SIZE);
         }
         catch (Exception e) {
             log.error("invalid file: {}", p, e);
@@ -90,7 +95,7 @@ public class MediaLoader {
         }
     }
 
-    @Cacheable(cacheNames = PictureConfiguration.FULL_SIZE, unless = "#result == null")
+    @Cacheable(cacheNames = ImageInConfiguration.FULL_SIZE, unless = "#result == null")
     private Image loadImage(Path p) {
         try {
             return new Image(p.toUri().toString(), 1024D, 0, true, true);
@@ -133,10 +138,10 @@ public class MediaLoader {
                 log.info("Generate Thumbnails for: {}", catalog.path());
                 updateMessage("Thumbnail generation for '" + size + " images");
                 updateProgress(0, size);
-
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 for (int i = 0, filesSize = files.size(); i < filesSize; i++) {
                     MediaFile mediaFile = files.get(i);
-                    loadThumbnail(mediaFile.id(), mediaFile.fullPath());
+                    mediaFile.cachedInfo().setThumbnail(loadThumbnail(mediaFile.id(), mediaFile.fullPath()));
                     updateProgress(i, size);
                 }
 
