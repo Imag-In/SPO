@@ -18,8 +18,12 @@ import java.awt.image.*;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Locale;
+
+import static javafx.embed.swing.SwingFXUtils.fromFXImage;
+import static javafx.embed.swing.SwingFXUtils.toFXImage;
 
 @Slf4j
 @UtilityClass
@@ -46,7 +50,34 @@ public class ImageUtils {
     }
 
     public static Image getJavaFXImage(byte[] rawPixels, int width, int height) {
-        return javafx.embed.swing.SwingFXUtils.toFXImage(createBufferedImage(rawPixels, width, height), null);
+        return toFXImage(createBufferedImage(rawPixels, width, height), null);
+    }
+
+    public static Image map(byte[] image) {
+        if (image == null || image.length == 0) {
+            System.out.println("Cannot empty or null byte arrya: " + image);
+        }
+        try (InputStream is = new ByteArrayInputStream(image)) {
+            BufferedImage bi = ImageIO.read(is);
+            return SwingFXUtils.toFXImage(bi, null);
+        }
+        catch (IOException ex) {
+            System.out.println("Cannot read byte[] image");
+        }
+        return null;
+    }
+
+    public static byte[] map(Image image) {
+
+        var bi = SwingFXUtils.fromFXImage(image, null);
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            ImageIO.write(bi, "png", baos);
+            return baos.toByteArray();
+        }
+        catch (IOException e) {
+            log.error("Cannot comvert image: " + image.getUrl() + " to byte array");
+        }
+        return null;
     }
 
     public static byte[] getRawImage(Image image) {
@@ -140,13 +171,13 @@ public class ImageUtils {
             if (newHeight == 0) newHeight = oldHeight * newWidth / oldWidth;
             // Convert JavaFX image to BufferedImage and transform according to new dimensions
             destImage = new BufferedImage((int) newWidth, (int) newHeight, BufferedImage.TYPE_INT_RGB);
-            BufferedImage   srcImage = SwingFXUtils.fromFXImage(aImage, null);
+            BufferedImage   srcImage = fromFXImage(aImage, null);
             Graphics2D      g        = destImage.createGraphics();
             AffineTransform at       = AffineTransform.getScaleInstance(newWidth / oldWidth, newHeight / oldHeight);
             g.drawRenderedImage(srcImage, at);
             g.dispose();
         } else {
-            destImage = SwingFXUtils.fromFXImage(aImage, null);
+            destImage = fromFXImage(aImage, null);
         }
 
         // Output JPEG byte array

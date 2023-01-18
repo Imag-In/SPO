@@ -1,6 +1,5 @@
 package org.icroco.picture.ui.gallery;
 
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import lombok.Getter;
@@ -53,10 +52,11 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 //            log.info("Image updated: {}", item.fullPath());
 //            mediaLoader.loadThumbnail(item, this::setImage, this::setImage);
             root.getChildren().clear();
-            if (item.isLoading()) {
+            if (item.getThumbnail().get() == null) {
                 root.getChildren().add(loadingView);
             } else {
-                imageView.setImage(item.getThumbnail());
+//                log.info("Grid Cell updated: {}", item.fullPath());
+                imageView.setImage(item.getThumbnail().get().getThumbnail());
                 root.getChildren().add(imageView);
             }
             setGraphic(root);

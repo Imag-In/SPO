@@ -5,24 +5,27 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.MediaFile;
+import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.model.mapper.CatalogMapper;
 import org.icroco.picture.ui.model.mapper.MediaFileMapper;
+import org.icroco.picture.ui.model.mapper.ThumbnailMapper;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class PersistenceService {
     private final CollectionRepository collectionRepo;
-    private final MediaFileRepository mfRepo;
-    private final CatalogMapper   colMapper;
-    private final MediaFileMapper mfMapper;
+    private final MediaFileRepository  mfRepo;
+    private final ThumbnailRepository  thumbRepo;
+    private final CatalogMapper        colMapper;
+    private final MediaFileMapper      mfMapper;
+    private final ThumbnailMapper      thumbMapper;
 
     @Transactional
     public Optional<Catalog> findCatalogById(int id) {
@@ -50,5 +53,18 @@ public class PersistenceService {
         log.info("Catalog deleted, id: '{}', path: '{}'", catalog.id(), catalog.path());
         collectionRepo.deleteById(catalog.id());
 //        collectionRepo.findById(catalog.id()).ifPresent(collectionRepo::delete);
+    }
+
+    public Thumbnail saveOrUpdate(Thumbnail thumbnail) {
+        var dbThumbnail = thumbMapper.map(thumbnail);
+
+        thumbRepo.save(dbThumbnail);
+
+        return thumbnail;
+    }
+
+    public Optional<Thumbnail> findById(long id) {
+        return thumbRepo.findById(id)
+                        .map(thumbMapper::map);
     }
 }

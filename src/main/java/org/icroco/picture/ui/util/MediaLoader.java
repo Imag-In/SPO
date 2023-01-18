@@ -10,7 +10,11 @@ import org.eclipse.collections.api.list.ImmutableList;
 import org.icroco.picture.ui.config.ImageInConfiguration;
 import org.icroco.picture.ui.event.GenerateThumbnailEvent;
 import org.icroco.picture.ui.model.Catalog;
+import org.icroco.picture.ui.model.EThumbnailStatus;
 import org.icroco.picture.ui.model.MediaFile;
+import org.icroco.picture.ui.model.Thumbnail;
+import org.icroco.picture.ui.persistence.PersistenceService;
+import org.icroco.picture.ui.persistence.ThumbnailRepository;
 import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.thumbnail.IThumbnailGenerator;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -24,6 +28,7 @@ import java.io.ByteArrayOutputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,17 +39,20 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 @Slf4j
 public class MediaLoader {
-    public static Image                               LOADING   = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
-    private final IThumbnailGenerator                 thumbnailGenerator;
+    private final ThumbnailRepository thumbnailRepository;
+    public static Image               LOADING = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
+    private final IThumbnailGenerator thumbnailGenerator;
     @Qualifier(ImageInConfiguration.THUMBNAILS)
-    private final Cache                               thumbnailCache;
-    private final TaskService                         taskService;
+    private final Cache               thumbnailCache;
+    private final TaskService         taskService;
+
+    private final PersistenceService                  persistenceService;
     private final Map<Long, CompletableFuture<Image>> taskCache = new ConcurrentHashMap<>();
 
     private final Dimension DEFAULT_THUMB_SIZE = new Dimension(600, 600);
 
-    @Cacheable(cacheNames = ImageInConfiguration.THUMBNAILS, key = "#id", unless = "#result == null")
-    public synchronized Image loadThumbnail(long id, Path p) {
+    //    @Cacheable(cacheNames = ImageInConfiguration.THUMBNAILS, key = "#id", unless = "#result == null")
+    private synchronized Image loadThumbnail(long id, Path p) {
         try {
 //            log.info("Cache miss: {}", p);
 //            return new Image(p.toUri().toString(), 300D, 0, true, true);
@@ -58,20 +66,44 @@ public class MediaLoader {
     }
 
     public void loadThumbnail(final MediaFile file) {
-        var image = thumbnailCache.get(file.id(), Image.class);
+        final var thumbnail = thumbnailCache.get(file.id(), Thumbnail.class);
 //
-        if (image == null) {
-            taskCache.computeIfAbsent(file.id(), (k) -> {
-                var f = CompletableFuture.supplyAsync(() -> loadThumbnail(k, file.fullPath()));
-                f.thenAccept(i -> {
-                    thumbnailCache.put(k, i);
-                    taskCache.remove(k);
-                    Platform.runLater(() -> file.cachedInfo().setThumbnail(i));
-                });
-                return f;
-            });
+        if (thumbnail == null) {
+            persistenceService.findById(file.id())
+                              .ifPresentOrElse(t -> {
+                                                   thumbnailCache.put(file.id(), t);
+                                                   Platform.runLater(() -> file.getThumbnail().set(thumbnail));
+                                               },
+                                               () ->
+                                                       taskCache.computeIfAbsent(file.id(), (k) -> {
+                                                           var f = CompletableFuture.supplyAsync(() -> loadThumbnail(k, file.fullPath()));
+                                                           f.handle((i, throwable) -> {
+                                                               taskCache.remove(k);
+                                                               if (throwable == null) {
+                                                                   try {
+                                                                       final Thumbnail t = persistenceService.saveOrUpdate(Thumbnail.builder().id(file.id())
+                                                                                                                                              .thumbnail(i)
+                                                                                                                                              .hashDate(
+                                                                                                                                                      LocalDate.now())
+                                                                                                                                              .lastAccess(
+                                                                                                                                                      LocalDate.now())
+                                                                                                                                              .origin(EThumbnailStatus.GENERATED)
+                                                                                                                                              .build());
+                                                                       thumbnailCache.put(k, t);
+                                                                       Platform.runLater(() -> file.getThumbnail().set(t));
+                                                                       return t;
+                                                                   }
+                                                                   catch (Exception ex) {
+                                                                       log.error("Cannot save thumbnail for: '{}'", k, ex);
+                                                                   }
+                                                               }
+                                                               log.info("Error while loading thumbnail: {}", k, throwable);
+                                                               return null;
+                                                           });
+                                                           return f;
+                                                       }));
         } else {
-            file.cachedInfo().setThumbnail(image);
+            Platform.runLater(() -> file.getThumbnail().set(thumbnail));
         }
 //        return LOADING;
 //        var image = tumbnailCache.get(file.id(), Image.class);
@@ -121,27 +153,30 @@ public class MediaLoader {
             return;
         }
         mediaFiles
-                .chunk(Math.max(1, mediaFiles.size() / Constant.NB_CORE))
-//                .chunk(50)
-                .forEach(p -> taskService.supply(thumbnailBatch(event.getCatalog(), p.toList())));
+//                .chunk(Math.max(1, mediaFiles.size() / Constant.NB_CORE))
+.chunk(10)
+.forEach(p -> taskService.supply(thumbnailBatch(event.getCatalog(), p.toList())));
     }
 
     Task<List<MediaFile>> thumbnailBatch(Catalog catalog, final List<MediaFile> files) {
         return new Task<>() {
 //            StopWatch w = new StopWatch("Load Task");
 
+//            record ThumbnailRes(MediaFile file, )
+
             @Override
             protected List<MediaFile> call() throws Exception {
                 var size          = files.size();
                 var imagesResults = new ArrayList<>(files);
 //                w.start("Build Thumbnail");
-                log.info("Generate Thumbnails for: {}", catalog.path());
+                log.info("Generate {} Thumbnails for: {}", size, catalog.path());
                 updateMessage("Thumbnail generation for '" + size + " images");
                 updateProgress(0, size);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 for (int i = 0, filesSize = files.size(); i < filesSize; i++) {
                     MediaFile mediaFile = files.get(i);
-                    mediaFile.cachedInfo().setThumbnail(loadThumbnail(mediaFile.id(), mediaFile.fullPath()));
+                    loadThumbnail(mediaFile);
+//                    mediaFile.getThumbnail().set(loadThumbnail(mediaFile));
                     updateProgress(i, size);
                 }
 

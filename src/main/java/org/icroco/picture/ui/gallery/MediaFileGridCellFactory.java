@@ -9,10 +9,6 @@ import org.controlsfx.control.GridView;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.util.MediaLoader;
 
-import java.net.MalformedURLException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 @Slf4j
 @RequiredArgsConstructor
 public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, GridCell<MediaFile>> {
@@ -32,9 +28,9 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
         cell.itemProperty().addListener((ov, oldMediaItem, newMediaItem) -> {
             if (newMediaItem != null && oldMediaItem == null) {
 //                log.info("new Cell: "+newMediaItem.fullPath());
-                if (newMediaItem.isLoading()) {
+                if (newMediaItem.getThumbnail().get() == null) {
                     mediaLoader.loadThumbnail(newMediaItem);
-//                                              newMediaItem.cachedInfo().setThumbnail(mediaLoader.loadThumbnail(newMediaItem.id(), newMediaItem.fullPath()));
+//                                              newMediaItem.thumbnail().setThumbnail(mediaLoader.loadThumbnail(newMediaItem.id(), newMediaItem.fullPath()));
                 }
             }
         });

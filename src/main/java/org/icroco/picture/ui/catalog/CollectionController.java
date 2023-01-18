@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 @FxViewBinding(id = "catalog", fxmlLocation = "collection.fxml")
 @RequiredArgsConstructor
 public class CollectionController extends FxInitOnce {
-    private final CollectionRepository collectionRepository;
+    private final CollectionRepository  collectionRepository;
     private final TaskService           taskService;
     private final PersistenceService    service;
     private final UserPreferenceService pref;
@@ -68,8 +68,6 @@ public class CollectionController extends FxInitOnce {
     private final BooleanProperty disablePathActions = new SimpleBooleanProperty(false);
 
     protected void initializedOnce() {
-        log.info("Initializing");
-
         addCollection.prefHeightProperty().bind(header.heightProperty());
         addCollection.setVisible(false);
         addCollection.disableProperty().bind(disablePathActions);
@@ -173,6 +171,12 @@ public class CollectionController extends FxInitOnce {
 //                catalogs.setExpandedPane(paneTreeView.getValue().tp);
                 disablePathActions.set(false);
                 taskService.notifyLater(new GenerateThumbnailEvent(catalog, this));
+            }
+
+            @Override
+            protected void failed() {
+                disablePathActions.set(false);
+                log.error("While scanning dir: '{}'", rootPath, getException());
             }
         };
     }
