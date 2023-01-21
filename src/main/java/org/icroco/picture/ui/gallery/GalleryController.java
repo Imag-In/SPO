@@ -108,6 +108,7 @@ public class GalleryController extends FxInitOnce {
                 currentCatalog = Optional.of(event.getCatalog());
                 resetBcbModel(event.getCatalog().path(), null);
                 images.addAll(event.getCatalog().medias());
+
             }
         }
     }

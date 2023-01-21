@@ -12,6 +12,7 @@ import org.icroco.picture.ui.model.mapper.ThumbnailMapper;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -63,8 +64,23 @@ public class PersistenceService {
         return thumbnail;
     }
 
-    public Optional<Thumbnail> findById(long id) {
-        return thumbRepo.findById(id)
+    public Optional<MediaFile> findByPath(Path p) {
+        return mfRepo.findByFullPath(p).map(mfMapper::map);
+        // TODO: Load thumbnail ?
+    }
+
+    public Optional<Thumbnail> findByPathOrId(MediaFile mediaFile) {
+        return thumbRepo.findByFullPath(mediaFile.fullPath())
+//                        .orElseGet(() -> thumbRepo.findById(mediaFile.getId()))
                         .map(thumbMapper::map);
+    }
+
+    public List<Thumbnail> saveAll(List<Thumbnail> values) {
+        return thumbRepo.saveAll(values.stream()
+                                       .map(thumbMapper::map)
+                                       .toList())
+                        .stream()
+                        .map(thumbMapper::map)
+                        .toList();
     }
 }

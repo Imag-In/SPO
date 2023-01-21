@@ -1,10 +1,13 @@
 package org.icroco.picture.ui.persistence.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.hibernate.annotations.Type;
 import org.icroco.picture.ui.model.EThumbnailStatus;
 import org.springframework.lang.NonNull;
 
+import java.nio.file.Path;
 import java.time.LocalDate;
 
 @Entity
@@ -18,6 +21,11 @@ public class DbThumbnail {
 
     @Id
     long id;
+
+    @NotNull
+    @Column(length = 1024, unique = true)
+    @Type(PathType.class)
+    private Path fullPath;
 
     @Column(name = "hash")
     private String hash;

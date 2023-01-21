@@ -55,14 +55,14 @@ public class ImageUtils {
 
     public static Image map(byte[] image) {
         if (image == null || image.length == 0) {
-            System.out.println("Cannot empty or null byte arrya: " + image);
+            log.error("Cannot empty or null byte array: ");
         }
         try (InputStream is = new ByteArrayInputStream(image)) {
             BufferedImage bi = ImageIO.read(is);
             return SwingFXUtils.toFXImage(bi, null);
         }
         catch (IOException ex) {
-            System.out.println("Cannot read byte[] image");
+            log.error("Cannot read byte[] image");
         }
         return null;
     }

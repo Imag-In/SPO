@@ -4,6 +4,7 @@ import javafx.scene.image.Image;
 import lombok.Builder;
 import lombok.Data;
 
+import java.nio.file.Path;
 import java.time.LocalDate;
 
 @Data
@@ -11,6 +12,7 @@ import java.time.LocalDate;
 public class Thumbnail {
 
     long id;
+    private Path             fullPath;
     private Image            thumbnail;
     private String           hash;
     private LocalDate        hashDate;

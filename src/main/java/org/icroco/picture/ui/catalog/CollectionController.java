@@ -25,9 +25,9 @@ import org.icroco.picture.ui.event.GenerateThumbnailEvent;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.CatalogueEntry;
 import org.icroco.picture.ui.model.MediaFile;
-import org.icroco.picture.ui.persistence.CollectionRepository;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
+import org.icroco.picture.ui.task.AbstractTask;
 import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.FileUtil;
@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 @FxViewBinding(id = "catalog", fxmlLocation = "collection.fxml")
 @RequiredArgsConstructor
 public class CollectionController extends FxInitOnce {
-    private final CollectionRepository  collectionRepository;
+    private final PersistenceService    persistenceService;
     private final TaskService           taskService;
     private final PersistenceService    service;
     private final UserPreferenceService pref;
@@ -84,19 +84,7 @@ public class CollectionController extends FxInitOnce {
     @EventListener(ApplicationStartedEvent.class)
     public void applicationStarted() {
         log.info("Application Started.");
-        Platform.runLater(() -> {
-//            addCollection.setVisible(false);
-            service.findAllCatalog()
-                   .stream()
-                   .map(this::createTreeView)
-                   .toList()
-                   .stream()
-                   .filter(p -> p.getKey().id() == pref.getUserPreference().getCollection().getLastViewed())
-                   .findFirst()
-                   .ifPresent(p -> {
-                       catalogs.setExpandedPane(p.getValue().tp());
-                   });
-        });
+        Platform.runLater(() -> createCatalogs(pref.getUserPreference().getCollection().getLastViewed()));
     }
 
     private void titlePaneChanged(ObservableValue<? extends TitledPane> observableValue, TitledPane oldValue, TitledPane newValue) {
@@ -133,7 +121,7 @@ public class CollectionController extends FxInitOnce {
     }
 
     public Task<Catalog> scanDirectory(Path rootPath) {
-        return new Task<>() {
+        return new AbstractTask<>() {
             @Override
             protected Catalog call() throws Exception {
                 updateMessage("Scanning '" + rootPath + "'");
@@ -152,11 +140,8 @@ public class CollectionController extends FxInitOnce {
                         return service.saveCatalog(Catalog.builder().path(rootPath)
                                                                     .subPaths(children)
                                                                     .medias(filteredImages.stream()
-                                                                                          .map(i -> MediaFile.builder()
-                                                                                                  .fullPath(i)
-                                                                                                  .fileName(i.getFileName().toString())
-                                                                                                  .originalDate(now)
-                                                                                                  .build())
+                                                                                          .map(i -> persistenceService.findByPath(i)
+                                                                                                                      .orElseGet(() -> create(i, now)))
                                                                                           .collect(Collectors.toSet()))
                                                                     .build());
                     }
@@ -177,8 +162,17 @@ public class CollectionController extends FxInitOnce {
             protected void failed() {
                 disablePathActions.set(false);
                 log.error("While scanning dir: '{}'", rootPath, getException());
+                super.failed();
             }
         };
+    }
+
+    private MediaFile create(Path p, LocalDate now) {
+        return MediaFile.builder()
+                .fullPath(p)
+                .fileName(p.getFileName().toString())
+                .originalDate(now)
+                .build();
     }
 
     record PaneTreeView(TitledPane tp, TreeView<Path> treeView) {}
@@ -255,6 +249,30 @@ public class CollectionController extends FxInitOnce {
             }
             current = child;
         }
+    }
+
+    @EventListener(CatalogEvent.class)
+    public void catalogEvent(CatalogEvent event) {
+        switch (event.getType()) {
+            case SELECTED -> catalogs.getPanes()
+                                     .stream()
+                                     .filter(tp -> ((Catalog) tp.getUserData()).id() == event.getCatalog().id())
+                                     .findFirst()
+                                     .ifPresent(tp -> catalogs.setExpandedPane(tp));
+        }
+    }
+
+    private void createCatalogs(int id) {
+        service.findAllCatalog()
+               .stream()
+               .map(this::createTreeView)
+               .toList()
+               .stream()
+               .filter(p -> p.getKey().id() == id)
+               .findFirst()
+               .ifPresent(p -> {
+                   catalogs.setExpandedPane(p.getValue().tp());
+               });
     }
 
 }

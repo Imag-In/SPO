@@ -25,6 +25,7 @@ public class DbMediaFile {
     @NotNull
     @Column(length = 1024, unique = true)
     @Type(PathType.class)
+//    @Convert(converter = DbPathConverter.class)
     private Path fullPath;
 
     @NotNull
