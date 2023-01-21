@@ -1,9 +1,9 @@
 package org.icroco.picture.ui;
 
 import javafx.application.Application;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
-import nu.pattern.OpenCV;
 import org.controlsfx.dialog.ExceptionDialog;
 import org.icroco.javafx.AbstractJavaFxApplication;
 import org.icroco.javafx.ViewAutoConfiguration;
@@ -15,10 +15,13 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 
+import java.awt.*;
+
 @SpringBootApplication
 @EnableAsync
 @ImportAutoConfiguration(classes = ViewAutoConfiguration.class)
 public class PictureApplication extends AbstractJavaFxApplication {
+    public static final String IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG = "/images/128px-GNOME_Photos_logo_2019.svg.png";
     // Application startup analysis: https://www.amitph.com/spring-boot-startup-monitoring/#applicationstartup_metrics_with_java_flight_recorder
     // Icon IRes: https://dlsc.com/2017/08/29/javafx-tip-27-hires-retina-icons/
 
@@ -28,6 +31,20 @@ public class PictureApplication extends AbstractJavaFxApplication {
     @Override
     protected void preStart(final Stage primaryStage) {
 //        OpenCV.loadShared();
+        var icon = getClass().getResourceAsStream(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG);
+        primaryStage.getIcons().add(new Image(icon));
+        if (Taskbar.isTaskbarSupported()) {
+            var taskbar = Taskbar.getTaskbar();
+
+            if (taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) {
+                final Toolkit defaultToolkit = Toolkit.getDefaultToolkit();
+                var           dockIcon       = defaultToolkit.getImage(getClass().getResource(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG));
+                taskbar.setIconImage(dockIcon);
+            }
+
+        }
+        primaryStage.setTitle("Image'In");
+//        primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/images/240px-GNOME_Photos_logo_2019.svg.png")));
         Nodes.setStageSizeAndPos(primaryStage,
                                  userPref.getUserPreference().getMainWindow().getPosX(),
                                  userPref.getUserPreference().getMainWindow().getPosY(),
@@ -51,6 +68,7 @@ public class PictureApplication extends AbstractJavaFxApplication {
             userPref.getUserPreference().getMainWindow().setHeight(stage.getHeight());
         }
     }
+
 
     public static void main(String[] args) {
         Application.launch(PictureApplication.class, args);
