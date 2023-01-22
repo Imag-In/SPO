@@ -88,9 +88,7 @@ public class GalleryController extends FxInitOnce {
         breadCrumbBar.setAutoNavigationEnabled(false);
         breadCrumbBar.setOnCrumbAction(bae -> log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!"));
 
-        Platform.runLater(() -> {
-            gridView.requestFocus();
-        });
+        Platform.runLater(() -> gridView.requestFocus());
     }
 
     @EventListener(CatalogEvent.class)

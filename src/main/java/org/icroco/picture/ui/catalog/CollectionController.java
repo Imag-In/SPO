@@ -22,6 +22,7 @@ import org.icroco.picture.ui.event.CatalogEntrySelectedEvent;
 import org.icroco.picture.ui.event.CatalogEvent;
 import org.icroco.picture.ui.event.CatalogEvent.EventType;
 import org.icroco.picture.ui.event.GenerateThumbnailEvent;
+import org.icroco.picture.ui.event.WarmThumbnailCacheEvent;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.CatalogueEntry;
 import org.icroco.picture.ui.model.MediaFile;
@@ -89,8 +90,10 @@ public class CollectionController extends FxInitOnce {
 
     private void titlePaneChanged(ObservableValue<? extends TitledPane> observableValue, TitledPane oldValue, TitledPane newValue) {
         if (newValue != null) {
-            pref.getUserPreference().getCollection().setLastViewed(((Catalog) newValue.getUserData()).id());
-            taskService.notifyLater(new CatalogEvent((Catalog) newValue.getUserData(), EventType.SELECTED, this));
+            Catalog c = (Catalog) newValue.getUserData();
+            pref.getUserPreference().getCollection().setLastViewed((c).id());
+            taskService.notifyLater(new WarmThumbnailCacheEvent(c, this));
+            taskService.notifyLater(new CatalogEvent(c, EventType.SELECTED, this));
         }
     }
 
@@ -166,6 +169,7 @@ public class CollectionController extends FxInitOnce {
             }
         };
     }
+
 
     private MediaFile create(Path p, LocalDate now) {
         return MediaFile.builder()

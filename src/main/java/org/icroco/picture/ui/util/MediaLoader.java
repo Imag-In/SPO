@@ -11,6 +11,7 @@ import org.eclipse.collections.api.list.ImmutableList;
 import org.icroco.picture.ui.config.ImageInConfiguration;
 import org.icroco.picture.ui.event.CatalogEvent;
 import org.icroco.picture.ui.event.GenerateThumbnailEvent;
+import org.icroco.picture.ui.event.WarmThumbnailCacheEvent;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.EThumbnailStatus;
 import org.icroco.picture.ui.model.MediaFile;
@@ -22,7 +23,6 @@ import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.thumbnail.IThumbnailGenerator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -41,13 +41,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 @Slf4j
 public class MediaLoader {
-    private final ThumbnailRepository thumbnailRepository;
-    public static Image               LOADING = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
-    private final IThumbnailGenerator thumbnailGenerator;
+    private final ThumbnailRepository                 thumbnailRepository;
+    public static Image                               LOADING   = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
+    private final IThumbnailGenerator                 thumbnailGenerator;
     @Qualifier(ImageInConfiguration.THUMBNAILS)
-    private final Cache               thumbnailCache;
-    private final TaskService         taskService;
-
+    private final Cache                               thumbnailCache;
+    private final TaskService                         taskService;
     private final PersistenceService                  persistenceService;
     private final Map<Long, CompletableFuture<Image>> taskCache = new ConcurrentHashMap<>();
 
@@ -57,7 +56,6 @@ public class MediaLoader {
     private Image loadThumbnail(long id, Path p) {
         try {
 //            log.info("Cache miss: {}", p);
-//            return new Image(p.toUri().toString(), 300D, 0, true, true);
             return thumbnailGenerator.generate(p, DEFAULT_THUMB_SIZE);
         }
         catch (Exception e) {
@@ -72,10 +70,11 @@ public class MediaLoader {
                          .thenAccept(thumbnailRes -> Platform.runLater(thumbnailRes::updateThumbnail));
     }
 
+
     /**
      * This method must not be called from javafx thread
      */
-    public ThumbnailRes loadThumbnail(final MediaFile file) {
+    private ThumbnailRes loadThumbnail(final MediaFile file) {
         if (Platform.isFxApplicationThread()) { // TODO: Maybe remove this check later for performance issue.
             throw new RuntimeException("Invalid method call (called into JavaFx Thread snd must not)");
         }
@@ -121,12 +120,6 @@ public class MediaLoader {
         return null;
     }
 
-    @CachePut(key = "p")
-    public Image updateCache(Path p, Image image) {
-        return image;
-
-    }
-
     @EventListener(GenerateThumbnailEvent.class)
     public void generateThumbnails(GenerateThumbnailEvent event) {
         ImmutableList<MediaFile> mediaFiles = Lists.immutable.ofAll(event.getCatalog().medias());
@@ -141,6 +134,21 @@ public class MediaLoader {
 
         CompletableFuture.allOf(futures)
                          .thenAccept(u -> taskService.notifyLater(new CatalogEvent(event.getCatalog(), CatalogEvent.EventType.SELECTED, this)));
+    }
+
+    @EventListener(WarmThumbnailCacheEvent.class)
+    public void warmThumbnailCache(final WarmThumbnailCacheEvent event) {
+        CompletableFuture.runAsync(() -> {
+            event.getCatalog().medias().forEach(mf -> {
+                var thumbnail = thumbnailCache.get(mf.id(), Thumbnail.class);
+                if (thumbnail == null) {
+                    thumbnail = persistenceService.findByPathOrId(mf).orElse(null);
+                    if (thumbnail != null) {
+                        thumbnailCache.put(mf.id(), thumbnail);
+                    }
+                }
+            });
+        });
     }
 
     record ThumbnailRes(MediaFile file, Thumbnail thumbnail) {
