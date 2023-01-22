@@ -95,13 +95,42 @@ public class Nodes {
     public static <T> Optional<T> getFirstParent(Node node, Class<T> type) {
         Parent parent = node.getParent();
 
-        while(parent != null) {
+        while (parent != null) {
             if (type.isInstance(parent)) {
                 return Optional.of(type.cast(parent));
             }
             parent = parent.getParent();
         }
 
+        return Optional.empty();
+    }
+
+    public static <T> Optional<T> getFirstChild(Node node, Class<T> type) {
+        if (type.isInstance(node)) {
+            return Optional.of(type.cast(node));
+        }
+        if (node instanceof Parent parent) {
+            var children = parent.getChildrenUnmodifiable();
+
+            if (children.isEmpty()) {
+                return Optional.empty();
+            }
+
+            return children.stream()
+                           .filter(type::isInstance)
+                           .map(type::cast)
+                           .findFirst()
+                           .or(() ->
+                                       children.stream()
+                                               .filter(Parent.class::isInstance)
+                                               .map(Parent.class::cast)
+                                               .flatMap(p -> p.getChildrenUnmodifiable().stream())
+                                               .map(n -> getFirstChild(n, type))
+                                               .filter(Optional::isPresent)
+                                               .map(Optional::get)
+                                               .findFirst()
+                           );
+        }
         return Optional.empty();
     }
 

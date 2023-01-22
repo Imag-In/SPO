@@ -2,9 +2,8 @@
 
 <?import javafx.scene.layout.StackPane?>
 <?import org.controlsfx.control.TaskProgressView?>
-
 <StackPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.icroco.picture.ui.task.TaskController">
    <children>
-      <TaskProgressView fx:id="tasks" prefHeight="150.0" prefWidth="200.0" />
+      <TaskProgressView fx:id="tasks" prefHeight="400.0" prefWidth="600.0"/>
    </children>
 </StackPane>
