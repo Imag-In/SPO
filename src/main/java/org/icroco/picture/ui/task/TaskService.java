@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.event.ApplicationEventMulticaster;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +36,9 @@ public class TaskService {
     }
 
 
+    /**
+     * post an event into the bus through Fx Thread.
+     */
     public void notifyLater(ApplicationEvent event) {
         Platform.runLater(() -> eventBus.multicastEvent(event));
     }

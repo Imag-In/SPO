@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Accordion?>
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
-<?import org.kordamp.ikonli.javafx.*?>
-
+<?import javafx.scene.text.Font?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 <VBox fx:id="layout" maxWidth="200.0" minWidth="200.0" prefWidth="200.0" stylesheets="/css/dark.css" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.icroco.picture.ui.catalog.CollectionController">
     <HBox fx:id="collectionHeader">
         <Label fx:id="header" text="Collections" AnchorPane.leftAnchor="5.0" HBox.hgrow="ALWAYS">
@@ -16,7 +16,7 @@
         <Region HBox.hgrow="ALWAYS" />
         <Label fx:id="addCollection" alignment="CENTER" contentDisplay="CENTER" onMouseClicked="#newCollection" prefHeight="24.0">
             <graphic>
-                <FontIcon  id="plusCollection" />
+                <FontIcon id="plusCollection"/>
 
 <!--                <FontIcon iconLiteral="fas-plus" iconColor="-fx-text-base-color"/>-->
             </graphic>
@@ -27,7 +27,7 @@
         <!--                </graphic>-->
         <!--            </Button>-->
     </HBox>
-    <Accordion fx:id="catalogs" />
+    <Accordion fx:id="catalogs" VBox.vgrow="ALWAYS"/>
    <padding>
       <Insets right="10.0" />
    </padding>

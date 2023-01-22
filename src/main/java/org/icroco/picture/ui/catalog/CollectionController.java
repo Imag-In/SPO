@@ -127,6 +127,7 @@ public class CollectionController extends FxInitOnce {
         return new AbstractTask<>() {
             @Override
             protected Catalog call() throws Exception {
+                updateTitle("Scanning directory: " + rootPath.getFileName());
                 updateMessage("Scanning '" + rootPath + "'");
                 try (var s = Files.walk(rootPath)) {
                     var children = s.filter(Files::isDirectory)
@@ -188,7 +189,7 @@ public class CollectionController extends FxInitOnce {
         treeView.setEditable(false);
         rootItem.setExpanded(true);
         treeView.setCellFactory(param -> new TextFieldTreeCell<>(new PathConverter()));
-        log.info("create Collection: {}", catalog.path());
+        log.info("Add collection: {}", catalog.path());
 
         catalog.subPaths().forEach(c -> {
             var p = catalog.path().relativize(c.name());

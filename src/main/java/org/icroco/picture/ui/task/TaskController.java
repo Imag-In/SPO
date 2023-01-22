@@ -1,9 +1,7 @@
 package org.icroco.picture.ui.task;
 
 import javafx.beans.binding.Bindings;
-import javafx.beans.binding.ObjectBinding;
 import javafx.beans.property.SimpleListProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.ListChangeListener;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -31,23 +29,23 @@ public class TaskController extends FxInitOnce {
                            .progressProperty()
                            .bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
 
-        tasks.getTasks().addListener(getTaskListChangeListener(list));
+        tasks.getTasks().addListener(getTaskListChangeListener());
     }
 
-    private ListChangeListener<Task<?>> getTaskListChangeListener(SimpleListProperty<Task<?>> list) {
+    private ListChangeListener<Task<?>> getTaskListChangeListener() {
         return c -> {
+            c.next();
             final var textProperty = statusBarController.getContainer().textProperty();
             if (c.getList().isEmpty()) {
                 textProperty.unbind();
                 textProperty.set("");
             } else if (c.getList().size() == 1) {
                 textProperty.unbind();
-                textProperty.bind(Bindings.valueAt(list, 1).map(Task::getMessage));
+                textProperty.bind(c.getList().get(0).titleProperty());
             } else if (c.getList().size() == 2) {
-                c.next();
                 if (c.wasAdded()) {
                     textProperty.unbind();
-                    textProperty.bind(Bindings.size(list).map(number -> number + " tasks left ..."));
+                    textProperty.bind(Bindings.size(c.getList()).map(number -> number + " tasks left ..."));
                 }
             }
         };

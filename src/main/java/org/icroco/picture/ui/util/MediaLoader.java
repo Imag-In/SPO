@@ -5,6 +5,7 @@ import javafx.concurrent.Task;
 import javafx.scene.image.Image;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import one.util.streamex.EntryStream;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.ImmutableList;
@@ -34,6 +35,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -138,16 +140,26 @@ public class MediaLoader {
 
     @EventListener(WarmThumbnailCacheEvent.class)
     public void warmThumbnailCache(final WarmThumbnailCacheEvent event) {
-        CompletableFuture.runAsync(() -> {
-            event.getCatalog().medias().forEach(mf -> {
-                var thumbnail = thumbnailCache.get(mf.id(), Thumbnail.class);
-                if (thumbnail == null) {
-                    thumbnail = persistenceService.findByPathOrId(mf).orElse(null);
-                    if (thumbnail != null) {
-                        thumbnailCache.put(mf.id(), thumbnail);
-                    }
-                }
-            });
+        taskService.supply(new AbstractTask<Void>() {
+            @Override
+            protected Void call() throws Exception {
+                updateTitle("Warm thumbnails cache");
+                Set<MediaFile> medias = event.getCatalog().medias();
+                updateProgress(0, medias.size());
+                EntryStream.of(new ArrayList<>(medias))
+                           .forEach(entry -> {
+                               var thumbnail = thumbnailCache.get(entry.getValue().id(), Thumbnail.class);
+                               if (thumbnail == null) {
+                                   thumbnail = persistenceService.findByPathOrId(entry.getValue()).orElse(null);
+                                   if (thumbnail != null) {
+                                       thumbnailCache.put(entry.getValue().id(), thumbnail);
+                                       updateMessage("Thumbnail loaded: " + entry.getValue().fullPath().getFileName());
+                                   }
+                                   updateProgress(entry.getKey(), medias.size());
+                               }
+                           });
+                return null;
+            }
         });
     }
 
@@ -168,7 +180,7 @@ public class MediaLoader {
                 var size = files.size();
 //                w.start("Build Thumbnail");
                 log.debug("Generate a batch of '{}' thumbnails for: {}", size, catalog.path());
-                updateMessage("Thumbnail generation for '" + size + " images");
+                updateTitle("Thumbnail generation for '" + size + " images");
                 updateProgress(0, size);
                 final LocalDate now = LocalDate.now();
 
