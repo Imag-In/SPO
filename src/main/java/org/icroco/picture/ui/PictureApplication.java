@@ -35,13 +35,11 @@ public class PictureApplication extends AbstractJavaFxApplication {
         primaryStage.getIcons().add(new Image(icon));
         if (Taskbar.isTaskbarSupported()) {
             var taskbar = Taskbar.getTaskbar();
-
             if (taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) {
                 final Toolkit defaultToolkit = Toolkit.getDefaultToolkit();
                 var           dockIcon       = defaultToolkit.getImage(getClass().getResource(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG));
                 taskbar.setIconImage(dockIcon);
             }
-
         }
         primaryStage.setTitle("Image'In");
 //        primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/images/240px-GNOME_Photos_logo_2019.svg.png")));

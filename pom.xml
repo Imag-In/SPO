@@ -24,6 +24,7 @@
         <resource.delimiter>@</resource.delimiter>
         <spring-boot-javafx-starter.version>1.0.3-SNAPSHOT</spring-boot-javafx-starter.version>
         <spring-boot.version>3.0.1</spring-boot.version>
+        <imageio-jpeg.version>3.9.4</imageio-jpeg.version>
     </properties>
 
     <dependencyManagement>
@@ -51,6 +52,11 @@
             <groupId>org.openpnp</groupId>
             <artifactId>opencv</artifactId>
             <version>4.6.0-0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-jpeg</artifactId>
+            <version>${imageio-jpeg.version}</version>
         </dependency>
         <!--    <dependency>-->
         <!--      <groupId>org.jfxtras</groupId>-->

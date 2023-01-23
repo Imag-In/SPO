@@ -36,6 +36,12 @@ public class ImageUtils {
 //
 //    }
 
+    static {
+        for (String codec : ImageIO.getReaderFormatNames()) {
+            log.info("Supported codex: {}", codec);
+        }
+    }
+
     public static Image getJavaFXImageSlow(byte[] rawPixels, int width, int height) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
@@ -53,7 +59,7 @@ public class ImageUtils {
         return toFXImage(createBufferedImage(rawPixels, width, height), null);
     }
 
-    public static Image map(byte[] image) {
+    public static Image mapAsJpg(byte[] image) {
         if (image == null || image.length == 0) {
             log.error("Cannot empty or null byte array: ");
         }
@@ -67,11 +73,14 @@ public class ImageUtils {
         return null;
     }
 
-    public static byte[] map(Image image) {
+    public static byte[] mapAsJpg(Image image) {
+        var           bi     = SwingFXUtils.fromFXImage(image, null);
+        BufferedImage result = new BufferedImage((int) image.getWidth(), (int) image.getHeight(), BufferedImage.TYPE_INT_RGB);
+        result.createGraphics().drawImage(bi, 0, 0, Color.WHITE, null);
 
-        var bi = SwingFXUtils.fromFXImage(image, null);
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            ImageIO.write(bi, "png", baos);
+            ImageIO.write(result, "jpg", baos);
+            baos.flush();
             return baos.toByteArray();
         }
         catch (IOException e) {

@@ -27,11 +27,11 @@ public abstract class ThumbnailMapper {
     }
 
     public final Image map(byte[] array) {
-        return array == null ? null : ImageUtils.map(array);
+        return array == null ? null : ImageUtils.mapAsJpg(array);
     }
 
     public final byte[] map(Image image) {
-        return image == null ? null : ImageUtils.map(image);
+        return image == null ? null : ImageUtils.mapAsJpg(image);
     }
 
 
