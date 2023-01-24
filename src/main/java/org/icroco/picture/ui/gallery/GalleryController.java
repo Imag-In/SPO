@@ -20,11 +20,14 @@ import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.CatalogEntrySelectedEvent;
 import org.icroco.picture.ui.event.CatalogEvent;
+import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
+import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.MediaLoader;
+import org.icroco.picture.ui.util.Nodes;
 import org.slf4j.Logger;
 import org.springframework.context.event.EventListener;
 import org.springframework.lang.Nullable;
@@ -42,6 +45,7 @@ public class GalleryController extends FxInitOnce {
     private final MediaLoader           mediaLoader;
     private final UserPreferenceService pref;
     private final PersistenceService    persistenceService;
+    private final TaskService           taskService;
 
     @FXML
     public  Label               nbImages;
@@ -78,7 +82,7 @@ public class GalleryController extends FxInitOnce {
         gridView.setCellWidth(gridCellWidth);
         gridView.setCellHeight(gridCellHeight);
 //        gridView.setCellFactory(gv -> new ImageGridCell());
-        gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader));
+        gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService));
         zoomThumbnails.valueProperty().addListener((ObservableValue<? extends Number> ov, Number oldValue, Number newValue) -> {
             gridView.setCellWidth(gridCellWidth + 3 * newValue.doubleValue());
             gridView.setCellHeight(gridCellHeight + 3 * newValue.doubleValue());
@@ -117,6 +121,15 @@ public class GalleryController extends FxInitOnce {
         resetBcbModel(event.getRoot(), event.getEntry());
         final var path = event.getRoot().resolve(event.getEntry());
         filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
+    }
+
+    @EventListener(PhotoSelectedEvent.class)
+    public void updatePhotoSelected(PhotoSelectedEvent event) {
+        log.debug("Photo selected: root: {}", event.getFile().getFileName());
+        // TODO: it works with only one item selected.
+        TreeItem<Path> root    = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
+        Path           subPath = root.getValue().relativize(event.getFile().getFullPath());
+        resetBcbModel(root.getValue(), subPath);
     }
 
     Task<List<MediaFile>> fillGallery(final List<MediaFile> files) {

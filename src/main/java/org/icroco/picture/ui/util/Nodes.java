@@ -6,10 +6,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.ContentDisplay;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.Label;
-import javafx.scene.control.TitledPane;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.stage.Screen;
@@ -179,5 +176,34 @@ public class Nodes {
         contentPane.getChildren().addAll(labels);
 
         tp.setGraphic(contentPane);
+    }
+
+    public static <T> TreeItem<T> getLast(TreeItem<T> item) {
+        TreeItem<T> last = item.getChildren().stream().findFirst().orElse(null);
+
+        if (last == null) {
+            return item;
+        }
+        return getLast(last);
+    }
+
+    public static <T> TreeItem<T> getRoot(TreeItem<T> item) {
+        if (item.getParent() == null) {
+            return item;
+        }
+
+        return getRoot(item.getParent());
+    }
+
+    public static <T> TreeItem<T> removeLast(TreeItem<T> item) {
+        TreeItem<T> last = getLast(item);
+
+        if (last == item) {
+            return null;
+        }
+        TreeItem<T> parent = last.getParent();
+        parent.getChildren().remove(last);
+
+        return last;
     }
 }

@@ -21,14 +21,22 @@ public class MediaFile implements IMediaFile {
     private LocalDate                       originalDate;
     private Set<Tag>                        tags;
     private SimpleObjectProperty<Thumbnail> thumbnail;
+    private boolean                         selected;
 
-    public MediaFile(long id, Path fullPath, String fileName, LocalDate originalDate, Set<Tag> tags, SimpleObjectProperty<Thumbnail> thumbnail) {
+    public MediaFile(long id,
+                     Path fullPath,
+                     String fileName,
+                     LocalDate originalDate,
+                     Set<Tag> tags,
+                     SimpleObjectProperty<Thumbnail> thumbnail,
+                     boolean isSelected) {
         this.id = id;
         this.fullPath = fullPath;
         this.fileName = fileName;
         this.originalDate = originalDate;
         this.tags = tags;
         this.thumbnail = thumbnail == null ? new SimpleObjectProperty<>(null) : thumbnail;
+        this.selected = false;
     }
 
     @Override
@@ -54,6 +62,10 @@ public class MediaFile implements IMediaFile {
     @Override
     public Set<Tag> tags() {
         return getTags();
+    }
+
+    public void invertSelection() {
+        selected = !selected;
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {

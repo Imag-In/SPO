@@ -43,6 +43,8 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         if (empty) {
             this.setGraphic(null);
         } else {
+//            log.info("Update: {}, isSelected: {}", item.fullPath(), isSelected());
+
 //            if (this.preserveImageProperties) {
 //                this.imageView.setPreserveRatio(true);
 //                imageView.setSmooth(true);
@@ -59,6 +61,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
                 imageView.setImage(item.getThumbnail().get().getThumbnail());
                 root.getChildren().add(imageView);
             }
+            updateSelected(item.isSelected());
             setGraphic(root);
 //            if (item.isLoading()) {
 //                imageView.setImage(MediaLoader.LOADING);

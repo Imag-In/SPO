@@ -40,7 +40,11 @@ public class TaskService {
      * post an event into the bus through Fx Thread.
      */
     public void notifyLater(ApplicationEvent event) {
-        Platform.runLater(() -> eventBus.multicastEvent(event));
+        if (Platform.isFxApplicationThread()) {
+            eventBus.multicastEvent(event);
+        } else {
+            Platform.runLater(() -> eventBus.multicastEvent(event));
+        }
     }
 
 }
