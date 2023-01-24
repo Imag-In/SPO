@@ -75,6 +75,7 @@ public class GalleryController extends FxInitOnce {
                  gridView.getHorizontalCellSpacing(),
                  gridView.getVerticalCellSpacing());
         gridView.setItems(sortedImages);
+        sortedImages.setComparator(Comparator.comparing(MediaFile::getOriginalDate));
 //        gridCellWidth = Optional.ofNullable(pref.getUserPreference().getGrid().getCellWidth()).orElse((int)gridView.getCellWidth());
 //        gridCellHeight = Optional.ofNullable(pref.getUserPreference().getGrid().getCellHeight()).orElse((int)gridView.getCellHeight());
         gridCellWidth = gridView.getCellWidth() * 2;
@@ -110,7 +111,6 @@ public class GalleryController extends FxInitOnce {
                 currentCatalog = Optional.of(event.getCatalog());
                 resetBcbModel(event.getCatalog().path(), null);
                 images.addAll(event.getCatalog().medias());
-
             }
         }
     }

@@ -6,7 +6,9 @@ import javafx.collections.ListChangeListener;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.input.MouseEvent;
 import javafx.util.Duration;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -28,9 +30,7 @@ public class StatusBarController extends FxInitOnce {
     @FXML
     @Getter
     private StatusBar container;
-
-    private PopOver popOver;
-
+    private PopOver   popOver;
 
     @Override
     protected void initializedOnce() {
@@ -63,19 +63,22 @@ public class StatusBarController extends FxInitOnce {
         };
     }
 
-
     public void initPopOver(Node node) {
         popOver = createPopOver(node);
         Nodes.getFirstChild(((CustomStatusBarSkin) container.getSkin()).getChildren().get(0), ProgressBar.class)
-             .ifPresent(p -> p.setOnMouseClicked(event -> {
-                 if (popOver.isShowing()) {
-                     popOver.hide(Duration.ZERO);
-                 } else if (event.getClickCount() >= 1) {
-                     var targetX = event.getScreenX();
-                     var targetY = event.getScreenY();
-                     popOver.show(container, targetX, targetY);
-                 }
-             }));
+             .ifPresent(p -> p.setOnMouseClicked(this::showPopup));
+        Nodes.getFirstChild(((CustomStatusBarSkin) container.getSkin()).getChildren().get(0), Label.class)
+             .ifPresent(p -> p.setOnMouseClicked(this::showPopup));
+    }
+
+    private void showPopup(MouseEvent event) {
+        if (popOver.isShowing()) {
+            popOver.hide(Duration.ZERO);
+        } else if (event.getClickCount() >= 1) {
+            var targetX = event.getScreenX();
+            var targetY = event.getScreenY();
+            popOver.show(container, targetX, targetY);
+        }
     }
 
     private PopOver createPopOver(Node node) {

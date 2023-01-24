@@ -1,7 +1,7 @@
 package org.icroco.picture.ui.model;
 
 import java.nio.file.Path;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 public interface IMediaFile {
@@ -11,7 +11,7 @@ public interface IMediaFile {
 
     String fileName();
 
-    LocalDate originalDate();
+    LocalDateTime originalDate();
 
     Set<Tag> tags();
 }

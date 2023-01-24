@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.nio.file.Path;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
@@ -18,7 +18,7 @@ public class MediaFile implements IMediaFile {
     private long                            id;
     private Path                            fullPath;
     private String                          fileName;
-    private LocalDate                       originalDate;
+    private LocalDateTime                   originalDate;
     private Set<Tag>                        tags;
     private SimpleObjectProperty<Thumbnail> thumbnail;
     private boolean                         selected;
@@ -26,7 +26,7 @@ public class MediaFile implements IMediaFile {
     public MediaFile(long id,
                      Path fullPath,
                      String fileName,
-                     LocalDate originalDate,
+                     LocalDateTime originalDate,
                      Set<Tag> tags,
                      SimpleObjectProperty<Thumbnail> thumbnail,
                      boolean isSelected) {
@@ -55,7 +55,7 @@ public class MediaFile implements IMediaFile {
     }
 
     @Override
-    public LocalDate originalDate() {
+    public LocalDateTime originalDate() {
         return getOriginalDate();
     }
 

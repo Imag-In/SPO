@@ -20,10 +20,8 @@ public class TaskController extends FxInitOnce {
     @FXML
     private TaskProgressView<Task<?>> tasks;
 
-
     public ObservableList<Task<?>> getTasks() {
         return tasks.getTasks();
-
     }
 
     @Override

@@ -14,6 +14,14 @@ class DefaultMetadataExtractorTest {
 //    @Disabled
     void should_read_orientation() {
         log.info("orientation: {}", extractor.orientation(Paths.get("/Users/christophe/Pictures/foo/bar/RP Felie.png")));
+        log.info("orientation: {}", extractor.orientation(Paths.get("/Users/christophe/Pictures/foo/test/Espagne-25072017-138.jpg")));
     }
+
+    @Test
+    void should_read_header() {
+        log.info("header: {}", extractor.header(Paths.get("/Users/christophe/Pictures/foo/bar/RP Felie.png")));
+        log.info("header: {}", extractor.header(Paths.get("/Users/christophe/Pictures/foo/test/Espagne-25072017-138.jpg")));
+    }
+
 
 }

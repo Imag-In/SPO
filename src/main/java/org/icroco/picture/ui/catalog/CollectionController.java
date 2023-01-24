@@ -34,6 +34,8 @@ import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.FileUtil;
 import org.icroco.picture.ui.util.Nodes;
 import org.icroco.picture.ui.util.PathConverter;
+import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
+import org.icroco.picture.ui.util.metadata.MetadataHeader;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
@@ -42,8 +44,9 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -55,6 +58,7 @@ public class CollectionController extends FxInitOnce {
     private final TaskService           taskService;
     private final PersistenceService    service;
     private final UserPreferenceService pref;
+    private final IMetadataExtractor    metadataExtractor;
 
     @FXML
     private       Accordion       catalogs;
@@ -140,12 +144,11 @@ public class CollectionController extends FxInitOnce {
                         var filteredImages = images.filter(p -> !Files.isDirectory(p))   // not a directory
                                                    .filter(Constant::isSupportedExtension)
                                                    .toList();
-                        var now = LocalDate.now();
                         return service.saveCatalog(Catalog.builder().path(rootPath)
                                                                     .subPaths(children)
                                                                     .medias(filteredImages.stream()
                                                                                           .map(i -> persistenceService.findByPath(i)
-                                                                                                                      .orElseGet(() -> create(i, now)))
+                                                                                                                      .orElseGet(() -> create(i)))
                                                                                           .collect(Collectors.toSet()))
                                                                     .build());
                     }
@@ -156,8 +159,8 @@ public class CollectionController extends FxInitOnce {
             protected void succeeded() {
                 var catalog = getValue();
                 log.info("Entries: {}", catalog.medias().size());
-                var paneTreeView = createTreeView(catalog);
-//                catalogs.setExpandedPane(paneTreeView.getValue().tp);
+                // We do not expand now, we're waiting thumbnails creation.
+                createTreeView(catalog);
                 disablePathActions.set(false);
                 taskService.notifyLater(new GenerateThumbnailEvent(catalog, this));
             }
@@ -172,11 +175,12 @@ public class CollectionController extends FxInitOnce {
     }
 
 
-    private MediaFile create(Path p, LocalDate now) {
+    private MediaFile create(Path p) {
+        var h = metadataExtractor.header(p);
         return MediaFile.builder()
                 .fullPath(p)
                 .fileName(p.getFileName().toString())
-                .originalDate(now)
+                .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))
                 .build();
     }
 
@@ -229,8 +233,7 @@ public class CollectionController extends FxInitOnce {
                  .ifPresent(c -> {
                      final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, "");
                      dlg.setTitle("You do want delete Catalog ?");
-                     dlg.getDialogPane()
-                        .setContentText("Do you want to delete Catalog: " + c.path() + " id: " + c.id());
+                     dlg.getDialogPane().setContentText("Do you want to delete Catalog: " + c.path() + " id: " + c.id());
 
                      dlg.show();
                      dlg.resultProperty()
@@ -258,12 +261,12 @@ public class CollectionController extends FxInitOnce {
 
     @EventListener(CatalogEvent.class)
     public void catalogEvent(CatalogEvent event) {
-        switch (event.getType()) {
-            case SELECTED -> catalogs.getPanes()
-                                     .stream()
-                                     .filter(tp -> ((Catalog) tp.getUserData()).id() == event.getCatalog().id())
-                                     .findFirst()
-                                     .ifPresent(tp -> catalogs.setExpandedPane(tp));
+        if (Objects.requireNonNull(event.getType()) == EventType.SELECTED) {
+            catalogs.getPanes()
+                    .stream()
+                    .filter(tp -> ((Catalog) tp.getUserData()).id() == event.getCatalog().id())
+                    .findFirst()
+                    .ifPresent(tp -> catalogs.setExpandedPane(tp));
         }
     }
 

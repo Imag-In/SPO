@@ -27,7 +27,7 @@ public class ImageInConfiguration {
         return new CaffeineCache(THUMBNAILS,
                                  Caffeine.newBuilder()
                                          .recordStats()
-                                         .maximumSize(10000)
+                                         .maximumSize(1000)
                                          .expireAfterAccess(1, TimeUnit.DAYS)
                                          .build());
     }
