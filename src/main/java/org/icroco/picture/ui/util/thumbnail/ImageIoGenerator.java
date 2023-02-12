@@ -17,6 +17,11 @@ public class ImageIoGenerator extends AbstractThumbnailGenerator {
     }
 
     @Override
+    public ThumbnailOutput generateJpg(Path path, Dimension dim) {
+        throw new RuntimeException("Not Yet Implemented");
+    }
+
+    @Override
     public void generate(Path source, Path target, Dimension dim) {
         try {
             var bImage = ImageIO.read(source.toFile());

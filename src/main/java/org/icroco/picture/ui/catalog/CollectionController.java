@@ -260,13 +260,15 @@ public class CollectionController extends FxInitOnce {
     }
 
     @EventListener(CatalogEvent.class)
-    public void catalogEvent(CatalogEvent event) {
-        if (Objects.requireNonNull(event.getType()) == EventType.SELECTED) {
-            catalogs.getPanes()
-                    .stream()
-                    .filter(tp -> ((Catalog) tp.getUserData()).id() == event.getCatalog().id())
-                    .findFirst()
-                    .ifPresent(tp -> catalogs.setExpandedPane(tp));
+    public void catalogEvent(final CatalogEvent event) {
+        if (Objects.requireNonNull(event.getType()) == EventType.READY) {
+            Platform.runLater(() -> {
+                catalogs.getPanes()
+                        .stream()
+                        .filter(tp -> ((Catalog) tp.getUserData()).id() == event.getCatalog().id())
+                        .findFirst()
+                        .ifPresent(tp -> catalogs.setExpandedPane(tp));
+            });
         }
     }
 

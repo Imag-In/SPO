@@ -2,18 +2,17 @@ package org.icroco.picture.ui.util.thumbnail;
 
 import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.Dimension;
+import org.icroco.picture.ui.util.FileUtil;
 import org.icroco.picture.ui.util.metadata.DefaultMetadataExtractor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.StopWatch;
-import org.threeten.extra.AmountFormats;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.util.Locale;
+import java.util.List;
 
 class ThumbnailatorGeneratorTest {
     //    public static final String IMAGE_DIR = "/Users/christophe/Pictures/Holidays/Ete/Espagne 2017";
@@ -48,7 +47,7 @@ class ThumbnailatorGeneratorTest {
                                watch.stop();
                            }
                   );
-            print(watch);
+            FileUtil.print(watch);
         }
     }
 
@@ -73,8 +72,20 @@ class ThumbnailatorGeneratorTest {
                                watch.stop();
                            }
                   );
-            print(watch);
+            FileUtil.print(watch);
         }
+    }
+
+    @Test
+    void generate_thumbnails_imgscalr_bytes() throws IOException {
+        IThumbnailGenerator generator = new ImgscalrGenerator(new DefaultMetadataExtractor());
+        Dimension           dimension = new Dimension(600, 600);
+
+        List.of(Paths.get("src/test/resources/images/benchmark/Corse 2015-20072015-036.jpg"),
+                Paths.get("src/test/resources/images/benchmark/Corse 2015-24072015-275.jpg"))
+            .forEach(path -> {
+                System.out.println(generator.generateJpg(path, dimension).data().length);
+            });
     }
 
 
@@ -98,16 +109,7 @@ class ThumbnailatorGeneratorTest {
                                watch.stop();
                            }
                   );
-            print(watch);
-        }
-    }
-
-    private static void print(StopWatch watch) {
-        System.out.println(
-                watch.getId() + " Time: " + AmountFormats.wordBased(Duration.ofMillis(watch.getTotalTimeMillis()), Locale.getDefault()));
-        for (StopWatch.TaskInfo t : watch.getTaskInfo()) {
-            System.out.println("   " +
-                               t.getTaskName() + " Time: " + AmountFormats.wordBased(Duration.ofMillis(t.getTimeMillis()), Locale.getDefault()));
+            FileUtil.print(watch);
         }
     }
 }

@@ -5,6 +5,7 @@ import javafx.scene.image.Image;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.util.Dimension;
+import org.icroco.picture.ui.util.ImageUtils;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.jooq.lambda.Unchecked;
 
@@ -29,9 +30,30 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             var orientation = metadataExtractor.orientation(path).orElse(1);
 //            System.out.println("Orientation: " + orientation);
             var img = ImageIO.read(path.toFile()); // load image
-            img = adaptOrientation(img, orientation);
-            return SwingFXUtils.toFXImage(resize(img, dim), null);
+//            img = adaptOrientation(img, orientation);
+            return SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null);
         }).get();
+    }
+
+    // Generate Thumbnail: Corse 2015-20072015-036.jpg Time: 664 millisecondes
+    //      Orientation Time:               0 millisecondes
+    //      ImageIO.read Time:              316 millisecondes
+    //      adaptOrientation: 1 Time:       0 millisecondes
+    //      resize Time:                    333 millisecondes
+    //      ImageUtils.toByteArray Time:    13 millisecon
+    public ThumbnailOutput generateJpg(Path path, Dimension dim) {
+        var           orientation = metadataExtractor.orientation(path).orElse(1);
+        BufferedImage img         = null; // load image
+        try {
+            img = ImageIO.read(path.toFile());
+            img = adaptOrientation(img, orientation);
+            BufferedImage resize = resize(img, dim);
+            byte[]        jpgs   = ImageUtils.toByteArray(resize, "jpg");
+            return new ThumbnailOutput(path, jpgs, null);
+        }
+        catch (IOException e) {
+            return new ThumbnailOutput(path, null, e);
+        }
     }
 
     @Override
@@ -1309,8 +1331,11 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      * @see Method
      * @see Mode
      */
-    public static BufferedImage resize(BufferedImage src, Method scalingMethod,
-                                       Mode resizeMode, int targetWidth, int targetHeight,
+    public static BufferedImage resize(BufferedImage src,
+                                       Method scalingMethod,
+                                       Mode resizeMode,
+                                       int targetWidth,
+                                       int targetHeight,
                                        BufferedImageOp... ops) throws IllegalArgumentException,
                                                                       ImagingOpException {
         long t = -1;
@@ -1831,8 +1856,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      * @return the fastest {@link Method} suited for scaling the image to the
      * specified dimensions while maintaining a good-looking result.
      */
-    protected static Method determineScalingMethod(int targetWidth,
-                                                   int targetHeight, float ratio) {
+    protected static Method determineScalingMethod(int targetWidth, int targetHeight, float ratio) {
         // Get the primary dimension based on the orientation of the image
         int length = (ratio <= 1 ? targetWidth : targetHeight);
 

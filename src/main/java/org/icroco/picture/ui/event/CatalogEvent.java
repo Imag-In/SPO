@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationEvent;
 public class CatalogEvent extends ApplicationEvent {
 
     public enum EventType {
+        READY,
         SELECTED,
         CREATED,
         DELETED,

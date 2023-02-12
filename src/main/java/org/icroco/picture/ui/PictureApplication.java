@@ -9,6 +9,7 @@ import org.icroco.javafx.AbstractJavaFxApplication;
 import org.icroco.javafx.ViewAutoConfiguration;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.util.Error;
+import org.icroco.picture.ui.util.ImageUtils;
 import org.icroco.picture.ui.util.Nodes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -31,6 +32,7 @@ public class PictureApplication extends AbstractJavaFxApplication {
     @Override
     protected void preStart(final Stage primaryStage) {
 //        OpenCV.loadShared();
+        ImageUtils.readImageIoCodec();
         var icon = getClass().getResourceAsStream(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG);
         primaryStage.getIcons().add(new Image(icon));
         if (Taskbar.isTaskbarSupported()) {

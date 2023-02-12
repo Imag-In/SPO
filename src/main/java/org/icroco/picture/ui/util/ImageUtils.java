@@ -36,9 +36,15 @@ public class ImageUtils {
 //
 //    }
 
-    static {
+//    static {
+//        for (String codec : ImageIO.getReaderFormatNames()) {
+//            log.info("Supported codex: {}", codec);
+//        }
+//    }
+
+    public static void readImageIoCodec() {
         for (String codec : ImageIO.getReaderFormatNames()) {
-            log.info("Supported codex: {}", codec);
+            log.info("Supported codec: {}", codec);
         }
     }
 
@@ -75,18 +81,32 @@ public class ImageUtils {
 
     public static byte[] mapAsJpg(Image image) {
         var           bi     = SwingFXUtils.fromFXImage(image, null);
+
         BufferedImage result = new BufferedImage((int) image.getWidth(), (int) image.getHeight(), BufferedImage.TYPE_INT_RGB);
         result.createGraphics().drawImage(bi, 0, 0, Color.WHITE, null);
-
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             ImageIO.write(result, "jpg", baos);
-            baos.flush();
+//            baos.flush();
             return baos.toByteArray();
         }
         catch (IOException e) {
             log.error("Cannot comvert image: " + image.getUrl() + " to byte array");
         }
         return null;
+    }
+
+    public static byte[] toByteArray(BufferedImage bi, String format)
+            throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(bi, format, baos);
+        return baos.toByteArray();
+    }
+
+    // convert byte[] to BufferedImage
+    public static BufferedImage toBufferedImage(byte[] bytes)
+            throws IOException {
+        InputStream is = new ByteArrayInputStream(bytes);
+        return ImageIO.read(is);
     }
 
     public static byte[] getRawImage(Image image) {

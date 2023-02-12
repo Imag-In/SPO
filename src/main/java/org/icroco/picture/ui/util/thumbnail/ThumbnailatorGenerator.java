@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import net.coobird.thumbnailator.resizers.configurations.Antialiasing;
 import org.icroco.picture.ui.util.Dimension;
+import org.icroco.picture.ui.util.ImageUtils;
 import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
@@ -31,6 +32,22 @@ public class ThumbnailatorGenerator extends AbstractThumbnailGenerator {
             throw new RuntimeException(e);
         }
         return null;
+    }
+
+    @Override
+    public ThumbnailOutput generateJpg(Path path, Dimension dim) {
+        try {
+            return new ThumbnailOutput(path,
+                                       ImageUtils.toByteArray(Thumbnails.of(path.toFile())
+                                                                        .size(dim.width(), dim.height())
+                                                                        .keepAspectRatio(true)
+                                                                        .antialiasing(Antialiasing.ON)
+                                                                        .asBufferedImage(), "jpg"),
+                                       null);
+        }
+        catch (IOException e) {
+            return new ThumbnailOutput(path, null, e);
+        }
     }
 
 

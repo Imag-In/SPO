@@ -64,6 +64,10 @@ public class PersistenceService {
         return thumbnail;
     }
 
+    public void saveAll(Collection<Thumbnail> thumbnails) {
+        thumbRepo.saveAll(thumbnails.stream().map(thumbMapper::map).toList());
+    }
+
     public Optional<MediaFile> findByPath(Path p) {
         return mfRepo.findByFullPath(p).map(mfMapper::map);
         // TODO: Load thumbnail ?
@@ -75,12 +79,12 @@ public class PersistenceService {
                         .map(thumbMapper::map);
     }
 
-    public List<Thumbnail> saveAll(List<Thumbnail> values) {
-        return thumbRepo.saveAll(values.stream()
-                                       .map(thumbMapper::map)
-                                       .toList())
-                        .stream()
-                        .map(thumbMapper::map)
-                        .toList();
-    }
+//    public List<Thumbnail> saveAll(List<Thumbnail> values) {
+//        return thumbRepo.saveAll(values.stream()
+//                                       .map(thumbMapper::map)
+//                                       .toList())
+//                        .stream()
+//                        .map(thumbMapper::map)
+//                        .toList();
+//    }
 }
