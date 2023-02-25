@@ -28,9 +28,9 @@ public interface IMetadataExtractor {
         try (var input = new BufferedInputStream(new FileInputStream(path.toFile()))) {
             return header(path, input);
         }
-        catch (IOException e) {
-            log.error("Cannot read header for file: {}", path, e);
-            return java.util.Optional.empty();
+        catch (Throwable t) {
+            log.warn("Cannot read header for file: {}, message: {}", path, t.getLocalizedMessage());
+            return Optional.empty();
         }
     }
 

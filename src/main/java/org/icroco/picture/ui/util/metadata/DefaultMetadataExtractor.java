@@ -40,8 +40,8 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             Metadata metadata = ImageMetadataReader.readMetadata(input, input.available());
             return Optional.of(new MetadataHeader(originalDateTime(metadata), orientation(metadata).orElse(1)));
         }
-        catch (Exception ex) {
-            log.error("Cannot read header for Path: {}", path, ex);
+        catch (Throwable ex) {
+            log.warn("Cannot read header for Path: {}, message: {}", path, ex.getLocalizedMessage());
             return Optional.empty();
         }
     }

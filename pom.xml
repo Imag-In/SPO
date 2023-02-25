@@ -189,11 +189,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-        <dependency>
-            <groupId>de.digitalcollections.imageio</groupId>
-            <artifactId>imageio-turbojpeg</artifactId>
-            <version>0.6.2</version>
-        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>de.digitalcollections.imageio</groupId>-->
+        <!--            <artifactId>imageio-turbojpeg</artifactId>-->
+        <!--            <version>0.6.2</version>-->
+        <!--        </dependency>-->
         <!--        <dependency>-->
         <!--            <groupId>com.viliussutkus89.licenseOnly</groupId>-->
         <!--            <artifactId>libjpeg-turbo</artifactId>-->

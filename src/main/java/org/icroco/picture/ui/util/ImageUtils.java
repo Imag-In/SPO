@@ -6,10 +6,7 @@ import javafx.scene.image.PixelFormat;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
+import javax.imageio.*;
 import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
 import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
@@ -45,6 +42,10 @@ public class ImageUtils {
     public static void readImageIoCodec() {
         for (String codec : ImageIO.getReaderFormatNames()) {
             log.info("Supported codec: {}", codec);
+            Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(codec);
+            while (readers.hasNext()) {
+                log.info("    reader: {}", readers.next());
+            }
         }
     }
 
@@ -67,7 +68,8 @@ public class ImageUtils {
 
     public static Image mapAsJpg(byte[] image) {
         if (image == null || image.length == 0) {
-            log.error("Cannot empty or null byte array: ");
+            log.error("Cannot read  empty or null byte array: ");
+            return null;
         }
         try (InputStream is = new ByteArrayInputStream(image)) {
             BufferedImage bi = ImageIO.read(is);

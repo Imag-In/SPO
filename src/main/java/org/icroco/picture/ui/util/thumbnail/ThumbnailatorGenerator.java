@@ -50,7 +50,6 @@ public class ThumbnailatorGenerator extends AbstractThumbnailGenerator {
         }
     }
 
-
     @Override
     public void generate(List<Path> source, Dimension dim, Consumer<BufferedImage> consummer) {
         try {

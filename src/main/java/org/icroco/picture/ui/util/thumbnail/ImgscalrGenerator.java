@@ -10,6 +10,9 @@ import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.jooq.lambda.Unchecked;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.*;
 import java.awt.color.ColorSpace;
 import java.awt.geom.AffineTransform;
@@ -17,6 +20,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.*;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Iterator;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -33,6 +37,106 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
 //            img = adaptOrientation(img, orientation);
             return SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null);
         }).get();
+    }
+
+
+    @Override
+    public Image extractThumbnail(Path path) {
+        try (ImageInputStream input = ImageIO.createImageInputStream(path.toFile())) {
+            var orientation = metadataExtractor.orientation(path).orElse(1);
+            // Get the reader
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) {
+                throw new IllegalArgumentException("No reader for: " + path);
+            }
+
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input);
+
+                // Optionally, listen for read warnings, progress, etc.
+//                reader.addIIOReadWarningListener(...);
+//                reader.addIIOReadProgressListener(...);
+
+                ImageReadParam param = reader.getDefaultReadParam();
+
+                // Optionally, control read settings like sub sampling, source region or destination etc.
+//                param.setSourceSubsampling(...);
+//                param.setSourceRegion(...);
+//                param.setDestination(...);
+                // ...
+
+                // Finally read the image, using settings from param
+//                BufferedImage image = reader.read(0, param);
+
+                // Optionally, read thumbnails, meta data, etc...
+                int numThumbs = reader.getNumThumbnails(0);
+                if (numThumbs == 0) {
+                    log.warn("Path: {}, doesn't contains embedded thumbnail: {}", path, numThumbs);
+                    return null;
+                }
+                var bi = adaptOrientation(reader.readThumbnail(0, 0), orientation);
+                return SwingFXUtils.toFXImage(bi, null);
+//                byte[]        jpgs   = ImageUtils.toByteArray(t, "jpg");
+                //return new ThumbnailOutput(path, jpgs, null);
+                // ...
+            }
+            finally {
+                // Dispose reader in finally block to avoid memory leaks
+                reader.dispose();
+            }
+        }
+        catch (Throwable e) {
+            log.error("Cannot extract thumbnail from: '{}', message: {}", path, e.getLocalizedMessage());
+        }
+        return null;
+    }
+
+    public BufferedImage foo(Path path, Dimension dim) {
+        try (ImageInputStream input = ImageIO.createImageInputStream(path.toFile())) {
+            // Get the reader
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+
+            if (!readers.hasNext()) {
+                throw new IllegalArgumentException("No reader for: " + path);
+            }
+
+            ImageReader reader = readers.next();
+
+            try {
+                reader.setInput(input);
+
+                // Optionally, listen for read warnings, progress, etc.
+//                reader.addIIOReadWarningListener(...);
+//                reader.addIIOReadProgressListener(...);
+
+                ImageReadParam param = reader.getDefaultReadParam();
+
+                // Optionally, control read settings like sub sampling, source region or destination etc.
+//                param.setSourceSubsampling(...);
+//                param.setSourceRegion(...);
+//                param.setDestination(...);
+                // ...
+
+                // Finally read the image, using settings from param
+//                BufferedImage image = reader.read(0, param);
+
+                // Optionally, read thumbnails, meta data, etc...
+                int numThumbs = reader.getNumThumbnails(0);
+                return reader.readThumbnail(0, 0);
+                // ...
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            finally {
+                // Dispose reader in finally block to avoid memory leaks
+                reader.dispose();
+            }
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // Generate Thumbnail: Corse 2015-20072015-036.jpg Time: 664 millisecondes

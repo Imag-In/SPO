@@ -28,6 +28,14 @@ public interface IThumbnailGenerator {
                     .toList();
     }
 
+    Image extractThumbnail(Path path);
+
+    default List<Image> extractThumbnail(List<Path> paths) {
+        return paths.stream()
+                    .map(this::extractThumbnail)
+                    .toList();
+    }
+
 
     void generate(Path source, Path target, Dimension dim);
 

@@ -28,6 +28,15 @@ class ThumbnailatorGeneratorTest {
         System.out.println();
     }
 
+    static List<Path> getImages() throws IOException {
+        Path root = Paths.get(IMAGE_DIR);
+        try (var images = Files.walk(root)) {
+            return images.filter(p -> !Files.isDirectory(p))   // not a directory
+                         .filter(Constant::isSupportedExtension)
+                         .toList();
+        }
+    }
+
     @Test
     void generate_thumbnails_thumbnailator() throws IOException {
         IThumbnailGenerator generator = new ThumbnailatorGenerator();
@@ -36,19 +45,16 @@ class ThumbnailatorGeneratorTest {
         Path      root   = Paths.get(IMAGE_DIR);
         Path      target = Paths.get(TARGET, "Thumbnailator", root.getFileName().toString());
         target.toFile().mkdirs();
-        try (var images = Files.walk(root)) {
-            images.filter(p -> !Files.isDirectory(p))   // not a directory
-                  .filter(Constant::isSupportedExtension)
-                  .forEach(i -> {
-                               watch.start(i.getFileName().toString());
-                               generator.generate(i,
-                                                  Paths.get(target.toString(), i.getFileName().toString()),
-                                                  DIM);
-                               watch.stop();
-                           }
-                  );
-            FileUtil.print(watch);
-        }
+
+        getImages().forEach(i -> {
+                                watch.start(i.getFileName().toString());
+                                generator.generate(i,
+                                                   Paths.get(target.toString(), i.getFileName().toString()),
+                                                   DIM);
+                                watch.stop();
+                            }
+        );
+        FileUtil.print(watch);
     }
 
     // ImgscalrGenerator generator Time: 3 minutes, 55 secondes et 449 millisecondes
@@ -61,19 +67,15 @@ class ThumbnailatorGeneratorTest {
         Path      target = Paths.get(TARGET, "ImgscalrGenerator", root.getFileName().toString());
         target.toFile().mkdirs();
 
-        try (var images = Files.walk(root)) {
-            images.filter(p -> !Files.isDirectory(p))   // not a directory
-                  .filter(Constant::isSupportedExtension)
-                  .forEach(i -> {
-                               watch.start(i.getFileName().toString());
-                               generator.generate(i,
-                                                  Paths.get(target.toString(), i.getFileName().toString()),
-                                                  DIM);
-                               watch.stop();
-                           }
-                  );
-            FileUtil.print(watch);
-        }
+        getImages().forEach(i -> {
+                                watch.start(i.getFileName().toString());
+                                generator.generate(i,
+                                                   Paths.get(target.toString(), i.getFileName().toString()),
+                                                   DIM);
+                                watch.stop();
+                            }
+        );
+        FileUtil.print(watch);
     }
 
     @Test

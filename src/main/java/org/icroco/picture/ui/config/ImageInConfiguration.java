@@ -11,7 +11,9 @@ import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import java.util.concurrent.TimeUnit;
 
@@ -27,7 +29,7 @@ public class ImageInConfiguration {
         return new CaffeineCache(THUMBNAILS,
                                  Caffeine.newBuilder()
                                          .recordStats()
-                                         .maximumSize(1000)
+                                         .maximumSize(2000) // TODO: Compute this at runtime.
                                          .expireAfterAccess(1, TimeUnit.DAYS)
                                          .build());
     }
@@ -49,6 +51,16 @@ public class ImageInConfiguration {
         executor.setCorePoolSize(Constant.NB_CORE);
         executor.setMaxPoolSize(Constant.NB_CORE);
         executor.setThreadNamePrefix("IiTask");
+        executor.initialize();
+
+        return executor;
+    }
+
+    @Bean
+    public TaskScheduler threadPoolTaskScheduler() {
+
+        ThreadPoolTaskScheduler executor = new ThreadPoolTaskScheduler();
+        executor.setThreadNamePrefix("IiSceduler");
         executor.initialize();
 
         return executor;

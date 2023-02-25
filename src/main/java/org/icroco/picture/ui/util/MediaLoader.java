@@ -26,15 +26,14 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.threeten.extra.AmountFormats;
 
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -58,7 +57,9 @@ public class MediaLoader {
     private Image loadThumbnail(long id, Path p) {
         try {
 //            log.info("Cache miss: {}", p);
-            return thumbnailGenerator.generate(p, DEFAULT_THUMB_SIZE);
+//            return thumbnailGenerator.generate(p, DEFAULT_THUMB_SIZE);
+            return Optional.ofNullable(thumbnailGenerator.extractThumbnail(p))
+                           .orElseGet(() -> thumbnailGenerator.generate(p, DEFAULT_THUMB_SIZE));
         }
         catch (Exception e) {
             log.error("invalid file: {}", p, e);
@@ -135,11 +136,15 @@ public class MediaLoader {
 //                                .collect(p -> taskService.supply(thumbnailBatch(event.getCatalog(), p)))
 //                                .toArray(new CompletableFuture[0]);
 
+        final var start = System.currentTimeMillis();
         var futures = StreamEx.ofSubLists(mediaFiles, Math.max(1, mediaFiles.size() / Constant.NB_CORE))
                               .map(p -> taskService.supply(thumbnailBatch(event.getCatalog(), p)))
                               .toArray(new CompletableFuture[0]);
 
         CompletableFuture.allOf(futures)
+                         .thenAccept(unused -> log.info("Catalog scanning of '{}' took: {} ",
+                                                        event.getCatalog().path(),
+                                                        AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())))
                          .thenAccept(u -> taskService.notifyLater(new CatalogEvent(event.getCatalog(), CatalogEvent.EventType.READY, this)));
     }
 
