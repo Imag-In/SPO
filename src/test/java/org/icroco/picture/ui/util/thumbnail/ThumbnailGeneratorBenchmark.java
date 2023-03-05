@@ -1,10 +1,13 @@
 package org.icroco.picture.ui.util.thumbnail;
 
 import org.icroco.picture.ui.util.Dimension;
+import org.icroco.picture.ui.util.hash.JdkHashGenerator;
 import org.icroco.picture.ui.util.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,7 +25,7 @@ public class ThumbnailGeneratorBenchmark {
 
     List<Path>             paths;
     IMetadataExtractor     metadataExtractor      = new DefaultMetadataExtractor();
-    ImgscalrGenerator      imgscalrGenerator      = new ImgscalrGenerator(metadataExtractor);
+    ImgscalrGenerator      imgscalrGenerator      = new ImgscalrGenerator(new JdkHashGenerator(), metadataExtractor);
     ThumbnailatorGenerator thumbnailatorGenerator = new ThumbnailatorGenerator();
 
     static Dimension dimension = new Dimension(600, 600);
@@ -38,7 +41,7 @@ public class ThumbnailGeneratorBenchmark {
 
         return paths.stream()
                     .map(path -> imgscalrGenerator.generate(path, dimension))
-                    .mapToInt(image -> (int) image.getHeight())
+                    .mapToInt(thumbnail -> (int) thumbnail.getImage().getHeight())
                     .sum();
     }
 
@@ -61,6 +64,9 @@ public class ThumbnailGeneratorBenchmark {
     }
 
     public static void main(String[] args) throws Exception {
-        org.openjdk.jmh.Main.main(args);
+        Options opt = new OptionsBuilder()
+                .include(ThumbnailGeneratorBenchmark.class.getSimpleName())
+//                .forks(1)
+                .build();
     }
 }

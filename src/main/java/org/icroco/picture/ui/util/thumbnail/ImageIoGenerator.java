@@ -2,18 +2,27 @@ package org.icroco.picture.ui.util.thumbnail;
 
 import javafx.scene.image.Image;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.ui.model.EThumbnailType;
+import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.util.Dimension;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.LocalDate;
 
 @Slf4j
 public class ImageIoGenerator extends AbstractThumbnailGenerator {
     @Override
-    public Image generate(Path path, Dimension dim) {
-        return new Image(path.toUri().toString(), dim.width(), 0, true, true);
+    public Thumbnail generate(Path path, Dimension dim) {
+        return new Thumbnail(0,
+                             path,
+                             new Image(path.toUri().toString(), dim.width(), 0, true, true),
+                             null,
+                             LocalDate.now(),
+                             LocalDate.now(),
+                             EThumbnailType.GENERATED);
     }
 
     @Override

@@ -27,18 +27,19 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     @Override
     public Optional<Integer> orientation(InputStream input) {
         try {
-            return orientation(ImageMetadataReader.readMetadata(input));
+            return orientation(null, ImageMetadataReader.readMetadata(input));
         }
-        catch (ImageProcessingException | IOException | MetadataException e) {
+        catch (ImageProcessingException | IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public Optional<MetadataHeader> header(Path path, InputStream input) {
+    public Optional<MetadataHeader> header(final Path path, final InputStream input) {
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(input, input.available());
-            return Optional.of(new MetadataHeader(originalDateTime(metadata), orientation(metadata).orElse(1)));
+            return Optional.of(new MetadataHeader(originalDateTime(path, metadata).orElse(EPOCH_0),
+                                                  orientation(path, metadata).orElse(1)));
         }
         catch (Throwable ex) {
             log.warn("Cannot read header for Path: {}, message: {}", path, ex.getLocalizedMessage());
@@ -46,13 +47,21 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
         }
     }
 
-    public Optional<Integer> orientation(Metadata metadata) throws MetadataException {
+//
+//    public Optional<byte[]> thumbnail(Path path, Metadata metadata) {
+//        return Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifThumbnailDirectory.class))
+//                       .map(Unchecked.function(this::getThumbnail, throwable -> log.warn("'{}' Cannot read orientation", path)));
+//    }
+
+
+    public Optional<Integer> orientation(Path path, Metadata metadata) {
         return Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifDirectoryBase.class))
-                       .map(Unchecked.function(this::getOrientation));
+                       .map(Unchecked.function(this::getOrientation, throwable -> log.warn("'{}' Cannot read orientation", path)));
     }
 
-    public LocalDateTime originalDateTime(Metadata metadata) throws MetadataException {
-        return Unchecked.function((Metadata md) -> getDateTime(md.getFirstDirectoryOfType(ExifSubIFDDirectory.class))).apply(metadata);
+    public Optional<LocalDateTime> originalDateTime(Path path, Metadata metadata) {
+        return Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class))
+                       .map(Unchecked.function(this::getDateTime, throwable -> log.warn("'{}' Cannot read original date time", path)));
     }
 
     Integer getOrientation(Directory directory) throws MetadataException {
@@ -69,4 +78,8 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
         }
         return EPOCH_0;
     }
+
+//    byte[] getThumbnail(ExifThumbnailDirectory directory) {
+//        return directory.getObject(TAG_THUMBNAIL_DATA)
+//    }
 }

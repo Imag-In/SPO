@@ -58,7 +58,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
                 root.getChildren().add(loadingView);
             } else {
 //                log.info("Grid Cell updated: {}", item.fullPath());
-                imageView.setImage(item.getThumbnail().get().getThumbnail());
+                imageView.setImage(item.getThumbnail().get().getImage());
                 root.getChildren().add(imageView);
             }
             updateSelected(item.isSelected());

@@ -23,7 +23,7 @@ public class TaskService {
      */
     public <T> CompletableFuture<T> supply(final Task<T> task) {
         log.debug("Start new task: {}", task);
-        taskController.addTask(task);
+        Platform.runLater(() -> taskController.addTask(task));
         return CompletableFuture.supplyAsync(() -> {
             task.run();
             try {

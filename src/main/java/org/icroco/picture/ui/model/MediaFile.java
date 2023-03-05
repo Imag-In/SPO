@@ -6,6 +6,7 @@ import javafx.util.Callback;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.icroco.picture.ui.util.NestedObjectProperty;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ public class MediaFile implements IMediaFile {
     private Set<Tag>                        tags;
     private SimpleObjectProperty<Thumbnail> thumbnail;
     private boolean                         selected;
+
 
     public MediaFile(long id,
                      Path fullPath,
@@ -69,7 +71,7 @@ public class MediaFile implements IMediaFile {
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[]{ mf.thumbnail };
+        return mf -> new Observable[]{ mf.thumbnail, new NestedObjectProperty<>(mf.thumbnail, Thumbnail::getImageProperty) };
     }
 }
 
@@ -90,7 +92,7 @@ public class MediaFile implements IMediaFile {
 //        this.thumbnail = thumbnail == null ? new SimpleObjectProperty<>(null) : thumbnail;
 //    }
 //
-////    public EThumbnailStatus status() {
+////    public EThumbnailType status() {
 ////        return thumbnail.getOrigin().get();
 ////    }
 ////

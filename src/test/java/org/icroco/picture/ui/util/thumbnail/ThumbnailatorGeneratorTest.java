@@ -3,6 +3,7 @@ package org.icroco.picture.ui.util.thumbnail;
 import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.Dimension;
 import org.icroco.picture.ui.util.FileUtil;
+import org.icroco.picture.ui.util.hash.JdkHashGenerator;
 import org.icroco.picture.ui.util.metadata.DefaultMetadataExtractor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -60,7 +61,7 @@ class ThumbnailatorGeneratorTest {
     // ImgscalrGenerator generator Time: 3 minutes, 55 secondes et 449 millisecondes
     @Test
     void generate_thumbnails_imgscalr() throws IOException {
-        IThumbnailGenerator generator = new ImgscalrGenerator(new DefaultMetadataExtractor());
+        IThumbnailGenerator generator = new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor());
 
         StopWatch watch  = new StopWatch("ImgscalrGenerator generator");
         Path      root   = Paths.get(IMAGE_DIR);
@@ -80,7 +81,7 @@ class ThumbnailatorGeneratorTest {
 
     @Test
     void generate_thumbnails_imgscalr_bytes() throws IOException {
-        IThumbnailGenerator generator = new ImgscalrGenerator(new DefaultMetadataExtractor());
+        IThumbnailGenerator generator = new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor());
         Dimension           dimension = new Dimension(600, 600);
 
         List.of(Paths.get("src/test/resources/images/benchmark/Corse 2015-20072015-036.jpg"),

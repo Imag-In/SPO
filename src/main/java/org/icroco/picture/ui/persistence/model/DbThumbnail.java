@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.Type;
-import org.icroco.picture.ui.model.EThumbnailStatus;
+import org.icroco.picture.ui.model.EThumbnailType;
 import org.springframework.lang.NonNull;
 
 import java.nio.file.Path;
@@ -37,10 +37,10 @@ public class DbThumbnail {
     private LocalDate lastAccess;
 
     @Lob
-    @Column(name = "thumbnail", columnDefinition = "BLOB")
-    private byte[] thumbnail;
+    @Column(name = "image", columnDefinition = "BLOB")
+    private byte[] image;
 
     @NonNull
-    @Enumerated(EnumType.ORDINAL)
-    private EThumbnailStatus origin = EThumbnailStatus.ABSENT;
+    @Enumerated(EnumType.STRING)
+    private EThumbnailType origin = EThumbnailType.ABSENT;
 }

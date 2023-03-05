@@ -2,7 +2,7 @@ package org.icroco.picture.ui.model.mapper;
 
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.image.Image;
-import org.icroco.picture.ui.model.EThumbnailStatus;
+import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.persistence.model.DbThumbnail;
 import org.icroco.picture.ui.util.ImageUtils;
@@ -18,11 +18,11 @@ public abstract class ThumbnailMapper {
     @InheritInverseConfiguration
     public abstract DbThumbnail map(Thumbnail thumbnail);
 
-    public final SimpleObjectProperty<EThumbnailStatus> map(EThumbnailStatus status) {
+    public final SimpleObjectProperty<EThumbnailType> map(EThumbnailType status) {
         return new SimpleObjectProperty<>(status);
     }
 
-    public final EThumbnailStatus map(SimpleObjectProperty<EThumbnailStatus> status) {
+    public final EThumbnailType map(SimpleObjectProperty<EThumbnailType> status) {
         return status.get();
     }
 

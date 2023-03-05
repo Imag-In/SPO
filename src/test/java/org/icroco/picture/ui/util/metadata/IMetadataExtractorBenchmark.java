@@ -1,6 +1,8 @@
 package org.icroco.picture.ui.util.metadata;
 
 import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,7 +25,11 @@ public class IMetadataExtractorBenchmark {
     }
 
     public static void main(String[] args) throws Exception {
-        org.openjdk.jmh.Main.main(args);
+//        org.openjdk.jmh.Main.main(args);
+        Options opt = new OptionsBuilder()
+                .include(IMetadataExtractorBenchmark.class.getSimpleName())
+//                .forks(1)
+                .build();
     }
 
 }

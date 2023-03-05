@@ -34,7 +34,7 @@ public interface IMetadataExtractor {
         }
     }
 
-    Optional<MetadataHeader> header(Path path, InputStream input);
+    Optional<MetadataHeader> header(final Path path, final InputStream input);
 
 
 }

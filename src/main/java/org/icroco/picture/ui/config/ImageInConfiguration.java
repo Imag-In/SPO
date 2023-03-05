@@ -2,6 +2,8 @@ package org.icroco.picture.ui.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.icroco.picture.ui.util.Constant;
+import org.icroco.picture.ui.util.hash.IHashGenerator;
+import org.icroco.picture.ui.util.hash.JdkHashGenerator;
 import org.icroco.picture.ui.util.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.icroco.picture.ui.util.thumbnail.IThumbnailGenerator;
@@ -72,7 +74,13 @@ public class ImageInConfiguration {
     }
 
     @Bean
-    public IThumbnailGenerator thumbnailGenerator(final IMetadataExtractor metadataExtractor) {
-        return new ImgscalrGenerator(metadataExtractor);
+    public IThumbnailGenerator thumbnailGenerator(final IHashGenerator hashGenerator,
+                                                  final IMetadataExtractor metadataExtractor) {
+        return new ImgscalrGenerator(hashGenerator, metadataExtractor);
+    }
+
+    @Bean
+    public IHashGenerator hashGenerator() {
+        return new JdkHashGenerator();
     }
 }

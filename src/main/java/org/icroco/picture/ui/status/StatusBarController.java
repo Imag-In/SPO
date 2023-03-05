@@ -56,7 +56,7 @@ public class StatusBarController extends FxInitOnce {
         container.progressProperty().bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
         taskController.controller().getTasks().addListener(getTaskListChangeListener());
         initPopOver(taskController.scene().getRoot());
-        container.getLeftItems().add(new Label("Memory"));
+        container.getLeftItems().add(new Label("Memory "));
         container.getLeftItems().add(memoryStatus);
         memoryStatus.setOnMouseClicked(event -> {
             if (event.getClickCount() >= 2) {
@@ -100,11 +100,12 @@ public class StatusBarController extends FxInitOnce {
                 textProperty.unbind();
                 textProperty.bind(c.getList().get(0).titleProperty());
             } else if (c.getList().size() == 2) {
-                if (c.wasAdded()) {
-                    textProperty.unbind();
-                    textProperty.bind(Bindings.size(c.getList()).map(number -> number + " tasks left ..."));
-                }
+//                if (c.wasAdded()) {
+                textProperty.unbind();
+                textProperty.bind(c.getList().get(0).titleProperty());
+//                    textProperty.bind(Bindings.size(c.getList()).map(number -> c.getList().get(0).getTitle()+" ("+number + " tasks left)"));
             }
+//            }
         };
     }
 

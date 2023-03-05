@@ -35,6 +35,7 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
         });
 
         cell.itemProperty().addListener((ov, oldMediaItem, newMediaItem) -> {
+//            if (newMediaItem != null) {
             if (newMediaItem != null && oldMediaItem == null) {
 //                log.info("new Cell: "+newMediaItem.fullPath());
                 if (newMediaItem.getThumbnail().get() == null) {

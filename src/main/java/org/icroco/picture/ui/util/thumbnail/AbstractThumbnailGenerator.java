@@ -1,13 +1,18 @@
 package org.icroco.picture.ui.util.thumbnail;
 
-import javafx.scene.image.Image;
+import org.icroco.picture.ui.model.Thumbnail;
+import org.icroco.picture.ui.util.Dimension;
 
 import java.nio.file.Path;
 
 public abstract class AbstractThumbnailGenerator implements IThumbnailGenerator {
+    @Override
+    public Thumbnail generate(Path path, Dimension dim) {
+        throw new RuntimeException("NotYetImplemented");
+    }
 
     @Override
-    public Image extractThumbnail(Path path) {
+    public Thumbnail extractThumbnail(Path path) {
         throw new RuntimeException("NotYetImplemented");
     }
 

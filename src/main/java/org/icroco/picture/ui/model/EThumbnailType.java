@@ -1,7 +1,7 @@
 package org.icroco.picture.ui.model;
 
-public enum EThumbnailStatus {
+public enum EThumbnailType {
     ABSENT,
-    FROM_FILE,
+    EXTRACTED,
     GENERATED
 }

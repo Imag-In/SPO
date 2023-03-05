@@ -21,7 +21,7 @@ import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.CatalogEntrySelectedEvent;
 import org.icroco.picture.ui.event.CatalogEvent;
 import org.icroco.picture.ui.event.CatalogEvent.EventType;
-import org.icroco.picture.ui.event.GenerateThumbnailEvent;
+import org.icroco.picture.ui.event.ExtractThumbnailEvent;
 import org.icroco.picture.ui.event.WarmThumbnailCacheEvent;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.CatalogueEntry;
@@ -97,7 +97,7 @@ public class CollectionController extends FxInitOnce {
             Catalog c = (Catalog) newValue.getUserData();
             pref.getUserPreference().getCollection().setLastViewed((c).id());
             taskService.notifyLater(new WarmThumbnailCacheEvent(c, this));
-            taskService.notifyLater(new CatalogEvent(c, EventType.SELECTED, this));
+//            taskService.notifyLater(new CatalogEvent(c, EventType.SELECTED, this));
         }
     }
 
@@ -119,6 +119,7 @@ public class CollectionController extends FxInitOnce {
                     .filter(p -> rootPath.toString().startsWith(p.toString()))
                     .findFirst()
                     .ifPresent(p -> {
+                        // TODO: Rather than getting an error, jump to that dir into the proper collection.
                         throw new CollectionException("Path: '%s' is already included into collection item: '%s'".formatted(rootPath, p));
                     });
 
@@ -158,11 +159,11 @@ public class CollectionController extends FxInitOnce {
             @Override
             protected void succeeded() {
                 var catalog = getValue();
-                log.info("Entries: {}", catalog.medias().size());
+                log.info("Collections entries: {}", catalog.medias().size());
                 // We do not expand now, we're waiting thumbnails creation.
                 createTreeView(catalog);
                 disablePathActions.set(false);
-                taskService.notifyLater(new GenerateThumbnailEvent(catalog, this));
+                taskService.notifyLater(new ExtractThumbnailEvent(catalog, this));
             }
 
             @Override

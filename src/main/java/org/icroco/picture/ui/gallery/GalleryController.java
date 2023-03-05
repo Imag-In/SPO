@@ -98,7 +98,7 @@ public class GalleryController extends FxInitOnce {
 
     @EventListener(CatalogEvent.class)
     public void updateImages(CatalogEvent event) {
-        log.info("Event: {}, Add images to grid view: {}", event.getType(), event.getCatalog().medias().size());
+        log.info("CatalogEvent: {}, Add images to grid view: {}", event.getType(), event.getCatalog().medias().size());
         images.clear();
         filteredImages.setPredicate(null);
 
