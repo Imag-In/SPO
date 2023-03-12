@@ -2,7 +2,7 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.icroco.picture.ui.details.DetailsController">
+<VBox xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.icroco.picture.ui.details.DetailsController">
     <GridPane minWidth="200" prefWidth="300.0">
         <columnConstraints>
             <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
@@ -12,13 +12,16 @@
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
         </rowConstraints>
         <Label text="Thumnail type"/>
-        <TextField fx:id="thumbnailType" GridPane.columnIndex="1"/>
-        <Label text="Date" GridPane.rowIndex="1"/>
-        <TextField fx:id="creationDate" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
-        <Label text="GPS" GridPane.rowIndex="2"/>
-        <TextField fx:id="gps" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+        <TextField fx:id="thumbnailType" editable="false" GridPane.columnIndex="1"/>
+        <Label text="Date" GridPane.rowIndex="2"/>
+        <TextField fx:id="creationDate" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+        <Label text="GPS" GridPane.rowIndex="3"/>
+        <TextField fx:id="gps" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+        <Label text="Thumbnail size (WxH)" GridPane.rowIndex="1"/>
+        <TextField fx:id="thumbnailSize" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
     </GridPane>
     <Region VBox.vgrow="ALWAYS"/>
 

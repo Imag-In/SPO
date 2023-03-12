@@ -30,6 +30,8 @@ public class DetailsController extends FxInitOnce {
     @FXML
     public TextField thumbnailType;
     @FXML
+    public TextField thumbnailSize;
+    @FXML
     public TextField creationDate;
     @FXML
     public TextField gps;
@@ -41,6 +43,7 @@ public class DetailsController extends FxInitOnce {
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         var file = event.getFile();
         thumbnailType.setText(file.getThumbnail().get().getOrigin().toString());
+        thumbnailSize.setText((int) file.getThumbnail().get().getImage().getWidth() + " x " + (int) file.getThumbnail().get().getImage().getHeight());
         creationDate.setText(file.originalDate().toString());
         gps.setText(file.getTags().stream().map(Tag::name).collect(Collectors.joining(",")));
 
