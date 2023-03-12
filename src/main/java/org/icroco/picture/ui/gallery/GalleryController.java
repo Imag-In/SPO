@@ -12,6 +12,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TreeItem;
+import javafx.scene.input.ZoomEvent;
 import javafx.scene.layout.BorderPane;
 import lombok.RequiredArgsConstructor;
 import org.controlsfx.control.BreadCrumbBar;
@@ -84,7 +85,11 @@ public class GalleryController extends FxInitOnce {
         gridView.setCellHeight(gridCellHeight);
 //        gridView.setCellFactory(gv -> new ImageGridCell());
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService));
+        gridView.setOnZoom(this::zoomOnGrid);
+        gridView.setOnZoomStarted(this::zoomStart);
+        gridView.setOnZoomFinished(this::zoomFinish);
         zoomThumbnails.valueProperty().addListener((ObservableValue<? extends Number> ov, Number oldValue, Number newValue) -> {
+//            log.info("newValue: {}", newValue.doubleValue());
             gridView.setCellWidth(gridCellWidth + 3 * newValue.doubleValue());
             gridView.setCellHeight(gridCellHeight + 3 * newValue.doubleValue());
         });
@@ -94,6 +99,26 @@ public class GalleryController extends FxInitOnce {
         breadCrumbBar.setOnCrumbAction(bae -> log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!"));
 
         Platform.runLater(() -> gridView.requestFocus());
+    }
+
+    private void zoomFinish(ZoomEvent event) {
+//        log.info("Zoom Finished: {}", event);
+    }
+
+    private void zoomStart(ZoomEvent event) {
+//        log.info("Zoom Start: {}", event);
+    }
+
+    private void zoomOnGrid(ZoomEvent event) {
+        final var ratio = event.getTotalZoomFactor() / event.getZoomFactor();
+        final var zoomValue = ratio >= 1
+                              ? Math.min(100.0, Math.round(Math.max(zoomThumbnails.getValue(), 10) * ratio))
+                              : Math.max(0D, Math.floor(zoomThumbnails.getValue() * event.getTotalZoomFactor()));
+        log.info("type: {}, factor: {}, totalFactor: {}, ratio: {}, zoomValue: {}",
+                 event.getEventType(), event.getZoomFactor(), event.getTotalZoomFactor(), ratio, (int) zoomValue);
+        Platform.runLater(() -> zoomThumbnails.setValue((int) zoomValue));
+
+        event.consume();
     }
 
     @EventListener(CatalogEvent.class)
