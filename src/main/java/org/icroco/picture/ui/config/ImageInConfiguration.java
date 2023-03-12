@@ -31,8 +31,9 @@ public class ImageInConfiguration {
         return new CaffeineCache(THUMBNAILS,
                                  Caffeine.newBuilder()
                                          .recordStats()
-                                         .maximumSize(2000) // TODO: Compute this at runtime.
-                                         .expireAfterAccess(1, TimeUnit.DAYS)
+                                         .softValues()
+                                         .maximumSize(10000) // TODO: Compute this at runtime.
+//                                         .expireAfterAccess(1, TimeUnit.DAYS)
                                          .build());
     }
 
@@ -40,6 +41,7 @@ public class ImageInConfiguration {
     public CaffeineCache fullSize() {
         return new CaffeineCache(FULL_SIZE,
                                  Caffeine.newBuilder()
+                                         .softValues()
                                          .recordStats()
                                          .maximumSize(100)
                                          .expireAfterAccess(1, TimeUnit.HOURS)

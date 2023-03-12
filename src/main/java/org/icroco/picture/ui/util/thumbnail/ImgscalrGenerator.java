@@ -4,7 +4,6 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.util.Dimension;
@@ -23,10 +22,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.*;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
 import java.util.Iterator;
 
 @Slf4j
@@ -45,9 +41,6 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             return Thumbnail.builder()
                     .fullPath(path)
                     .image(SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null))
-                    .lastAccess(LocalDate.now())
-                    .hashDate(LocalDate.now())
-                    .hash(hashGenerator.compute(path).orElse(null))
                     .origin(EThumbnailType.GENERATED)
                     .build();
         }).get();
@@ -57,60 +50,53 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
     @Override
     public Thumbnail extractThumbnail(Path path) {
         try (ImageInputStream input = ImageIO.createImageInputStream(path.toFile())) {
-            var orientation = metadataExtractor.orientation(path).orElse(1);
+            int orientation = metadataExtractor.orientation(path).orElse(1);
             // Get the reader
             Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
-            if (!readers.hasNext()) {
-                throw new IllegalArgumentException("No reader for: " + path);
-            }
 
-            ImageReader reader = readers.next();
-            try {
-                reader.setInput(input);
 
-                // Optionally, listen for read warnings, progress, etc.
+            while (readers.hasNext()) {
+                ImageReader reader = readers.next();
+                try {
+                    reader.setInput(input);
+
+                    // Optionally, listen for read warnings, progress, etc.
 //                reader.addIIOReadWarningListener(...);
 //                reader.addIIOReadProgressListener(...);
 
-                ImageReadParam param = reader.getDefaultReadParam();
+                    ImageReadParam param = reader.getDefaultReadParam();
 
-                // Optionally, control read settings like sub sampling, source region or destination etc.
+                    // Optionally, control read settings like sub sampling, source region or destination etc.
 //                param.setSourceSubsampling(...);
 //                param.setSourceRegion(...);
 //                param.setDestination(...);
-                // ...
+                    // ...
 
-                // Finally read the image, using settings from param
+                    // Finally read the image, using settings from param
 //                BufferedImage image = reader.read(0, param);
 
-                // Optionally, read thumbnails, meta data, etc...
-                int numThumbs = reader.getNumThumbnails(0);
-                if (numThumbs == 0) {
-                    log.warn("Path: '{}', doesn't contains embedded thumbnail: {}", path, numThumbs);
-                    return null;
-                }
-                var    bi       = adaptOrientation(reader.readThumbnail(0, 0), orientation);
-                String checksum = "";
-                try (InputStream is = Files.newInputStream(path)) {
-                    checksum = DigestUtils.sha256Hex(is);
-                }
-                return Thumbnail.builder()
-                        .fullPath(path)
-                        .image(SwingFXUtils.toFXImage(bi, null))
-                        .lastAccess(LocalDate.now())
-                        .hashDate(LocalDate.now())
-                        .hash(checksum)
-                        .origin(EThumbnailType.EXTRACTED)
-                        .build();
+                    // Optionally, read thumbnails, meta data, etc...
+                    int numThumbs = reader.getNumThumbnails(0);
+                    if (numThumbs == 0) {
+                        log.warn("Path: '{}', doesn't contains embedded thumbnail: {}", path, numThumbs);
+                        continue;
+                    }
+                    var bi = adaptOrientation(reader.readThumbnail(0, 0), orientation);
+                    return Thumbnail.builder()
+                            .fullPath(path)
+                            .image(SwingFXUtils.toFXImage(bi, null))
+                            .origin(EThumbnailType.EXTRACTED)
+                            .build();
 
 //                        new Thumbnail(path, SwingFXUtils.toFXImage(bi, null), EThumbnailType.EXTRACTED, null);
 //                byte[]        jpgs   = ImageUtils.toByteArray(t, "jpg");
-                //return new ThumbnailOutput(path, jpgs, null);
-                // ...
-            }
-            finally {
-                // Dispose reader in finally block to avoid memory leaks
-                reader.dispose();
+                    //return new ThumbnailOutput(path, jpgs, null);
+                    // ...
+                }
+                finally {
+                    // Dispose reader in finally block to avoid memory leaks
+                    reader.dispose();
+                }
             }
         }
         catch (Throwable e) {

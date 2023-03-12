@@ -7,6 +7,7 @@ import org.icroco.picture.ui.util.metadata.DefaultMetadataExtractor;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 
 @Slf4j
 class ImageIoGeneratorTest {
@@ -24,6 +25,11 @@ class ImageIoGeneratorTest {
                                                bi.getImage().getHeight(),
                                                (System.currentTimeMillis() - start));
                                   });
+    }
+
+    @Test
+    void extract_thumbnail() {
+        generator.extractThumbnail(Paths.get("/Users/christophe/Pictures/Holidays/Ete/Espagne 2017/Corse-29072017-267.jpg"));
     }
 
 }

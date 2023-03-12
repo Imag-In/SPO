@@ -10,7 +10,6 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.time.LocalDate;
 
 @Slf4j
 public class ImageIoGenerator extends AbstractThumbnailGenerator {
@@ -19,9 +18,6 @@ public class ImageIoGenerator extends AbstractThumbnailGenerator {
         return new Thumbnail(0,
                              path,
                              new Image(path.toUri().toString(), dim.width(), 0, true, true),
-                             null,
-                             LocalDate.now(),
-                             LocalDate.now(),
                              EThumbnailType.GENERATED);
     }
 

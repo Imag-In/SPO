@@ -8,7 +8,6 @@ import org.icroco.picture.ui.model.EThumbnailType;
 import org.springframework.lang.NonNull;
 
 import java.nio.file.Path;
-import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -26,15 +25,6 @@ public class DbThumbnail {
     @Column(length = 1024, unique = true)
     @Type(PathType.class)
     private Path fullPath;
-
-    @Column(name = "hash")
-    private String hash;
-
-    @Column(name = "hash_creation", columnDefinition = "DATE")
-    private LocalDate hashDate;
-
-    @Column(name = "last_access", columnDefinition = "DATE")
-    private LocalDate lastAccess;
 
     @Lob
     @Column(name = "image", columnDefinition = "BLOB")

@@ -3,6 +3,7 @@ package org.icroco.picture.ui.catalog;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -34,6 +35,7 @@ import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.FileUtil;
 import org.icroco.picture.ui.util.Nodes;
 import org.icroco.picture.ui.util.PathConverter;
+import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.icroco.picture.ui.util.metadata.MetadataHeader;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -44,6 +46,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.Objects;
@@ -59,6 +62,7 @@ public class CollectionController extends FxInitOnce {
     private final PersistenceService    service;
     private final UserPreferenceService pref;
     private final IMetadataExtractor    metadataExtractor;
+    private final IHashGenerator        hashGenerator;
 
     @FXML
     private       Accordion       catalogs;
@@ -135,6 +139,7 @@ public class CollectionController extends FxInitOnce {
                 updateTitle("Scanning directory: " + rootPath.getFileName());
                 updateMessage("Scanning '" + rootPath + "'");
                 try (var s = Files.walk(rootPath)) {
+                    var now = LocalDate.now();
                     var children = s.filter(Files::isDirectory)
                                     .filter(p -> !p.normalize().equals(rootPath))
                                     .filter(FileUtil::isLastDir)
@@ -149,7 +154,7 @@ public class CollectionController extends FxInitOnce {
                                                                     .subPaths(children)
                                                                     .medias(filteredImages.stream()
                                                                                           .map(i -> persistenceService.findByPath(i)
-                                                                                                                      .orElseGet(() -> create(i)))
+                                                                                                                      .orElseGet(() -> create(now, i)))
                                                                                           .collect(Collectors.toSet()))
                                                                     .build());
                     }
@@ -159,7 +164,7 @@ public class CollectionController extends FxInitOnce {
             @Override
             protected void succeeded() {
                 var catalog = getValue();
-                log.info("Collections entries: {}", catalog.medias().size());
+                log.info("Collections entries: {}, time: {}", catalog.medias().size(), System.currentTimeMillis() - start);
                 // We do not expand now, we're waiting thumbnails creation.
                 createTreeView(catalog);
                 disablePathActions.set(false);
@@ -176,11 +181,15 @@ public class CollectionController extends FxInitOnce {
     }
 
 
-    private MediaFile create(Path p) {
+    private MediaFile create(LocalDate now, Path p) {
         var h = metadataExtractor.header(p);
+
         return MediaFile.builder()
                 .fullPath(p)
                 .fileName(p.getFileName().toString())
+                .thumbnail(new SimpleObjectProperty<>(null))
+                .hash(hashGenerator.compute(p).orElse(null))
+                .hashDate(now)
                 .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))
                 .build();
     }

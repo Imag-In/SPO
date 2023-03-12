@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.Type;
 
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -35,6 +36,15 @@ public class DbMediaFile {
     @NotNull
     @Column()
     private LocalDateTime originalDate;
+
+    @Column(name = "hash")
+    private String hash;
+
+    @Column(name = "hash_creation", columnDefinition = "DATE")
+    private LocalDate hashDate;
+
+    @Column(name = "last_access", columnDefinition = "DATE")
+    private LocalDate lastAccess;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "tag_id")

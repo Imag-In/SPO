@@ -6,17 +6,13 @@ import lombok.Data;
 import lombok.Getter;
 
 import java.nio.file.Path;
-import java.time.LocalDate;
 
 @Data
 public class Thumbnail {
 
-    long id;
+    private long           id;
     private Path           fullPath;
     private Image          image;
-    private String         hash;
-    private LocalDate      hashDate;
-    private LocalDate      lastAccess;
     private EThumbnailType origin;
 
     @Getter
@@ -25,16 +21,10 @@ public class Thumbnail {
     public Thumbnail(long id,
                      Path fullPath,
                      Image image,
-                     String hash,
-                     LocalDate hashDate,
-                     LocalDate lastAccess,
                      EThumbnailType origin) {
         this.id = id;
         this.fullPath = fullPath;
         this.image = image;
-        this.hash = hash;
-        this.hashDate = hashDate;
-        this.lastAccess = lastAccess;
         this.origin = origin;
     }
 
@@ -50,9 +40,6 @@ public class Thumbnail {
         private long           id;
         private Path           fullPath;
         private Image          image;
-        private String         hash;
-        private LocalDate      hashDate;
-        private LocalDate      lastAccess;
         private EThumbnailType origin;
 
         ThumbnailBuilder() {}
@@ -72,20 +59,6 @@ public class Thumbnail {
             return this;
         }
 
-        public ThumbnailBuilder hash(String hash) {
-            this.hash = hash;
-            return this;
-        }
-
-        public ThumbnailBuilder hashDate(LocalDate hashDate) {
-            this.hashDate = hashDate;
-            return this;
-        }
-
-        public ThumbnailBuilder lastAccess(LocalDate lastAccess) {
-            this.lastAccess = lastAccess;
-            return this;
-        }
 
         public ThumbnailBuilder origin(EThumbnailType origin) {
             this.origin = origin;
@@ -94,13 +67,12 @@ public class Thumbnail {
 
 
         public Thumbnail build() {
-            return new Thumbnail(id, fullPath, image, hash, hashDate, lastAccess, origin);
+            return new Thumbnail(id, fullPath, image, origin);
         }
 
         public String toString() {
-            return "Thumbnail.ThumbnailBuilder(id=" + this.id + ", fullPath=" + this.fullPath + ", image=" + this.image + ", hash=" + this.hash +
-                   ", hashDate=" +
-                   this.hashDate + ", lastAccess=" + this.lastAccess + ", origin=" + this.origin + ")";
+            return "Thumbnail.ThumbnailBuilder(id=" + this.id + ", fullPath=" + this.fullPath + ", image=" + this.image +
+                   ", origin=" + this.origin + ")";
         }
     }
 }

@@ -3,43 +3,33 @@ package org.icroco.picture.ui.model;
 import javafx.beans.Observable;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.util.Callback;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 import org.icroco.picture.ui.util.NestedObjectProperty;
 
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Set;
 
 @Data
 @EqualsAndHashCode(of = { "fullPath" })
 @Builder
+@AllArgsConstructor
 public class MediaFile implements IMediaFile {
     private long                            id;
     private Path                            fullPath;
     private String                          fileName;
     private LocalDateTime                   originalDate;
     private Set<Tag>                        tags;
-    private SimpleObjectProperty<Thumbnail> thumbnail;
+    private String                          gps;
+    private String                          hash;
+    private LocalDate                       hashDate;
+    @NonNull
+    @Builder.Default
+    private SimpleObjectProperty<Thumbnail> thumbnail = new SimpleObjectProperty<>(null);
     private boolean                         selected;
 
-
-    public MediaFile(long id,
-                     Path fullPath,
-                     String fileName,
-                     LocalDateTime originalDate,
-                     Set<Tag> tags,
-                     SimpleObjectProperty<Thumbnail> thumbnail,
-                     boolean isSelected) {
-        this.id = id;
-        this.fullPath = fullPath;
-        this.fileName = fileName;
-        this.originalDate = originalDate;
-        this.tags = tags;
-        this.thumbnail = thumbnail == null ? new SimpleObjectProperty<>(null) : thumbnail;
-        this.selected = false;
-    }
 
     @Override
     public long id() {
@@ -64,6 +54,10 @@ public class MediaFile implements IMediaFile {
     @Override
     public Set<Tag> tags() {
         return getTags();
+    }
+
+    public Set<Tag> getTags() {
+        return tags == null ? Collections.emptySet() : tags;
     }
 
     public void invertSelection() {
