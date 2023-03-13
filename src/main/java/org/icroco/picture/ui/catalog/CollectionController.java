@@ -26,6 +26,7 @@ import org.icroco.picture.ui.event.ExtractThumbnailEvent;
 import org.icroco.picture.ui.event.WarmThumbnailCacheEvent;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.CatalogueEntry;
+import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
@@ -187,7 +188,8 @@ public class CollectionController extends FxInitOnce {
         return MediaFile.builder()
                 .fullPath(p)
                 .fileName(p.getFileName().toString())
-                .thumbnail(new SimpleObjectProperty<>(null))
+//                .thumbnail(new SimpleObjectProperty<>(null))
+                .thumbnailType(new SimpleObjectProperty<>(EThumbnailType.ABSENT))
                 .hash(hashGenerator.compute(p).orElse(null))
                 .hashDate(now)
                 .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))

@@ -1,9 +1,7 @@
 package org.icroco.picture.ui.model;
 
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.image.Image;
 import lombok.Data;
-import lombok.Getter;
 
 import java.nio.file.Path;
 
@@ -15,8 +13,8 @@ public class Thumbnail {
     private Image          image;
     private EThumbnailType origin;
 
-    @Getter
-    private final SimpleObjectProperty<Image> imageProperty = new SimpleObjectProperty<>(null);
+//    @Getter
+//    private final SimpleObjectProperty<Image> imageProperty = new SimpleObjectProperty<>(null);
 
     public Thumbnail(long id,
                      Path fullPath,
@@ -29,9 +27,9 @@ public class Thumbnail {
     }
 
 
-    public void initImageFromFx() {
-        imageProperty.set(image);
-    }
+//    public void initImageFromFx() {
+//        imageProperty.set(image);
+//    }
 
     public static ThumbnailBuilder builder() {return new ThumbnailBuilder();}
 

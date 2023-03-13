@@ -5,12 +5,14 @@ import javafx.scene.layout.StackPane;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridCell;
+import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaFile;
+import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.util.MediaLoader;
 
 @Slf4j
 public class MediaFileGridCell extends GridCell<MediaFile> {
-    private final ImageView loadingView;
+    private final ImageView   loadingView;
     @Getter
     private final ImageView   imageView;
     private final boolean     preserveImageProperties;
@@ -54,12 +56,18 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 //            log.info("Image updated: {}", item.fullPath());
 //            mediaLoader.loadThumbnail(item, this::setImage, this::setImage);
             root.getChildren().clear();
-            if (item.getThumbnail().get() == null) {
+            if (item.getThumbnailType().get() == EThumbnailType.ABSENT) {
                 root.getChildren().add(loadingView);
             } else {
-//                log.info("Grid Cell updated: {}", item.fullPath());
-                imageView.setImage(item.getThumbnail().get().getImage());
-                root.getChildren().add(imageView);
+//                log.info("Grid Cell updated: {}, type: {}", item.fullPath(), item.getThumbnailType().get());
+//                imageView.setImage();
+                root.getChildren().add(mediaLoader.getCachedValue(item)
+                                                  .map(Thumbnail::getImage)
+                                                  .map(i -> {
+                                                      imageView.setImage(i);
+                                                      return imageView;
+                                                  })
+                                                  .orElse(loadingView));
             }
             updateSelected(item.isSelected());
             setGraphic(root);

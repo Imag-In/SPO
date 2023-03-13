@@ -16,6 +16,7 @@ import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
+import org.icroco.picture.ui.model.mapper.ThumbnailMapper;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.persistence.TagRepository;
 import org.icroco.picture.ui.persistence.ThumbnailRepository;
@@ -46,6 +47,7 @@ import java.util.function.Supplier;
 @RequiredArgsConstructor
 @Slf4j
 public class MediaLoader {
+    private final ThumbnailMapper     thumbnailMapper;
     private final TagRepository       tagRepository;
     private final ThumbnailRepository thumbnailRepository;
     public static Image               LOADING              = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
@@ -66,10 +68,19 @@ public class MediaLoader {
             return thumbnailGenerator.generate(p, IThumbnailGenerator.DEFAULT_THUMB_SIZE);
         }
         catch (Exception e) {
-            log.error("invalid file: '{}'", p, e);
+            log.error("invalid mediaFile: '{}'", p, e);
         }
         // TODO: Add better error management if cannot read the image
         return null;
+    }
+
+    public Optional<Thumbnail> getCachedValue(MediaFile mf) {
+        return Optional.ofNullable(thumbnailCache.get(mf.id(), Thumbnail.class))
+                       .or(() -> persistenceService.findByPathOrId(mf)
+                                                   .map(thumbnail -> {
+                                                       thumbnailCache.put(mf.getId(), thumbnail);
+                                                       return thumbnail;
+                                                   }));
     }
 
     private Thumbnail extractThumbnail(MediaFile mf) {
@@ -80,7 +91,7 @@ public class MediaLoader {
             return thumbnail;
         }
         catch (Exception e) {
-            log.error("invalid file: '{}'", mf, e);
+            log.error("invalid mediaFile: '{}'", mf, e);
         }
         // TODO: Add better error management if cannot read the image
 //        return Thumbnail.builder()
@@ -90,7 +101,7 @@ public class MediaLoader {
     }
 
     public void loadThumbnailFromFx(final MediaFile file) {
-//        log.info("Load without cache file: '{}'", file.getFullPath());
+//        log.info("Load without cache mediaFile: '{}'", mediaFile.getFullPath());
         CompletableFuture.supplyAsync(() -> loadThumbnail(file))
                          .thenAccept(thumbnailRes -> Platform.runLater(thumbnailRes::updateThumbnail));
     }
@@ -137,7 +148,7 @@ public class MediaLoader {
             return new Image(p.toUri().toString(), 1024D, 0, true, true);
         }
         catch (Exception e) {
-            log.error("invalid file: {}", p, e);
+            log.error("invalid mediaFile: {}", p, e);
         }
         return null;
     }
@@ -207,44 +218,52 @@ public class MediaLoader {
         return null;
     }
 
-    Task<Void> warmCache(Catalog catalog, final List<MediaFile> files) {
+
+    Task<List<ThumbnailRes>> warmCache(Catalog catalog, final List<MediaFile> files) {
         return new AbstractTask<>() {
             @Override
-            protected Void call() throws Exception {
+            protected List<ThumbnailRes> call() throws Exception {
                 log.info("Warm Cache for: '{}', size: {}", catalog.path(), files.size());
                 updateTitle("Warm thumbnails cache");
                 updateProgress(0, files.size());
-                EntryStream.of(new ArrayList<>(files))
-                           .forEach(entry -> {
-                               var thumbnail = thumbnailCache.get(entry.getValue().id(), Thumbnail.class);
-                               if (thumbnail == null) {
-                                   thumbnail = persistenceService.findByPathOrId(entry.getValue()).orElse(null);
-                                   if (thumbnail != null) {
-                                       thumbnailCache.put(entry.getValue().id(), thumbnail);
-                                       updateMessage("Thumbnail loaded: " + entry.getValue().fullPath().getFileName());
-                                   }
-                                   updateProgress(entry.getKey(), files.size());
-                               }
-                           });
-                return null;
+                return EntryStream.of(new ArrayList<>(files))
+                                  .map(entry -> {
+                                      var thumbnail = thumbnailCache.get(entry.getValue().id(), Thumbnail.class);
+                                      if (thumbnail == null) {
+                                          thumbnail = persistenceService.findByPathOrId(entry.getValue()).orElse(null);
+                                          if (thumbnail != null) {
+                                              thumbnailCache.put(entry.getValue().id(), thumbnail);
+                                              updateMessage("Thumbnail loaded: " + entry.getValue().fullPath().getFileName());
+                                          }
+                                          updateProgress(entry.getKey(), files.size());
+                                      }
+                                      return new ThumbnailRes(entry.getValue(), thumbnail, false);
+                                  })
+                                  .filter(tr -> tr.thumbnail() != null)
+                                  .toList();
+            }
+
+            @Override
+            protected void succeeded() {
+                getValue().forEach(thumbnailRes -> thumbnailRes.mediaFile.getThumbnailType().set(thumbnailRes.thumbnail.getOrigin()));
             }
         };
     }
 
-    record ThumbnailRes(MediaFile file, Thumbnail thumbnail, boolean requirePersistance) {
+    record ThumbnailRes(MediaFile mediaFile, Thumbnail thumbnail, boolean requirePersistance) {
         void updateThumbnail() {
             if (!Platform.isFxApplicationThread()) {
                 throw new RuntimeException("This call must be done from JavaFx Thread (and not from: " + Thread.currentThread().getName() + ")");
             }
-            file.getThumbnail().set(thumbnail);
+//            mediaFile.getThumbnail().set(thumbnail);
         }
     }
 
-    Task<List<Thumbnail>> thumbnailBatchExtraction(Catalog catalog, final List<MediaFile> files) {
+    Task<List<ThumbnailRes>> thumbnailBatchExtraction(Catalog catalog, final List<MediaFile> files) {
         return new AbstractTask<>() {
             //            StopWatch w = new StopWatch("Load Task");
             @Override
-            protected List<Thumbnail> call() throws Exception {
+            protected List<ThumbnailRes> call() throws Exception {
                 var size = files.size();
                 log.debug("Generate a batch of '{}' thumbnails for: {}", size, catalog.path());
                 updateTitle("Thumbnail fast extraction for '" + size + " images");
@@ -278,7 +297,7 @@ public class MediaLoader {
                                                                    .map(ThumbnailRes::thumbnail)
                                                                    .toList();
                                             persistenceService.saveAll(toBePersisted);
-                                            return trs.stream().map(tagRepository -> tagRepository.thumbnail);
+                                   return trs.stream();
                                         }
                                )
                                .toList();
@@ -286,12 +305,12 @@ public class MediaLoader {
 
             @Override
             protected void succeeded() {
-                getValue().forEach(Thumbnail::initImageFromFx);
+                getValue().forEach(thumbnailRes -> thumbnailRes.mediaFile.getThumbnailType().set(thumbnailRes.thumbnail.getOrigin()));
             }
         };
     }
 
-    record ThumbnailUpdate(Thumbnail thumbnail, Image update) {}
+    record ThumbnailUpdate(MediaFile mf, Thumbnail thumbnail, Image update) {}
 
     @EventListener(GenerateThumbnailEvent.class)
     public void generateThumbnails(GenerateThumbnailEvent event) {
@@ -324,18 +343,21 @@ public class MediaLoader {
                                                 return Optional.ofNullable(thumbnailCache.get(file.id(), Thumbnail.class))
                                                                .or(() -> persistenceService.findByPathOrId(file))
                                                                .filter(t -> t.getOrigin() != EThumbnailType.GENERATED)
-                                                               .map(t -> new ThumbnailUpdate(t, thumbnailGenerator.generate(t)))
+                                                               .map(t -> new ThumbnailUpdate(file, t, thumbnailGenerator.generate(t)))
                                                                .orElse(null);
                                             })
                                             .filter(Objects::nonNull)
-                                            .filter(tr -> tr.thumbnail() != null)
-                                            .peek(tr -> tr.thumbnail.setOrigin(EThumbnailType.GENERATED))
+                                            .filter(tu -> tu.thumbnail() != null)
+                                            .peek(tu -> {
+                                                tu.thumbnail.setOrigin(EThumbnailType.GENERATED);
+                                                tu.thumbnail.setImage(tu.update);
+                                            })
                                             .toList())
                                .flatMap(thumbails -> {
-                                   log.info("Update '{}' thumbnails", thumbails.size());
-                                   persistenceService.saveAll(thumbails.stream()
-                                                                       .map(ThumbnailUpdate::thumbnail)
-                                                                       .toList());
+                                            log.info("Update '{}' thumbnails", thumbails.size());
+                                            persistenceService.saveAll(thumbails.stream()
+                                                                                .map(ThumbnailUpdate::thumbnail)
+                                                                                .toList());
                                             return thumbails.stream();
                                         }
                                )
@@ -347,6 +369,7 @@ public class MediaLoader {
                 getValue().forEach(tu -> {
                     thumbnailCache.put(tu.thumbnail.getId(), tu.thumbnail);
                     tu.thumbnail().setImage(tu.update);
+                    tu.mf.getThumbnailType().set(tu.thumbnail.getOrigin());
                 });
             }
         };
