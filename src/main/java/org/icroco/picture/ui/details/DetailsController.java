@@ -2,10 +2,12 @@ package org.icroco.picture.ui.details;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
+import org.icroco.picture.ui.event.CatalogEvent;
 import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.Tag;
 import org.icroco.picture.ui.util.MediaLoader;
@@ -29,6 +31,8 @@ public class DetailsController extends FxInitOnce {
     private final MediaLoader mediaLoader;
 
     @FXML
+    public VBox      container;
+    @FXML
     public TextField thumbnailType;
     @FXML
     public TextField thumbnailSize;
@@ -38,6 +42,7 @@ public class DetailsController extends FxInitOnce {
     public TextField gps;
 
     protected void initializedOnce() {
+        container.setVisible(false);
     }
 
     @EventListener(PhotoSelectedEvent.class)
@@ -48,6 +53,10 @@ public class DetailsController extends FxInitOnce {
         thumbnailSize.setText(thumbnail.map(tn -> "%d x %d".formatted((int) tn.getImage().getWidth(), (int) tn.getImage().getHeight())).orElse(FILE_NOT_FOUND));
         creationDate.setText(mf.originalDate().toString());
         gps.setText(mf.getTags().stream().map(Tag::name).collect(Collectors.joining(",")));
+    }
 
+    @EventListener(CatalogEvent.class)
+    public void catalogEvent(CatalogEvent event) {
+        container.setVisible(event.getType() != CatalogEvent.EventType.DELETED);
     }
 }

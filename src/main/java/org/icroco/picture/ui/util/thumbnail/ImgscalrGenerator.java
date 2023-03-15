@@ -86,6 +86,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                             .fullPath(path)
                             .image(SwingFXUtils.toFXImage(bi, null))
                             .origin(EThumbnailType.EXTRACTED)
+                            .embeddedAvailable(true)
                             .build();
 
 //                        new Thumbnail(path, SwingFXUtils.toFXImage(bi, null), EThumbnailType.EXTRACTED, null);

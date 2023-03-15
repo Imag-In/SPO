@@ -36,4 +36,7 @@ public class DbThumbnail {
     @Enumerated(EnumType.STRING)
     private EThumbnailType origin = EThumbnailType.ABSENT;
 
+    @NonNull
+    @Column(name = "embeddedAvailable")
+    private boolean embeddedAvailable;
 }

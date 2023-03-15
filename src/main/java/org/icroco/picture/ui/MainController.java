@@ -25,9 +25,8 @@ public class MainController extends FxInitOnce {
     StatusBarView  statusView;
     @Autowired
     CollectionView collectionView;
-
     @Autowired
-    DetailsView detailsView;
+    DetailsView    detailsView;
 
 //    @Autowired
 //    TaskView taskView;

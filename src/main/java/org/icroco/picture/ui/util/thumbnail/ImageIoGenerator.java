@@ -18,7 +18,8 @@ public class ImageIoGenerator extends AbstractThumbnailGenerator {
         return new Thumbnail(0,
                              path,
                              new Image(path.toUri().toString(), dim.width(), 0, true, true),
-                             EThumbnailType.GENERATED);
+                             EThumbnailType.GENERATED,
+                             true);
     }
 
     @Override
