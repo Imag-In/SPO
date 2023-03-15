@@ -1,6 +1,7 @@
 package org.icroco.picture.ui.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.hash.JdkHashGenerator;
@@ -21,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableCaching
+@Slf4j
 public class ImageInConfiguration {
 
     public static final String THUMBNAILS = "thumbnails";
@@ -50,11 +52,12 @@ public class ImageInConfiguration {
 
     @Bean
     public TaskExecutor threadPoolTaskExecutor() {
-
+        log.info("Nb core: {}", Constant.NB_CORE);
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(Constant.NB_CORE);
         executor.setMaxPoolSize(Constant.NB_CORE);
-        executor.setThreadNamePrefix("IiTask");
+        executor.setThreadNamePrefix("iiTask");
+        executor.setKeepAliveSeconds(60);
         executor.initialize();
 
         return executor;
@@ -64,7 +67,7 @@ public class ImageInConfiguration {
     public TaskScheduler threadPoolTaskScheduler() {
 
         ThreadPoolTaskScheduler executor = new ThreadPoolTaskScheduler();
-        executor.setThreadNamePrefix("IiSceduler");
+        executor.setThreadNamePrefix("iiScheduler");
         executor.initialize();
 
         return executor;

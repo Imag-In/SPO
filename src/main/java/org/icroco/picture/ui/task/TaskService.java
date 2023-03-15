@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.event.ApplicationEventMulticaster;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
@@ -17,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 public class TaskService {
     private final ApplicationEventMulticaster eventBus;
     private final TaskController              taskController;
+    private final TaskExecutor                executor;
 
     /**
      * Execute Task in background
@@ -32,7 +34,7 @@ public class TaskService {
             catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException("Unexpected error while executing this task", e);
             }
-        });
+        }, executor);
     }
 
 

@@ -17,6 +17,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.util.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import one.util.streamex.EntryStream;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.CatalogEntrySelectedEvent;
@@ -32,10 +33,7 @@ import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.task.AbstractTask;
 import org.icroco.picture.ui.task.TaskService;
-import org.icroco.picture.ui.util.Constant;
-import org.icroco.picture.ui.util.FileUtil;
-import org.icroco.picture.ui.util.Nodes;
-import org.icroco.picture.ui.util.PathConverter;
+import org.icroco.picture.ui.util.*;
 import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.icroco.picture.ui.util.metadata.MetadataHeader;
@@ -50,7 +48,11 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -58,7 +60,6 @@ import java.util.stream.Collectors;
 @FxViewBinding(id = "catalog", fxmlLocation = "collection.fxml")
 @RequiredArgsConstructor
 public class CollectionController extends FxInitOnce {
-    private final PersistenceService    persistenceService;
     private final TaskService           taskService;
     private final PersistenceService    service;
     private final UserPreferenceService pref;
@@ -129,7 +130,27 @@ public class CollectionController extends FxInitOnce {
                     });
 
             disablePathActions.set(true);
-            taskService.supply(scanDirectory(rootPath));
+            taskService.supply(scanDirectory(rootPath))
+                       .thenAccept(catalog -> {
+                           final var allFiles   = new ArrayBlockingQueue<MediaFile>(catalog.medias().size());
+                           final var mediaFiles = List.copyOf(catalog.medias());
+                           final var result     = Collections.splitByCoreWithIdx(mediaFiles);
+                           final var futures = result.values()
+                                                     .map(batchMf -> taskService.supply(hashFiles(batchMf.getValue(),
+                                                                                                  batchMf.getKey(),
+                                                                                                  result.splitCount()))
+                                                                                .thenApply(allFiles::addAll))
+                                                     .toArray(new CompletableFuture[0]);
+
+                           CompletableFuture.allOf(futures)
+                                            .thenAccept(unused -> {
+                                                final var newCatalog = service.saveCatalog(catalog);
+                                                Platform.runLater(() -> {
+                                                    createTreeView(newCatalog);
+                                                    taskService.notifyLater(new ExtractThumbnailEvent(newCatalog, this));
+                                                });
+                                            });
+                       });
         }
     }
 
@@ -138,27 +159,30 @@ public class CollectionController extends FxInitOnce {
             @Override
             protected Catalog call() throws Exception {
                 updateTitle("Scanning directory: " + rootPath.getFileName());
-                updateMessage("Scanning '" + rootPath + "'");
+                updateMessage("%s: scanning".formatted(rootPath));
+                Set<CatalogueEntry> children;
+                var                 now = LocalDate.now();
                 try (var s = Files.walk(rootPath)) {
-                    var now = LocalDate.now();
-                    var children = s.filter(Files::isDirectory)
-                                    .filter(p -> !p.normalize().equals(rootPath))
-                                    .filter(FileUtil::isLastDir)
-                                    .map(p -> CatalogueEntry.builder().name(p).build())
-                                    .collect(Collectors.toSet());
-
-                    try (var images = Files.walk(rootPath)) {
-                        var filteredImages = images.filter(p -> !Files.isDirectory(p))   // not a directory
-                                                   .filter(Constant::isSupportedExtension)
-                                                   .toList();
-                        return service.saveCatalog(Catalog.builder().path(rootPath)
-                                                                    .subPaths(children)
-                                                                    .medias(filteredImages.stream()
-                                                                                          .map(i -> persistenceService.findByPath(i)
-                                                                                                                      .orElseGet(() -> create(now, i)))
-                                                                                          .collect(Collectors.toSet()))
-                                                                    .build());
-                    }
+                    children = s.filter(Files::isDirectory)
+                                .filter(p -> !p.normalize().equals(rootPath))
+                                .filter(FileUtil::isLastDir)
+                                .map(p -> CatalogueEntry.builder().name(p).build())
+                                .collect(Collectors.toSet());
+                }
+                try (var images = Files.walk(rootPath)) {
+                    final var filteredImages = images.filter(p -> !Files.isDirectory(p))   // not a directory
+                                                     .filter(Constant::isSupportedExtension)
+                                                     .toList();
+                    final var size = filteredImages.size();
+                    updateProgress(0, size);
+                    updateTitle("%s: Generating hash for %d files".formatted(rootPath.getFileName(), filteredImages.size()));
+                    return Catalog.builder().path(rootPath)
+                                            .subPaths(children)
+                                            .medias(EntryStream.of(filteredImages)
+                                                               .peek(i -> updateProgress(i.getKey(), size))
+                                                               .map(i -> create(now, i.getValue()))
+                                                               .collect(Collectors.toSet()))
+                                            .build();
                 }
             }
 
@@ -166,10 +190,7 @@ public class CollectionController extends FxInitOnce {
             protected void succeeded() {
                 var catalog = getValue();
                 log.info("Collections entries: {}, time: {}", catalog.medias().size(), System.currentTimeMillis() - start);
-                // We do not expand now, we're waiting thumbnails creation.
-                createTreeView(catalog);
                 disablePathActions.set(false);
-                taskService.notifyLater(new ExtractThumbnailEvent(catalog, this));
             }
 
             @Override
@@ -181,22 +202,41 @@ public class CollectionController extends FxInitOnce {
         };
     }
 
+    public Task<List<MediaFile>> hashFiles(final List<MediaFile> mediaFiles, final int batchId, final int nbBatches) {
+        return new AbstractTask<>() {
+            @Override
+            protected List<MediaFile> call() throws Exception {
+                updateTitle("Hashing %s files. %d/%d ".formatted(mediaFiles.size(), batchId, nbBatches));
+//                updateMessage("%s: scanning".formatted(rootPath));
+                mediaFiles.forEach(mediaFile -> mediaFile.setHash(hashGenerator.compute(mediaFile.getFullPath()).orElse(null)));
+                return mediaFiles;
+            }
+
+            @Override
+            protected void succeeded() {
+                log.info("Files hasking time: {}", System.currentTimeMillis() - start);
+//            // We do not expand now, we're waiting thumbnails creation.
+//            createTreeView(catalog);
+//            disablePathActions.set(false);
+//            taskService.notifyLater(new ExtractThumbnailEvent(catalog, this));
+            }
+        };
+    }
 
     private MediaFile create(LocalDate now, Path p) {
-        var h = metadataExtractor.header(p);
+        final var h = metadataExtractor.header(p);
 
         return MediaFile.builder()
                 .fullPath(p)
                 .fileName(p.getFileName().toString())
-//                .thumbnail(new SimpleObjectProperty<>(null))
                 .thumbnailType(new SimpleObjectProperty<>(EThumbnailType.ABSENT))
-                .hash(hashGenerator.compute(p).orElse(null))
                 .hashDate(now)
                 .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))
                 .build();
     }
 
-    record PaneTreeView(TitledPane tp, TreeView<Path> treeView) {}
+    record PaneTreeView(TitledPane tp, TreeView<Path> treeView) {
+    }
 
     private Pair<Catalog, PaneTreeView> createTreeView(final Catalog catalog) {
         var rootItem = new TreeItem<>(catalog.path());

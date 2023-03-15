@@ -9,6 +9,7 @@ import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.model.mapper.CatalogMapper;
 import org.icroco.picture.ui.model.mapper.MediaFileMapper;
 import org.icroco.picture.ui.model.mapper.ThumbnailMapper;
+import org.icroco.picture.ui.persistence.model.DbCatalog;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
@@ -41,7 +42,8 @@ public class PersistenceService {
 
     @Transactional
     public Catalog saveCatalog(@NonNull final Catalog catalog) {
-        return colMapper.map(collectionRepo.saveAndFlush(colMapper.map(catalog)));
+        DbCatalog saved = collectionRepo.saveAndFlush(colMapper.map(catalog));
+        return colMapper.map(saved);
     }
 
     @Transactional

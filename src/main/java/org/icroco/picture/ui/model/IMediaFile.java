@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 
 public interface IMediaFile {
-    long id();
+    Long id();
 
     Path fullPath();
 

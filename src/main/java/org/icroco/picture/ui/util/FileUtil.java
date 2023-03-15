@@ -48,6 +48,9 @@ public class FileUtil {
     }
 
     public static void print(StopWatch watch) {
+        if (watch.isRunning()) {
+            watch.stop();
+        }
         log.info(watch.getId() + " Time: " + AmountFormats.wordBased(Duration.ofMillis(watch.getTotalTimeMillis()), Locale.getDefault()));
         for (StopWatch.TaskInfo t : watch.getTaskInfo()) {
             log.info("   " +

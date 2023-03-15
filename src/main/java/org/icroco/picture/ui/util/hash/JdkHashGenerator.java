@@ -1,6 +1,7 @@
 package org.icroco.picture.ui.util.hash;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,8 +28,9 @@ public class JdkHashGenerator implements IHashGenerator {
     @Override
     public Optional<String> compute(Path path) {
         try {
-            return Optional.ofNullable(digest.digest(Files.readAllBytes(path)))
-                           .map(JdkHashGenerator::bytesToHex);
+            return Optional.of(DigestUtils.md5Hex(Files.newInputStream(path)));
+//            return Optional.ofNullable(digest.digest(Files.readAllBytes(path)))
+//                           .map(JdkHashGenerator::bytesToHex);
         }
         catch (IOException e) {
             log.warn("Cannot compute hash for file: '{}', error: {}", path, e.getLocalizedMessage());
@@ -37,7 +39,7 @@ public class JdkHashGenerator implements IHashGenerator {
         return Optional.empty();
     }
 
-    private static String bytesToHex(byte[] hash) {
+    static String bytesToHex(byte[] hash) {
         StringBuilder hexString = new StringBuilder(2 * hash.length);
         for (byte b : hash) {
             String hex = Integer.toHexString(0xff & b);

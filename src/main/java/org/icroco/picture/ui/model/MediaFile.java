@@ -16,7 +16,7 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor
 public class MediaFile implements IMediaFile {
-    private       long                                 id;
+    private       Long                                 id;
     private       Path                                 fullPath;
     private       String                               fileName;
     private       LocalDateTime                        originalDate;
@@ -34,7 +34,7 @@ public class MediaFile implements IMediaFile {
 
 
     @Override
-    public long id() {
+    public Long id() {
         return getId();
     }
 

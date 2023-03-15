@@ -1,9 +1,23 @@
 package org.icroco.picture.ui.util;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
+import lombok.experimental.UtilityClass;
+import one.util.streamex.EntryStream;
+import one.util.streamex.StreamEx;
 
+import java.util.List;
+
+@UtilityClass
 public class Collections {
+    public static <T> StreamEx<List<T>> splitByCore(List<T> values) {
+        return StreamEx.ofSubLists(values, Constant.split(values.size()));
+    }
 
+    public record SpltResult<T>(int splitCount, EntryStream<Integer, List<T>> values) {}
+
+    public static <T> SpltResult<T> splitByCoreWithIdx(List<T> values) {
+        final int splitSize = Constant.split(values.size());
+        final var lists     = StreamEx.ofSubLists(values, splitSize).toList();
+
+        return new SpltResult<>(lists.size(), EntryStream.of(lists));
+    }
 }
