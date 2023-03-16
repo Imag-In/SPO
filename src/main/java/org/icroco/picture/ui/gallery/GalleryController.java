@@ -2,6 +2,8 @@ package org.icroco.picture.ui.gallery;
 
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -12,6 +14,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TreeItem;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ZoomEvent;
 import javafx.scene.layout.BorderPane;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +54,8 @@ public class GalleryController extends FxInitOnce {
     @FXML
     public  Label               nbImages;
     @FXML
+    public  Label               expand;
+    @FXML
     public  Slider              zoomThumbnails;
     @FXML
     public  BorderPane          layout;
@@ -59,6 +64,7 @@ public class GalleryController extends FxInitOnce {
     @FXML
     private GridView<MediaFile> gridView;
 
+    private final BooleanProperty           expandCell     = new SimpleBooleanProperty(false);
     private final ObservableList<MediaFile> images         = FXCollections.observableArrayList(MediaFile.extractor());
     private final FilteredList<MediaFile>   filteredImages = new FilteredList<>(images);
     private final SortedList<MediaFile>     sortedImages   = new SortedList<>(filteredImages);
@@ -84,7 +90,7 @@ public class GalleryController extends FxInitOnce {
         gridView.setCellWidth(gridCellWidth);
         gridView.setCellHeight(gridCellHeight);
 //        gridView.setCellFactory(gv -> new ImageGridCell());
-        gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService));
+        gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService, expandCell));
         gridView.setOnZoom(this::zoomOnGrid);
         gridView.setOnZoomStarted(this::zoomStart);
         gridView.setOnZoomFinished(this::zoomFinish);
@@ -98,6 +104,7 @@ public class GalleryController extends FxInitOnce {
         breadCrumbBar.setAutoNavigationEnabled(false);
         breadCrumbBar.setOnCrumbAction(bae -> log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!"));
 
+        expand.setUserData(expandCell);
         Platform.runLater(() -> gridView.requestFocus());
     }
 
@@ -238,4 +245,20 @@ public class GalleryController extends FxInitOnce {
         breadCrumbBar.setSelectedCrumb(model);
     }
 
+    public void expandGridCell(MouseEvent mouseEvent) {
+        if (mouseEvent.getClickCount() == 1) {
+            var b = (BooleanProperty) expand.getUserData();
+            if (b.getValue()) {
+                expand.getGraphic().setId("fitGridCell");
+            } else {
+                expand.getGraphic().setId("fas-expand-alt");
+            }
+            b.set(!b.getValue());
+//            log.info("expand");
+//            FontIcon fi = new FontIcon("fas-expand-alt");
+//            fi.setId("fas-expand-alt");
+//            expand.setGraphic(fi);
+        }
+
+    }
 }

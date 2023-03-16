@@ -62,11 +62,26 @@
 #plusCollection {
     -fx-icon-code: fas-plus;
     -fx-icon-color: -fx-text-base-color;
-    -fx-icon-size:16;
+    -fx-icon-size: 16;
 }
 
 #deleteCollection {
     -fx-icon-code: far-trash-alt;
     -fx-icon-color: -fx-text-base-color;
-    -fx-icon-size:12;
+    -fx-icon-size: 12;
 }
+
+#fitGridCell {
+    -fx-icon-code: fas-expand;
+    -fx-icon-color: -fx-text-base-color;
+    -fx-icon-size: 16;
+}
+
+#fas-expand-alt {
+    -fx-icon-code: fas-expand-alt;
+    -fx-icon-color: -fx-text-base-color;
+    -fx-icon-size: 16;
+}
+
+
+

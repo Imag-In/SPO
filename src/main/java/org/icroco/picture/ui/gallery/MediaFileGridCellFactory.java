@@ -1,5 +1,6 @@
 package org.icroco.picture.ui.gallery;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.geometry.Pos;
 import javafx.util.Callback;
 import lombok.RequiredArgsConstructor;
@@ -17,11 +18,12 @@ import org.icroco.picture.ui.util.MediaLoader;
 public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, GridCell<MediaFile>> {
     private final MediaLoader            mediaLoader;
     private final TaskService            taskService;
+    private final BooleanProperty        isExpandCell;
     private final GridCellSelectionModel selectionModel = new GridCellSelectionModel();
 
     @Override
     public GridCell<MediaFile> call(GridView<MediaFile> param) {
-        final var cell = new MediaFileGridCell(true, mediaLoader);
+        final var cell = new MediaFileGridCell(true, mediaLoader, isExpandCell);
         cell.setAlignment(Pos.CENTER);
         cell.setEditable(true);
 

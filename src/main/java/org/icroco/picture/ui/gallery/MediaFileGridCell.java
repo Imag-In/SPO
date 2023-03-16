@@ -1,5 +1,8 @@
 package org.icroco.picture.ui.gallery;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import lombok.Getter;
@@ -20,9 +23,12 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 
     public final StackPane root;
 
-    public MediaFileGridCell(boolean preserveImageProperties, MediaLoader mediaLoader) {
+    public final BooleanProperty isExpandCell;
+
+    public MediaFileGridCell(boolean preserveImageProperties, MediaLoader mediaLoader, BooleanProperty isExpandCell) {
         this.preserveImageProperties = preserveImageProperties;
         this.mediaLoader = mediaLoader;
+        this.isExpandCell = isExpandCell;
         getStyleClass().add("image-grid-cell");
         loadingView = new ImageView(MediaLoader.LOADING);
         loadingView.maxHeight(128);
@@ -45,39 +51,35 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         if (empty) {
             this.setGraphic(null);
         } else {
-//            log.info("Update: {}, isSelected: {}", item.fullPath(), isSelected());
-
-//            if (this.preserveImageProperties) {
-//                this.imageView.setPreserveRatio(true);
-//                imageView.setSmooth(true);
-////                this.imageView.setPreserveRatio(item.isPreserveRatio());
-////                this.imageView.setSmooth(item.isSmooth());
-//            }
-//            log.info("Image updated: {}", item.fullPath());
-//            mediaLoader.loadThumbnail(item, this::setImage, this::setImage);
             root.getChildren().clear();
             if (item.getThumbnailType().get() == EThumbnailType.ABSENT) {
                 root.getChildren().add(loadingView);
             } else {
 //                log.info("Grid Cell updated: {}, type: {}", item.fullPath(), item.getThumbnailType().get());
-//                imageView.setImage();
                 root.getChildren().add(mediaLoader.getCachedValue(item)
                                                   .map(Thumbnail::getImage)
-                                                  .map(i -> {
-                                                      imageView.setImage(i);
-                                                      return imageView;
-                                                  })
+                                                  .map(this::setImage)
                                                   .orElse(loadingView));
             }
             updateSelected(item.isSelected());
             setGraphic(root);
-//            if (item.isLoading()) {
-//                imageView.setImage(MediaLoader.LOADING);
-//            } else {
-//                imageView.setImage(item.getThumbnail());
-//            }
-//            setGraphic(imageView);
         }
+    }
+
+    private ImageView setImage(Image image) {
+        if (isExpandCell.getValue()) {
+            double      newMeasure = Math.min(image.getWidth(), image.getHeight());
+            double      x          = (image.getWidth() - newMeasure) / 2;
+            double      y          = (image.getHeight() - newMeasure) / 2;
+            Rectangle2D rect       = new Rectangle2D(x, y, newMeasure, newMeasure);
+            imageView.setViewport(rect);
+        } else {
+            imageView.setViewport(null);
+        }
+
+        imageView.setSmooth(true);
+        imageView.setImage(image);
+        return imageView;
     }
 
 }

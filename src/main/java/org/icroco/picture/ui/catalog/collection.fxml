@@ -17,8 +17,6 @@
         <Label fx:id="addCollection" alignment="CENTER" contentDisplay="CENTER" onMouseClicked="#newCollection" prefHeight="24.0">
             <graphic>
                 <FontIcon id="plusCollection"/>
-
-<!--                <FontIcon iconLiteral="fas-plus" iconColor="-fx-text-base-color"/>-->
             </graphic>
         </Label>
         <!--            <Button fx:id="demo" alignment="CENTER" contentDisplay="CENTER" onMouseClicked="#newCollection">-->
