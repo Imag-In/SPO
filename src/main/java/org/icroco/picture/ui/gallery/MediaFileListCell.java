@@ -1,39 +1,34 @@
 package org.icroco.picture.ui.gallery;
 
-import javafx.beans.property.BooleanProperty;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.control.ListCell;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.controlsfx.control.GridCell;
 import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.util.MediaLoader;
 
 @Slf4j
-public class MediaFileGridCell extends GridCell<MediaFile> {
-    private final ImageView   loadingView;
+public class MediaFileListCell extends ListCell<MediaFile> {
+    private final static ImageView loadingView = new ImageView(MediaLoader.LOADING);
+
+    static {
+        loadingView.maxWidth(128);
+        loadingView.maxHeight(128);
+    }
+
     @Getter
     private final ImageView   imageView;
-    private final boolean     preserveImageProperties;
     private final MediaLoader mediaLoader;
+    public final  StackPane   root;
 
-    public final StackPane root;
-
-    public final BooleanProperty isExpandCell;
-
-    public MediaFileGridCell(boolean preserveImageProperties, MediaLoader mediaLoader, BooleanProperty isExpandCell) {
-        this.preserveImageProperties = preserveImageProperties;
+    public MediaFileListCell(MediaLoader mediaLoader) {
         this.mediaLoader = mediaLoader;
-        this.isExpandCell = isExpandCell;
         getStyleClass().add("image-grid-cell");
-        loadingView = new ImageView(MediaLoader.LOADING);
-        loadingView.maxHeight(128);
-        loadingView.maxWidth(128);
-        loadingView.setImage(MediaLoader.LOADING);
         imageView = new ImageView();
         imageView.fitHeightProperty().bind(this.heightProperty().subtract(3));
         imageView.fitWidthProperty().bind(this.widthProperty().subtract(3));
@@ -41,6 +36,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         imageView.setSmooth(true);
 //        root = Borders.wrap(this.imageView).lineBorder().innerPadding(5, 5, 5,5).color(Color.WHITE).build().build();
         root = new StackPane(loadingView);
+//        imageView.setVisible(false);
 
     }
 
@@ -60,23 +56,19 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
                                                   .map(this::setImage)
                                                   .orElse(loadingView));
             }
-            updateSelected(item.isSelected());
+            //updateSelected(item.isSelected());
             setGraphic(root);
         }
     }
 
     private ImageView setImage(Image image) {
-        if (isExpandCell.getValue()) {
-            double      newMeasure = Math.min(image.getWidth(), image.getHeight());
-            double      x          = (image.getWidth() - newMeasure) / 2;
-            double      y          = (image.getHeight() - newMeasure) / 2;
-            Rectangle2D rect       = new Rectangle2D(x, y, newMeasure, newMeasure);
-            imageView.setViewport(rect);
-        } else {
-            imageView.setViewport(null);
-        }
-        imageView.setImage(image);
+        double      newMeasure = Math.min(image.getWidth(), image.getHeight());
+        double      x          = (image.getWidth() - newMeasure) / 2;
+        double      y          = (image.getHeight() - newMeasure) / 2;
+        Rectangle2D rect       = new Rectangle2D(x, y, newMeasure, newMeasure);
+        imageView.setViewport(rect);
 
+        imageView.setImage(image);
         return imageView;
     }
 

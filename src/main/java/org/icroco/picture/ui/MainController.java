@@ -2,6 +2,7 @@ package org.icroco.picture.ui;
 
 import javafx.fxml.FXML;
 import javafx.scene.layout.BorderPane;
+import javafx.stage.Screen;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
@@ -33,6 +34,10 @@ public class MainController extends FxInitOnce {
 
     @Override
     protected void initializedOnce() {
+        log.info("Primary screen: {}", Screen.getPrimary());
+        Screen.getScreens().forEach(screen -> {
+            log.info("Screen: {}", screen);
+        });
         //main.setLeft(viewManager.loadView());
         main.setTop(navView.scene().getRoot());
         main.setBottom(statusView.scene().getRoot());

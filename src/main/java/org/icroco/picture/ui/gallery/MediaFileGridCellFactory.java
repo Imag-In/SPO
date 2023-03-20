@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridCell;
 import org.controlsfx.control.GridView;
+import org.icroco.picture.ui.event.CarouselEvent;
 import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.task.TaskService;
@@ -28,11 +29,15 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
         cell.setEditable(true);
 
         cell.setOnMouseClicked((t) -> {
-            selectionModel.clear();
-            var mediaFile = ((MediaFileGridCell) t.getSource()).getItem();
-            selectionModel.add(mediaFile);
-            cell.requestLayout();
-            taskService.notifyLater(new PhotoSelectedEvent(mediaFile, this));
+            var mf = ((MediaFileGridCell) t.getSource()).getItem();
+            if (t.getClickCount() == 1) {
+                selectionModel.clear();
+                selectionModel.add(mf);
+                cell.requestLayout();
+                taskService.notifyLater(new PhotoSelectedEvent(mf, this));
+            } else if (t.getClickCount() == 2) {
+                taskService.notifyLater(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.SHOW).build());
+            }
             t.consume();
         });
 

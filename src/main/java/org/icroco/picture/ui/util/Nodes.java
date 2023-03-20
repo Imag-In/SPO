@@ -6,6 +6,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -87,6 +88,17 @@ public class Nodes {
             // save user pref.
         });
 
+    }
+
+    public static Screen getScreen(Scene scene) {
+        List<Screen> interScreens = Screen.getScreensForRectangle(scene.getWindow().getX(),
+                                                                  scene.getWindow().getY(),
+                                                                  scene.getWindow().getWidth(),
+                                                                  scene.getWindow().getHeight());
+        if (interScreens.size() == 0) {
+            return Screen.getPrimary();
+        }
+        return interScreens.get(0);
     }
 
     public static <T> Optional<T> getFirstParent(Node node, Class<T> type) {

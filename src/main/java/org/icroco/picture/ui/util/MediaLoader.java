@@ -3,6 +3,7 @@ package org.icroco.picture.ui.util;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.scene.image.Image;
+import javafx.stage.Screen;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
@@ -50,14 +51,15 @@ public class MediaLoader {
     private final ThumbnailMapper     thumbnailMapper;
     private final TagRepository       tagRepository;
     private final ThumbnailRepository thumbnailRepository;
-    public static Image               LOADING             = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
+    public static Image               LOADING              = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
+    public static double              PRIMARY_SCREEN_WIDTH = Screen.getPrimary().getVisualBounds().getWidth();
     private final IThumbnailGenerator thumbnailGenerator;
     @Qualifier(ImageInConfiguration.THUMBNAILS)
     private final Cache               thumbnailCache;
     private final TaskService         taskService;
     private final PersistenceService  persistenceService;
-    private final Map<Integer, Lock>  catalogLock         = new ConcurrentHashMap<>();
-    private final Set<Integer>        catalogToReGenerate = new CopyOnWriteArraySet<>();
+    private final Map<Integer, Lock>  catalogLock          = new ConcurrentHashMap<>();
+    private final Set<Integer>        catalogToReGenerate  = new CopyOnWriteArraySet<>();
 
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -107,9 +109,10 @@ public class MediaLoader {
     }
 
     @Cacheable(cacheNames = ImageInConfiguration.FULL_SIZE, unless = "#result == null")
-    private Image loadImage(Path p) {
+    public Image loadImage(Path p) {
         try {
-            return new Image(p.toUri().toString(), 1024D, 0, true, true);
+            return new Image(p.toUri().toString(), PRIMARY_SCREEN_WIDTH, 0, true, true);
+//            return new Image(p.toUri().toString());
         }
         catch (Exception e) {
             log.error("invalid mediaFile: {}", p, e);
