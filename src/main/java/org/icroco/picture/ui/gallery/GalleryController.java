@@ -110,7 +110,7 @@ public class GalleryController extends FxInitOnce {
         carouselIcons.setItems(sortedImages);
         carouselIcons.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         carouselIcons.getSelectionModel().selectedItemProperty().addListener(this::carouselItemSelected);
-        carouselIcons.setFixedCellSize(gridCellWidth);
+        carouselIcons.setFixedCellSize(128);
         carouselIcons.prefWidthProperty().bind(gridView.cellWidthProperty());
         carouselIcons.prefHeightProperty().bind(gridView.cellHeightProperty().add(20));
 
@@ -315,8 +315,9 @@ public class GalleryController extends FxInitOnce {
             case HIDE -> {
                 gallery.setVisible(true);
                 carousel.setVisible(false);
+                gridView.getSelectionModel().clear();
                 gridView.ensureVisible(event.getMediaFile());
-                event.getMediaFile().setSelected(true);
+//                event.getMediaFile().setSelected(true);
             }
         }
     }

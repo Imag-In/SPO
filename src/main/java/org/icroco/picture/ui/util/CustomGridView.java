@@ -6,13 +6,15 @@ import javafx.scene.Node;
 import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridView;
 
 @Slf4j
 public class CustomGridView<T> extends GridView<T> {
     int selectedRow = 0; // current "selected" GridView row.
-    private final GridCellSelectionModel selectionModel = new GridCellSelectionModel();
+    @Getter
+    private final SelectionModel<Node> selectionModel = new SelectionModel<>();
 
     public CustomGridView() {
     }

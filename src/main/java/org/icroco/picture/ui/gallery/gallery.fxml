@@ -7,11 +7,12 @@
 <?import org.icroco.picture.ui.util.CustomGridView?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 <StackPane fx:id="layout" stylesheets="/css/dark.css" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="org.icroco.picture.ui.gallery.GalleryController">
+           fx:controller="org.icroco.picture.ui.gallery.GalleryController"
+           minWidth="300" minHeight="256">
     <children>
         <BorderPane fx:id="gallery" stylesheets="/css/dark.css">
             <center>
-                <CustomGridView fx:id="gridView" horizontalCellSpacing="0" prefHeight="600.0" prefWidth="600.0" verticalCellSpacing="0"/>
+                <CustomGridView fx:id="gridView" horizontalCellSpacing="0" verticalCellSpacing="0"/>
             </center>
             <bottom>
                 <HBox alignment="CENTER" BorderPane.alignment="CENTER">
@@ -39,7 +40,9 @@
         </BorderPane>
         <BorderPane fx:id="carousel" visible="false">
             <center>
-                <StackPane fx:id="photoContainer" style="-fx-border-color: red; -fx-border-width: 1; -fx-border-style: solid;" BorderPane.alignment="CENTER">
+                <StackPane fx:id="photoContainer"
+                           style="-fx-border-color: red; -fx-border-width: 1; -fx-border-style: solid;"
+                           BorderPane.alignment="CENTER">
                     <!--                                 <children>-->
                     <!--                                    <ImageView fx:id="photo" fitHeight="534.0" fitWidth="564.0" pickOnBounds="true" preserveRatio="true" />-->
                     <!--                                 </children>-->

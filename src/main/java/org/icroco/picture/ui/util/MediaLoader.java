@@ -191,7 +191,7 @@ public class MediaLoader {
             @Override
             protected List<ThumbnailRes> call() throws Exception {
                 log.info("Warm Cache for: '{}', size: {}", catalog.path(), files.size());
-                updateTitle("Warm thumbnails cache");
+                updateTitle("Loading thumbnails ...");
                 updateProgress(0, files.size());
                 return EntryStream.of(new ArrayList<>(files))
                                   .map(entry -> {

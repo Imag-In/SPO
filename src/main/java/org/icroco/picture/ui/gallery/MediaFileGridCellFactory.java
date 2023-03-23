@@ -11,7 +11,7 @@ import org.icroco.picture.ui.event.CarouselEvent;
 import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.task.TaskService;
-import org.icroco.picture.ui.util.GridCellSelectionModel;
+import org.icroco.picture.ui.util.CustomGridView;
 import org.icroco.picture.ui.util.MediaLoader;
 
 @Slf4j
@@ -20,19 +20,19 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
     private final MediaLoader            mediaLoader;
     private final TaskService            taskService;
     private final BooleanProperty        isExpandCell;
-    private final GridCellSelectionModel selectionModel = new GridCellSelectionModel();
+//    private final GridCellSelectionModel selectionModel = new GridCellSelectionModel();
 
     @Override
-    public GridCell<MediaFile> call(GridView<MediaFile> param) {
+    public GridCell<MediaFile> call(final GridView<MediaFile> grid) {
         final var cell = new MediaFileGridCell(true, mediaLoader, isExpandCell);
         cell.setAlignment(Pos.CENTER);
-        cell.setEditable(true);
+        cell.setEditable(false);
 
         cell.setOnMouseClicked((t) -> {
             var mf = ((MediaFileGridCell) t.getSource()).getItem();
             if (t.getClickCount() == 1) {
-                selectionModel.clear();
-                selectionModel.add(mf);
+                ((CustomGridView<MediaFile>) grid).getSelectionModel().clear();
+                ((CustomGridView<MediaFile>) grid).getSelectionModel().add(cell);
                 cell.requestLayout();
                 taskService.notifyLater(new PhotoSelectedEvent(mf, this));
             } else if (t.getClickCount() == 2) {
