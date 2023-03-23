@@ -142,14 +142,14 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
         }
     }
 
-    static BufferedImage adaptOrientation(BufferedImage img, int orientation) {
+    public static BufferedImage adaptOrientation(BufferedImage img, int orientation) {
         return switch (orientation) {
-            case 2 -> rotate(img, Rotation.FLIP_VERT); // todo mirror
+            case 2 -> rotate(img, Rotation.FLIP_VERT);
             case 3 -> rotate(img, Rotation.CW_180);
-            case 4 -> rotate(img, Rotation.CW_180, Rotation.FLIP_VERT); // todo: mirror
-            case 5 -> rotate(img, Rotation.CW_90, Rotation.FLIP_HORZ); // todo: mirror
+            case 4 -> rotate(img, Rotation.CW_180, Rotation.FLIP_VERT);
+            case 5 -> rotate(img, Rotation.CW_90, Rotation.FLIP_HORZ);
             case 6 -> rotate(img, Rotation.CW_90);
-            case 7 -> rotate(img, Rotation.CW_270, Rotation.FLIP_HORZ); // todo: mirror
+            case 7 -> rotate(img, Rotation.CW_270, Rotation.FLIP_HORZ);
             case 8 -> rotate(img, Rotation.CW_270);
             default -> img;
         };
@@ -436,7 +436,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      * @author Riyad Kalla (software@thebuzzmedia.com)
      * @since 3.2
      */
-    public static enum Rotation {
+    public enum Rotation {
         /**
          * 90-degree, clockwise rotation (to the right). This is equivalent to a
          * quarter-turn of the image to the right; moving the picture on to its

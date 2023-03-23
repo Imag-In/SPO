@@ -23,6 +23,7 @@ import org.icroco.picture.ui.persistence.TagRepository;
 import org.icroco.picture.ui.persistence.ThumbnailRepository;
 import org.icroco.picture.ui.task.AbstractTask;
 import org.icroco.picture.ui.task.TaskService;
+import org.icroco.picture.ui.util.image.ImageLoader;
 import org.icroco.picture.ui.util.thumbnail.IThumbnailGenerator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
@@ -54,6 +55,7 @@ public class MediaLoader {
     public static Image               LOADING              = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
     public static double              PRIMARY_SCREEN_WIDTH = Screen.getPrimary().getVisualBounds().getWidth();
     private final IThumbnailGenerator thumbnailGenerator;
+    private final ImageLoader         imageLoader;
     @Qualifier(ImageInConfiguration.THUMBNAILS)
     private final Cache               thumbnailCache;
     private final TaskService         taskService;
@@ -109,13 +111,18 @@ public class MediaLoader {
     }
 
     @Cacheable(cacheNames = ImageInConfiguration.FULL_SIZE, unless = "#result == null")
-    public Image loadImage(Path p) {
+    public Image loadImage(MediaFile mediaFile) {
+        if (mediaFile == null) {
+            return null;
+        }
+
         try {
-            return new Image(p.toUri().toString(), PRIMARY_SCREEN_WIDTH, 0, true, true);
+            return imageLoader.loadImage(mediaFile);
+//            return new Image(p.toUri().toString(), PRIMARY_SCREEN_WIDTH, 0, true, true);
 //            return new Image(p.toUri().toString());
         }
         catch (Exception e) {
-            log.error("invalid mediaFile: {}", p, e);
+            log.error("invalid mediaFile: {}", mediaFile.getFullPath(), e);
         }
         return null;
     }

@@ -305,7 +305,7 @@ public class GalleryController extends FxInitOnce {
             case SHOW -> {
                 gallery.setVisible(false);
                 carousel.setVisible(true);
-                photo.setImage(mediaLoader.loadImage(event.getMediaFile().getFullPath()));
+                photo.setImage(mediaLoader.loadImage(event.getMediaFile()));
                 MultipleSelectionModel<MediaFile> selectionModel = carouselIcons.getSelectionModel();
                 selectionModel.select(event.getMediaFile());
 //                var idx = selectionModel.getSelectedIndex();
@@ -323,6 +323,6 @@ public class GalleryController extends FxInitOnce {
     }
 
     private void carouselItemSelected(ObservableValue<? extends MediaFile> observableValue, MediaFile oldValue, MediaFile newValue) {
-        photo.setImage(mediaLoader.loadImage(newValue.getFullPath()));
+        photo.setImage(mediaLoader.loadImage(newValue));
     }
 }
