@@ -1,6 +1,6 @@
 /*
  * To change this license header, choose License Headers in Project Properties.
- * To change this template mediaFile, choose Tools | Templates
+ * To change this template mf, choose Tools | Templates
  * and open the template in the editor.
  */
 package org.icroco.picture.ui.util;

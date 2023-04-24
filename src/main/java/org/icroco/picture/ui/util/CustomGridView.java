@@ -1,6 +1,7 @@
 package org.icroco.picture.ui.util;
 
 import impl.org.controlsfx.skin.GridViewSkin;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.control.skin.VirtualFlow;
@@ -14,9 +15,10 @@ import org.controlsfx.control.GridView;
 public class CustomGridView<T> extends GridView<T> {
     int selectedRow = 0; // current "selected" GridView row.
     @Getter
-    private final SelectionModel<Node> selectionModel = new SelectionModel<>();
+    private final GridCellSelectionModel selectionModel = new GridCellSelectionModel();
 
     public CustomGridView() {
+        this(FXCollections.emptyObservableList());
     }
 
     public CustomGridView(ObservableList<T> items) {
@@ -48,6 +50,26 @@ public class CustomGridView<T> extends GridView<T> {
         flow.scrollTo(selectedRow);
     }
 
+    public boolean isCellVisible(Node input) {
+        VirtualFlow<?> vf  = (VirtualFlow<?>) getChildrenUnmodifiable().get(0);
+        boolean        ret = false;
+        if (vf.getFirstVisibleCell() == null) {
+            return false;
+        }
+        int start = vf.getFirstVisibleCell().getIndex();
+        int end   = vf.getLastVisibleCell().getIndex();
+//        log.info("Visible start-end: {}:{}", start, end);
+        if (start == end) {
+            return true;
+        }
+        for (int i = start; i <= end; i++) {
+            if (vf.getCell(i).getChildrenUnmodifiable().contains(input)) {
+                return true;
+            }
+        }
+        return ret;
+    }
+
     private void oneRowDown() {
         // get the underlying VirtualFlow object
         VirtualFlow<?> flow = (VirtualFlow<?>) ((GridViewSkin<?>) this.getSkin()).getChildren().get(0);
@@ -63,7 +85,7 @@ public class CustomGridView<T> extends GridView<T> {
     public void ensureVisible(T item) {
         // Gross workaround. Couldn't find any other solution
         for (Node n : getChildren()) {
-            if (n instanceof VirtualFlow vf) {
+            if (n instanceof VirtualFlow<?> vf) {
                 vf.scrollTo(getItems().indexOf(item) / getItemsInRow());
                 break;
             }

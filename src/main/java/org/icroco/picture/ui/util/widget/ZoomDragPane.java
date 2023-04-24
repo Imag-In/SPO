@@ -1,4 +1,4 @@
-package org.icroco.picture.ui.util;
+package org.icroco.picture.ui.util.widget;
 
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -9,6 +9,7 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.GestureEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import lombok.Getter;
@@ -33,9 +34,7 @@ public class ZoomDragPane extends BorderPane {
      * For ZOOM_N = 9 the factor value is approximately 93%
      */
     private static final double ZOOM_IN_SCALE = Math.pow(HALF, 1.0d / ZOOM_N);
-
-
-    private static final double MIN_PX = 10;
+    private static final double MIN_PX        = 10;
 
     private       int       zoomLevel = 0;
     @Getter
@@ -78,6 +77,7 @@ public class ZoomDragPane extends BorderPane {
     }
 
     public final void setImage(@Nullable Image image) {
+        zoomLevel = 0;
         if (image != null) {
             view.setImage(image);
             imageWidth = image.getWidth();
@@ -116,6 +116,17 @@ public class ZoomDragPane extends BorderPane {
         });
     }
 
+    public void zoom(MouseEvent event) {
+//        zoomLevel = 20;
+        zoomInCentredToLevel(10);
+//        zoom(Zoom.ZOOM_IN, event.getX(), event.getY());
+    }
+
+    public void noZoom() {
+        zoomLevel = 1;
+        zoom(Zoom.ZOOM_OUT, 0, 0);
+    }
+
     /**
      * Zoom Event-Handler. Zooms In or Out exactly 1 Level (if at all).
      * <p>
@@ -123,9 +134,15 @@ public class ZoomDragPane extends BorderPane {
      * and need to be normalised to relative-to-the-Image for the Zoom & Viewport calculations.
      */
     private void zoom(final GestureEvent event) {
+        final Zoom zoom = Zoom.of(event);
+
+        zoom(zoom, event.getX(), event.getY());
         event.consume();
-        final Zoom zoom         = Zoom.of(event);
-        final int  zoomLevelTry = zoomLevel + zoom.getZoomLevelDelta();
+    }
+
+    private void zoom(Zoom zoom, double x, double y) {
+        final int zoomLevelTry = zoomLevel + zoom.getZoomLevelDelta();
+
         /*
          * Zoomed out too far or no Zoom at all? Then there's nothing to do...
          */
@@ -151,10 +168,11 @@ public class ZoomDragPane extends BorderPane {
          */
         zoomLevel = zoomLevelTry;
 
-
-        final Point2D mouseInImage = imageViewToImage(event.getX(), event.getY());
+        final Point2D mouseInImage = imageViewToImage(x, y);
 
         final Point2D newLocation = zoomCalculateNewViewportXY(mouseInImage, zoom.getScale());
+        log.info("zoomLevel: {}, scale:{}, x:{}, y:{}, nouseImage:{}, newLocation: {}", zoomLevel, zoom.getScale(), x, y, mouseInImage, newLocation);
+
         /*
          * Store the new Coordinates & Size in the Viewport...
          */
@@ -301,5 +319,6 @@ public class ZoomDragPane extends BorderPane {
             view.setScaleY(rotation90scale);
         }
     }
+
 }
 

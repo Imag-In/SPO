@@ -102,7 +102,7 @@ public class CollectionController extends FxInitOnce {
         if (newValue != null) {
             Catalog c = (Catalog) newValue.getUserData();
             pref.getUserPreference().getCollection().setLastViewed((c).id());
-            taskService.notifyLater(new WarmThumbnailCacheEvent(c, this));
+            taskService.fxNotifyLater(new WarmThumbnailCacheEvent(c, this));
 //            taskService.notifyLater(new CatalogEvent(c, EventType.SELECTED, this));
         }
     }
@@ -147,7 +147,7 @@ public class CollectionController extends FxInitOnce {
                                                 final var newCatalog = service.saveCatalog(catalog);
                                                 Platform.runLater(() -> {
                                                     createTreeView(newCatalog);
-                                                    taskService.notifyLater(new ExtractThumbnailEvent(newCatalog, this));
+                                                    taskService.fxNotifyLater(new ExtractThumbnailEvent(newCatalog, this));
                                                 });
                                             });
                        });
@@ -175,7 +175,7 @@ public class CollectionController extends FxInitOnce {
                                                      .toList();
                     final var size = filteredImages.size();
                     updateProgress(0, size);
-                    updateTitle("%s: Generating hash for %d files".formatted(rootPath.getFileName(), filteredImages.size()));
+//                    updateTitle("%s: Generating hash for %d files".formatted(rootPath.getFileName(), filteredImages.size()));
                     return Catalog.builder().path(rootPath)
                                             .subPaths(children)
                                             .medias(EntryStream.of(filteredImages)
@@ -206,9 +206,16 @@ public class CollectionController extends FxInitOnce {
         return new AbstractTask<>() {
             @Override
             protected List<MediaFile> call() throws Exception {
-                updateTitle("Hashing %s files. %d/%d ".formatted(mediaFiles.size(), batchId, nbBatches));
+                var size = mediaFiles.size();
+                updateTitle("Hashing %s files. %d/%d ".formatted(size, batchId, nbBatches));
+                updateProgress(0, size);
 //                updateMessage("%s: scanning".formatted(rootPath));
-                mediaFiles.forEach(mediaFile -> mediaFile.setHash(hashGenerator.compute(mediaFile.getFullPath()).orElse(null)));
+                for (int i = 0; i < size; i++) {
+                    var mf = mediaFiles.get(i);
+                    updateProgress(i, size);
+                    updateMessage("Hashing: " + mf.getFullPath().getFileName());
+                    mf.setHash(hashGenerator.compute(mf.getFullPath()).orElse(null));
+                }
                 return mediaFiles;
             }
 
@@ -269,7 +276,7 @@ public class CollectionController extends FxInitOnce {
         treeView.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
             if (newValue != null) {
                 log.debug("Tree view selected: {} ", newValue.getValue());
-                taskService.notifyLater(new CatalogEntrySelectedEvent(catalog.path(), newValue.getValue(), CollectionController.this));
+                taskService.fxNotifyLater(new CatalogEntrySelectedEvent(catalog.path(), newValue.getValue(), CollectionController.this));
             }
         });
 
@@ -293,7 +300,7 @@ public class CollectionController extends FxInitOnce {
                             if (dlg.getResult() == ButtonType.OK) {
                                 service.deleteCatalog(c);
                                 catalogs.getPanes().remove(Nodes.getFirstParent(source, TitledPane.class).orElseThrow());
-                                taskService.notifyLater(new CatalogEvent(c, EventType.DELETED, this));
+                                taskService.fxNotifyLater(new CatalogEvent(c, EventType.DELETED, this));
                                 // TODO: Clean Thumbnail Cache and DB.
                             }
                         });

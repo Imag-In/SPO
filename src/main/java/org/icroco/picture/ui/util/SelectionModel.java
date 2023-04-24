@@ -5,6 +5,7 @@ import javafx.scene.Node;
 import java.util.HashSet;
 import java.util.Set;
 
+@Deprecated
 public class SelectionModel<T extends Node> {
     private Set<T> selection = new HashSet<>();
 

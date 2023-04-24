@@ -7,7 +7,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.util.MediaLoader;
@@ -29,34 +28,32 @@ public class MediaFileListCell extends ListCell<MediaFile> {
     public MediaFileListCell(MediaLoader mediaLoader) {
         this.mediaLoader = mediaLoader;
         getStyleClass().add("image-grid-cell");
-        imageView = new ImageView();
+        imageView = new ImageView(MediaLoader.LOADING);
         imageView.fitHeightProperty().bind(this.heightProperty().subtract(3));
         imageView.fitWidthProperty().bind(this.widthProperty().subtract(3));
-        this.imageView.setPreserveRatio(true);
+        imageView.setPreserveRatio(true);
         imageView.setSmooth(true);
 //        root = Borders.wrap(this.imageView).lineBorder().innerPadding(5, 5, 5,5).color(Color.WHITE).build().build();
-        root = new StackPane(loadingView);
+        root = new StackPane(imageView);
 //        imageView.setVisible(false);
 
     }
 
     @Override
     protected void updateItem(MediaFile item, boolean empty) {
+        log.info("updateItem: cell:{}, item: '{}' , empty: '{}'", this.hashCode(), item == null ? "null" : item.getFileName(), empty);
         super.updateItem(item, empty);
-        if (empty) {
+
+        if (empty || item == null) {
             this.setGraphic(null);
         } else {
-            root.getChildren().clear();
-            if (item.getThumbnailType().get() == EThumbnailType.ABSENT) {
-                root.getChildren().add(loadingView);
-            } else {
-//                log.info("Grid Cell updated: {}, type: {}", item.fullPath(), item.getThumbnailType().get());
-                root.getChildren().add(mediaLoader.getCachedValue(item)
-                                                  .map(Thumbnail::getImage)
-                                                  .map(this::setImage)
-                                                  .orElse(loadingView));
-            }
-            //updateSelected(item.isSelected());
+//            if (item.isLoaded()) {
+            setImage(mediaLoader.getCachedValue(item)
+                                .map(Thumbnail::getImage)
+                                .orElse(MediaLoader.LOADING));
+//            } else {
+//                setImage(MediaLoader.LOADING);
+//            }
             setGraphic(root);
         }
     }
@@ -67,8 +64,8 @@ public class MediaFileListCell extends ListCell<MediaFile> {
         double      y          = (image.getHeight() - newMeasure) / 2;
         Rectangle2D rect       = new Rectangle2D(x, y, newMeasure, newMeasure);
         imageView.setViewport(rect);
-
         imageView.setImage(image);
+
         return imageView;
     }
 

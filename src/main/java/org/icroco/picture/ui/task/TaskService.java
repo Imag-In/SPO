@@ -24,8 +24,14 @@ public class TaskService {
      * Execute Task in background
      */
     public <T> CompletableFuture<T> supply(final Task<T> task) {
+        return supply(task, true);
+    }
+
+    public <T> CompletableFuture<T> supply(final Task<T> task, boolean visualFeedback) {
         log.debug("Start new task: {}", task);
-        Platform.runLater(() -> taskController.addTask(task));
+        if (visualFeedback) {
+            Platform.runLater(() -> taskController.addTask(task));
+        }
         return CompletableFuture.supplyAsync(() -> {
             task.run();
             try {
@@ -41,11 +47,15 @@ public class TaskService {
     /**
      * post an event into the bus through Fx Thread.
      */
-    public void notifyLater(ApplicationEvent event) {
+    public void fxNotifyLater(final ApplicationEvent event) {
+        fxRun(() -> eventBus.multicastEvent(event));
+    }
+
+    public static void fxRun(Runnable runnable) {
         if (Platform.isFxApplicationThread()) {
-            eventBus.multicastEvent(event);
+            runnable.run();
         } else {
-            Platform.runLater(() -> eventBus.multicastEvent(event));
+            Platform.runLater(runnable);
         }
     }
 

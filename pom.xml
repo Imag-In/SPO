@@ -11,9 +11,9 @@
         <controlsfx.version>11.1.2</controlsfx.version>
         <eclipse-collections-api.version>11.1.0</eclipse-collections-api.version>
         <ikonli-bom.version>12.3.1</ikonli-bom.version>
-        <java.version>19</java.version>
-        <javafx.version>19-ea+11</javafx.version>
-        <lombok.version>1.18.24</lombok.version>
+        <java.version>20</java.version>
+        <javafx.version>20.0.1</javafx.version>
+        <lombok.version>1.18.26</lombok.version>
         <mapstruct.version>1.5.3.Final</mapstruct.version>
         <maven-compiler-plugin.version>0.2.0</maven-compiler-plugin.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -57,10 +57,25 @@
             <version>4.6.0-0</version>
         </dependency>
         <dependency>
+            <groupId>io.github.palexdev</groupId>
+            <artifactId>virtualizedfx</artifactId>
+            <version>11.9.3</version>
+        </dependency>
+        <dependency>
             <groupId>com.twelvemonkeys.imageio</groupId>
             <artifactId>imageio-jpeg</artifactId>
             <version>${imageio-jpeg.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.fxmisc.wellbehaved</groupId>
+            <artifactId>wellbehavedfx</artifactId>
+            <version>0.3.3</version>
+        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>com.tobiasdiez</groupId>-->
+        <!--            <artifactId>easybind</artifactId>-->
+        <!--            <version>2.2</version>-->
+        <!--        </dependency>-->
         <!--    <dependency>-->
         <!--      <groupId>org.jfxtras</groupId>-->
         <!--      <artifactId>jmetro</artifactId>-->
@@ -273,7 +288,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>org.icroco.picture.ui.PictureApplication</mainClass>
+                    <mainClass>org.icroco.picture.ui.ImagInApp</mainClass>
                 </configuration>
                 <executions>
                     <execution>

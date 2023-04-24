@@ -1,7 +1,10 @@
 package org.icroco.picture.ui.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.ui.model.MediaFile;
+import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.hash.JdkHashGenerator;
@@ -31,10 +34,15 @@ public class ImageInConfiguration {
     @Bean(name = THUMBNAILS)
     public CaffeineCache thumbnails() {
         return new CaffeineCache(THUMBNAILS,
-                                 Caffeine.newBuilder()
+                                 Caffeine.<Long, Thumbnail>newBuilder()
                                          .recordStats()
-                                         .softValues()
-                                         .maximumSize(10000) // TODO: Compute this at runtime.
+//                                         .softValues()
+                                         .maximumSize(1000) // TODO: Compute this at runtime.
+                                         .removalListener((key, value, cause) -> Platform.runLater(() -> {
+                                             if (key != null) {
+                                                 ((MediaFile) key).setLoaded(false);
+                                             }
+                                         }))
 //                                         .expireAfterAccess(1, TimeUnit.DAYS)
                                          .build());
     }
@@ -43,7 +51,7 @@ public class ImageInConfiguration {
     public CaffeineCache fullSize() {
         return new CaffeineCache(FULL_SIZE,
                                  Caffeine.newBuilder()
-                                         .softValues()
+//                                         .softValues()
                                          .recordStats()
                                          .maximumSize(100)
                                          .expireAfterAccess(1, TimeUnit.HOURS)
@@ -56,7 +64,7 @@ public class ImageInConfiguration {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(Constant.NB_CORE);
         executor.setMaxPoolSize(Constant.NB_CORE);
-        executor.setThreadNamePrefix("iiTask");
+        executor.setThreadNamePrefix("iiTask-");
         executor.setKeepAliveSeconds(60);
         executor.initialize();
 
@@ -67,7 +75,7 @@ public class ImageInConfiguration {
     public TaskScheduler threadPoolTaskScheduler() {
 
         ThreadPoolTaskScheduler executor = new ThreadPoolTaskScheduler();
-        executor.setThreadNamePrefix("iiScheduler");
+        executor.setThreadNamePrefix("iiScheduler-");
         executor.initialize();
 
         return executor;

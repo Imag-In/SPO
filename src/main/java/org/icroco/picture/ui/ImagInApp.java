@@ -21,7 +21,7 @@ import java.awt.*;
 @SpringBootApplication
 @EnableAsync
 @ImportAutoConfiguration(classes = ViewAutoConfiguration.class)
-public class PictureApplication extends AbstractJavaFxApplication {
+public class ImagInApp extends AbstractJavaFxApplication {
     public static final String IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG = "/images/128px-GNOME_Photos_logo_2019.svg.png";
     // Application startup analysis: https://www.amitph.com/spring-boot-startup-monitoring/#applicationstartup_metrics_with_java_flight_recorder
     // Icon IRes: https://dlsc.com/2017/08/29/javafx-tip-27-hires-retina-icons/
@@ -31,6 +31,9 @@ public class PictureApplication extends AbstractJavaFxApplication {
 
     @Override
     protected void preStart(final Stage primaryStage) {
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
+        System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Image'In");
+
 //        OpenCV.loadShared();
         ImageUtils.readImageIoCodec();
         var icon = getClass().getResourceAsStream(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG);
@@ -71,6 +74,6 @@ public class PictureApplication extends AbstractJavaFxApplication {
 
 
     public static void main(String[] args) {
-        Application.launch(PictureApplication.class, args);
+        Application.launch(ImagInApp.class, args);
     }
 }

@@ -1,9 +1,10 @@
-package org.icroco.picture.ui.util;
+package org.icroco.picture.ui.util.widget;
 
 import javafx.scene.input.GestureEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.input.ZoomEvent;
 import lombok.Getter;
+import org.icroco.picture.ui.util.Constant;
 
 public enum Zoom {
 

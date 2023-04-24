@@ -4,6 +4,7 @@ import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -11,7 +12,9 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.CacheHint;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ZoomEvent;
 import javafx.scene.layout.BorderPane;
@@ -26,13 +29,13 @@ import org.icroco.picture.ui.event.CatalogEvent;
 import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.MediaFile;
-import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.CustomGridView;
 import org.icroco.picture.ui.util.MediaLoader;
 import org.icroco.picture.ui.util.Nodes;
-import org.icroco.picture.ui.util.ZoomDragPane;
+import org.icroco.picture.ui.util.widget.Zoom;
+import org.icroco.picture.ui.util.widget.ZoomDragPane;
 import org.slf4j.Logger;
 import org.springframework.context.event.EventListener;
 import org.springframework.lang.Nullable;
@@ -42,6 +45,10 @@ import java.util.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static org.fxmisc.wellbehaved.event.EventPattern.keyPressed;
+import static org.fxmisc.wellbehaved.event.InputMap.consume;
+import static org.fxmisc.wellbehaved.event.InputMap.sequence;
+
 @FxViewBinding(id = "gallery", fxmlLocation = "gallery.fxml")
 @RequiredArgsConstructor
 public class GalleryController extends FxInitOnce {
@@ -49,7 +56,6 @@ public class GalleryController extends FxInitOnce {
 
     private final MediaLoader           mediaLoader;
     private final UserPreferenceService pref;
-    private final PersistenceService    persistenceService;
     private final TaskService           taskService;
 
     @FXML
@@ -76,15 +82,14 @@ public class GalleryController extends FxInitOnce {
     @FXML
     private ListView<MediaFile>       carouselIcons;
 
-    private final BooleanProperty           expandCell     = new SimpleBooleanProperty(false);
-    private final ObservableList<MediaFile> images         = FXCollections.observableArrayList(MediaFile.extractor());
-    private final FilteredList<MediaFile>   filteredImages = new FilteredList<>(images);
-    private final SortedList<MediaFile>     sortedImages   = new SortedList<>(filteredImages);
-
-    private double gridCellWidth;
-    private double gridCellHeight;
-
-    private Optional<Catalog> currentCatalog = Optional.empty();
+    private final BooleanProperty               expandCell     = new SimpleBooleanProperty(false);
+    private final ObservableList<MediaFile>     images         = FXCollections.observableArrayList(MediaFile.extractor());
+    private final FilteredList<MediaFile>       filteredImages = new FilteredList<>(images);
+    private final SortedList<MediaFile>         sortedImages   = new SortedList<>(filteredImages);
+    private       double                        gridCellWidth;
+    private       double                        gridCellHeight;
+    private       double                        zoomLevel      = 0;
+    private final SimpleObjectProperty<Catalog> currentCatalog = new SimpleObjectProperty<>(null);
 
     @Override
     protected void initializedOnce() {
@@ -99,15 +104,15 @@ public class GalleryController extends FxInitOnce {
 //        gridCellHeight = Optional.ofNullable(pref.getUserPreference().getGrid().getCellHeight()).orElse((int)gridView.getCellHeight());
         gridCellWidth = gridView.getCellWidth() * 2;
         gridCellHeight = gridView.getCellHeight() * 2;
+        gridView.setCache(true);
+        gridView.setCacheHint(CacheHint.SPEED);
         gridView.setCellWidth(gridCellWidth);
         gridView.setCellHeight(gridCellHeight);
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService, expandCell));
         gridView.setOnZoom(this::zoomOnGrid);
-        gridView.setOnZoomStarted(this::zoomStart);
-        gridView.setOnZoomFinished(this::zoomFinish);
 
         carouselIcons.setCellFactory(new MediaFileListCellFactory(mediaLoader, taskService));
-        carouselIcons.setItems(sortedImages);
+        carouselIcons.setItems(images);
         carouselIcons.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         carouselIcons.getSelectionModel().selectedItemProperty().addListener(this::carouselItemSelected);
         carouselIcons.setFixedCellSize(128);
@@ -115,13 +120,28 @@ public class GalleryController extends FxInitOnce {
         carouselIcons.prefHeightProperty().bind(gridView.cellHeightProperty().add(20));
 
         photo = new ZoomDragPane(photoContainer);
+        photo.setOnMouseClicked(this::onPhotoClick);
         photoContainer.getChildren().add(photo);
+        org.fxmisc.wellbehaved.event.Nodes.addInputMap(photo.getView(), sequence(
+                consume(keyPressed(KeyCode.ESCAPE), e -> log.info("ESCAPE")),
+                consume(keyPressed(KeyCode.ENTER), e -> log.info("ENTER"))
+        ));
+//        photoContainer.setOnKeyPressed(new EventHandler<KeyEvent>() {
+//            public void handle(final KeyEvent keyEvent) {
+//                if (keyEvent.getCode() == KeyCode.ESCAPE) {
+//                    taskService.fxNotifyLater(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
+//                }
+//            }
+//        });
+
 //        photo.fitHeightProperty().bind(photoContainer.heightProperty().subtract(10));
 //        photo.fitWidthProperty().bind(photoContainer.widthProperty().subtract(10));
 
+        zoomThumbnails.setSnapToTicks(true);
         zoomThumbnails.valueProperty().addListener((ObservableValue<? extends Number> ov, Number oldValue, Number newValue) -> {
-            gridView.setCellWidth(gridCellWidth + 3 * newValue.doubleValue());
-            gridView.setCellHeight(gridCellHeight + 3 * newValue.doubleValue());
+            zoomLevel = newValue.doubleValue() / 10;
+            gridView.setCellWidth(gridCellWidth + 10 * zoomLevel);
+            gridView.setCellHeight(gridCellHeight + 10 * zoomLevel);
             carouselIcons.setFixedCellSize(gridView.getCellWidth());
         });
         nbImages.textProperty().bind(Bindings.size(images).map(String::valueOf));
@@ -129,11 +149,6 @@ public class GalleryController extends FxInitOnce {
         breadCrumbBar.setAutoNavigationEnabled(false);
 //        breadCrumbBar.setOnCrumbAction(bae -> log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!"));
 
-//        photo.setOnMouseClicked(event -> {
-//            if (event.getClickCount() == 2) {
-//                taskService.notifyLater(CarouselEvent.builder().source(this).eventType(CarouselEvent.EventType.HIDE).build());
-//            }
-//        });
 
         expand.setUserData(expandCell);
         gridView.addScrollAndKeyhandler();
@@ -141,23 +156,34 @@ public class GalleryController extends FxInitOnce {
         Platform.runLater(() -> gridView.requestFocus());
     }
 
+    private void onPhotoClick(MouseEvent event) {
+        if (event.getClickCount() == 2) {
+            if (carousel.getChildren().contains(carouselIcons)) {
+                carousel.getChildren().remove(carouselIcons);
+                photo.zoom(event);
 
-    private void zoomFinish(ZoomEvent event) {
-//        log.info("Zoom Finished: {}", event);
-    }
-
-    private void zoomStart(ZoomEvent event) {
-//        log.info("Zoom Start: {}", event);
+            } else {
+                carousel.setBottom(carouselIcons);
+                photo.noZoom();
+            }
+        }
     }
 
     private void zoomOnGrid(ZoomEvent event) {
-        final var ratio = event.getTotalZoomFactor() / event.getZoomFactor();
-        final var zoomValue = ratio >= 1
-                              ? Math.min(100.0, Math.round(Math.max(zoomThumbnails.getValue(), 10) * ratio))
-                              : Math.max(0D, Math.floor(zoomThumbnails.getValue() * event.getTotalZoomFactor()));
-        log.info("type: {}, factor: {}, totalFactor: {}, ratio: {}, zoomValue: {}",
-                 event.getEventType(), event.getZoomFactor(), event.getTotalZoomFactor(), ratio, (int) zoomValue);
-        Platform.runLater(() -> zoomThumbnails.setValue((int) zoomValue));
+        var zoom = Zoom.of(event);
+        zoomLevel += zoom.getZoomLevelDelta() * 10;
+        zoomLevel = Math.min(zoomLevel, 100);
+        zoomLevel = Math.max(zoomLevel, 0);
+        log.info("zoom:{}, zoomLevel: {}", zoom, zoomLevel);
+//        zoomThumbnails.setValue((int) zoomLevel);
+
+//        final var ratio = event.getTotalZoomFactor() / event.getZoomFactor();
+//        final var zoomValue = ratio >= 1
+//                              ? Math.min(100.0, Math.round(Math.max(zoomThumbnails.getValue(), 10) * ratio))
+//                              : Math.max(0D, Math.floor(zoomThumbnails.getValue() * event.getTotalZoomFactor()));
+//        log.info("type: {}, factor: {}, totalFactor: {}, ratio: {}, zoomValue: {}",
+//                 event.getEventType(), event.getZoomFactor(), event.getTotalZoomFactor(), ratio, (int) zoomValue);
+        Platform.runLater(() -> zoomThumbnails.setValue(zoomLevel));
 
         event.consume();
     }
@@ -167,14 +193,14 @@ public class GalleryController extends FxInitOnce {
         log.info("CatalogEvent: {}, Add images to grid view: {}", event.getType(), event.getCatalog().medias().size());
         images.clear();
         filteredImages.setPredicate(null);
+        currentCatalog.set(event.getCatalog());
 
         switch (event.getType()) {
             case DELETED -> {
                 breadCrumbBar.setSelectedCrumb(null);
-                currentCatalog = Optional.empty();
+                currentCatalog.set(null);
             }
             case SELECTED, CREATED, UPDATED -> {
-                currentCatalog = Optional.of(event.getCatalog());
                 resetBcbModel(event.getCatalog().path(), null);
                 images.addAll(event.getCatalog().medias());
             }
@@ -183,17 +209,20 @@ public class GalleryController extends FxInitOnce {
 
     @EventListener(CatalogEntrySelectedEvent.class)
     public void updateImages(CatalogEntrySelectedEvent event) {
-        log.debug("Entry selected: root: {}, entry: {}", event.getRoot(), event.getEntry());
+        log.info("Entry selected: root: {}, entry: {}", event.getRoot(), event.getEntry());
         resetBcbModel(event.getRoot(), event.getEntry());
         final var path = event.getRoot().resolve(event.getEntry());
         filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
+        mediaLoader.warmThumbnailCache(currentCatalog.get(), filteredImages);
+        taskService.fxNotifyLater(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
+
     }
 
     @EventListener(PhotoSelectedEvent.class)
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         final var source = Optional.ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
         final var mf     = event.getFile();
-        log.debug("Photo selected: root: {}, from: {}", mf.getFileName(), source.getSimpleName());
+        log.info("Photo selected: root: {}, from: {}", mf.getFileName(), source.getSimpleName());
         // TODO: it works with only one item selected.
 
         TreeItem<Path> root    = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
@@ -301,6 +330,7 @@ public class GalleryController extends FxInitOnce {
     @EventListener(CarouselEvent.class)
     public void showCarousel(CarouselEvent event) {
         log.debug("Receive Carousel Event: {},", event.getEventType());
+        // TODO: Add visual animations;
         switch (event.getEventType()) {
             case SHOW -> {
                 gallery.setVisible(false);

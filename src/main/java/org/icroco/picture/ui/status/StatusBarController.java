@@ -43,8 +43,9 @@ public class StatusBarController extends FxInitOnce {
     private StatusBar container;
     private PopOver   popOver;
 
-    private ProgressBar          memoryStatus;
-    private ProgressIndicatorBar indicator = new ProgressIndicatorBar("");
+    private       ProgressBar          memoryStatus;
+    private       ProgressIndicatorBar indicator = new ProgressIndicatorBar("");
+    private final Tooltip              tooltip   = new Tooltip("");
 
     @Override
     protected void initializedOnce() {
@@ -56,7 +57,9 @@ public class StatusBarController extends FxInitOnce {
         container.progressProperty().bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
         taskController.controller().getTasks().addListener(getTaskListChangeListener());
         initPopOver(taskController.scene().getRoot());
-        container.getLeftItems().add(new Label("Memory "));
+        Label memory = new Label("Memory ");
+        memory.setTooltip(tooltip);
+        container.getLeftItems().add(memory);
         container.getLeftItems().add(memoryStatus);
         memoryStatus.setOnMouseClicked(event -> {
             if (event.getClickCount() >= 2) {
@@ -64,7 +67,10 @@ public class StatusBarController extends FxInitOnce {
                 log.info("Memory cleaned");
             }
         });
-        memoryStatus.setTooltip(new Tooltip("Cool !"));
+
+        tooltip.setShowDelay(Duration.seconds(4));
+
+        memoryStatus.setTooltip(tooltip);
         scheduler.scheduleAtFixedRate(this::updateMemory, java.time.Duration.of(5, ChronoUnit.SECONDS));
     }
 
@@ -84,7 +90,7 @@ public class StatusBarController extends FxInitOnce {
         Platform.runLater(() -> {
             memoryStatus.setProgress(usedPct);
 //            memoryStatus.(textToShow);
-            memoryStatus.setTooltip(new Tooltip(toolTipToShow));
+            tooltip.setText(toolTipToShow);
         });
     }
 
@@ -96,15 +102,16 @@ public class StatusBarController extends FxInitOnce {
                 textProperty.unbind();
                 textProperty.set("");
                 popOver.hide();
-            } else if (c.getList().size() == 1) {
+            } else if (c.getList().size() >= 1) {
                 textProperty.unbind();
                 textProperty.bind(c.getList().get(0).titleProperty());
-            } else if (c.getList().size() == 2) {
-//                if (c.wasAdded()) {
-                textProperty.unbind();
-                textProperty.bind(c.getList().get(0).titleProperty());
-//                    textProperty.bind(Bindings.size(c.getList()).map(number -> c.getList().get(0).getTitle()+" ("+number + " tasks left)"));
             }
+//            else if (c.getList().size() == 2) {
+////                if (c.wasAdded()) {
+//                textProperty.unbind();
+//                textProperty.bind(c.getList().get(0).titleProperty());
+////                    textProperty.bind(Bindings.size(c.getList()).map(number -> c.getList().get(0).getTitle()+" ("+number + " tasks left)"));
+//            }
 //            }
         };
     }

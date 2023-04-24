@@ -232,7 +232,7 @@ public class ImageUtils {
             ios.close();
             // Done creating JPEG with quality option
         } else {
-            // This one line below created a JPEG mediaFile without quality option
+            // This one line below created a JPEG mf without quality option
             ImageIO.write(destImage, "jpg", baos);
         }
 

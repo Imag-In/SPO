@@ -1,6 +1,7 @@
 package org.icroco.picture.ui.model;
 
 import javafx.beans.Observable;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.util.Callback;
 import lombok.*;
@@ -30,7 +31,12 @@ public class MediaFile implements IMediaFile {
     @NonNull
     @Builder.Default
     private final SimpleObjectProperty<EThumbnailType> thumbnailType = new SimpleObjectProperty<>(EThumbnailType.ABSENT);
-    private       boolean                              selected;
+
+    @NonNull
+    @Builder.Default
+    private SimpleBooleanProperty loaded = new SimpleBooleanProperty(false);
+
+    private boolean selected;
 
 
     @Override
@@ -67,7 +73,15 @@ public class MediaFile implements IMediaFile {
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[]{ mf.thumbnailType };
+        return mf -> new Observable[]{ mf.thumbnailType, mf.loaded };
+    }
+
+    public boolean isLoaded() {
+        return loaded.get();
+    }
+
+    public void setLoaded(boolean value) {
+        loaded.setValue(value);
     }
 }
 
