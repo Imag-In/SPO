@@ -11,8 +11,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
-import java.awt.*;
-
 public class CustomTitlePane {
 //    @Override
     public void start(Stage primaryStage) {

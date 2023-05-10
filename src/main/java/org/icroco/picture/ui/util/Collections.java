@@ -3,7 +3,9 @@ package org.icroco.picture.ui.util;
 import lombok.experimental.UtilityClass;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
+import org.apache.commons.collections4.CollectionUtils;
 
+import java.util.Collection;
 import java.util.List;
 
 @UtilityClass
@@ -19,5 +21,11 @@ public class Collections {
         final var lists     = StreamEx.ofSubLists(values, splitSize).toList();
 
         return new SplitResult<>(lists.size(), EntryStream.of(lists));
+    }
+
+    public static <T> CollectionDiff<T> difference(Collection<T> left, Collection<T> right) {
+        return new CollectionDiff<>(CollectionUtils.subtract(right, left),
+                                    CollectionUtils.subtract(left, right)
+        );
     }
 }

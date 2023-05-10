@@ -1,12 +1,13 @@
 package org.icroco.picture.ui;
 
 import javafx.fxml.FXML;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Screen;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
-import org.icroco.picture.ui.catalog.CollectionView;
+import org.icroco.picture.ui.collections.CollectionView;
 import org.icroco.picture.ui.details.DetailsView;
 import org.icroco.picture.ui.gallery.GalleryView;
 import org.icroco.picture.ui.navigation.NavigationView;
@@ -16,8 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 @FxViewBinding(id = "main", fxmlLocation = "main.fxml", isPrimary = true)
 @Slf4j
 public class MainController extends FxInitOnce {
-    @FXML
-    BorderPane     main;
     @Autowired
     GalleryView    galleryView;
     @Autowired
@@ -28,6 +27,14 @@ public class MainController extends FxInitOnce {
     CollectionView collectionView;
     @Autowired
     DetailsView    detailsView;
+
+
+    @FXML
+    BorderPane main;
+    @FXML
+    AnchorPane importContainer;
+    @FXML
+    BorderPane selectContainer;
 
 //    @Autowired
 //    TaskView taskView;
@@ -41,9 +48,17 @@ public class MainController extends FxInitOnce {
         //main.setLeft(viewManager.loadView());
         main.setTop(navView.scene().getRoot());
         main.setBottom(statusView.scene().getRoot());
-        main.setLeft(collectionView.scene().getRoot());
-        main.setCenter(galleryView.scene().getRoot());
-        main.setRight(detailsView.scene().getRoot());
+        selectContainer.setLeft(collectionView.scene().getRoot());
+        selectContainer.setCenter(galleryView.scene().getRoot());
+        selectContainer.setRight(detailsView.scene().getRoot());
 //        main.setRight(taskView.scene().getRoot());
+
+//        main.addEventFilter(KeyEvent.KEY_RELEASED, (KeyEvent event) -> {
+//            log.info("Key pressed: {}", event);
+//            if (event.getCode() == KeyCode.ESCAPE) {
+//                log.info("ESCAPE pressed");
+//            }
+//            event.consume();
+//        });
     }
 }

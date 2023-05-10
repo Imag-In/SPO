@@ -30,6 +30,7 @@ public class TaskService {
     public <T> CompletableFuture<T> supply(final Task<T> task, boolean visualFeedback) {
         log.debug("Start new task: {}", task);
         if (visualFeedback) {
+            // TODO: Use event to decouple from controller.
             Platform.runLater(() -> taskController.addTask(task));
         }
         return CompletableFuture.supplyAsync(() -> {

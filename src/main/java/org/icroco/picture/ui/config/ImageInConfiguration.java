@@ -21,6 +21,8 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
@@ -28,8 +30,9 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class ImageInConfiguration {
 
-    public static final String THUMBNAILS = "thumbnails";
-    public static final String FULL_SIZE  = "fullSize";
+    public static final String THUMBNAILS        = "thumbnails";
+    public static final String FULL_SIZE         = "fullSize";
+    public static final String DIRECTORY_WATCHER = "DirWatch";
 
     @Bean(name = THUMBNAILS)
     public CaffeineCache thumbnails() {
@@ -73,12 +76,16 @@ public class ImageInConfiguration {
 
     @Bean
     public TaskScheduler threadPoolTaskScheduler() {
-
         ThreadPoolTaskScheduler executor = new ThreadPoolTaskScheduler();
         executor.setThreadNamePrefix("iiScheduler-");
         executor.initialize();
 
         return executor;
+    }
+
+    @Bean(name = DIRECTORY_WATCHER, destroyMethod = "shutdownNow")
+    public ExecutorService directyWatcher() {
+        return Executors.newSingleThreadExecutor();
     }
 
     @Bean

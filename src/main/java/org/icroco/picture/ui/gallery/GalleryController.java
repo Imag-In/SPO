@@ -15,6 +15,7 @@ import javafx.fxml.FXML;
 import javafx.scene.CacheHint;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ZoomEvent;
 import javafx.scene.layout.BorderPane;
@@ -93,6 +94,7 @@ public class GalleryController extends FxInitOnce {
 
     @Override
     protected void initializedOnce() {
+
         log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
                  gridView.getCellWidth(),
                  gridView.getCellHeight(),
@@ -121,11 +123,11 @@ public class GalleryController extends FxInitOnce {
 
         photo = new ZoomDragPane(photoContainer);
         photo.setOnMouseClicked(this::onPhotoClick);
+        photo.setFocusTraversable(true);
         photoContainer.getChildren().add(photo);
-        org.fxmisc.wellbehaved.event.Nodes.addInputMap(photo.getView(), sequence(
-                consume(keyPressed(KeyCode.ESCAPE), e -> log.info("ESCAPE")),
-                consume(keyPressed(KeyCode.ENTER), e -> log.info("ENTER"))
-        ));
+        org.fxmisc.wellbehaved.event.Nodes.addInputMap(photo,
+                                                       sequence(consume(keyPressed(KeyCode.ESCAPE), this::escapePressed)
+                                                       ));
 //        photoContainer.setOnKeyPressed(new EventHandler<KeyEvent>() {
 //            public void handle(final KeyEvent keyEvent) {
 //                if (keyEvent.getCode() == KeyCode.ESCAPE) {
@@ -309,6 +311,10 @@ public class GalleryController extends FxInitOnce {
                           .toArray(Path[]::new);
         TreeItem<Path> model = BreadCrumbBar.buildTreeModel(paths);
         breadCrumbBar.setSelectedCrumb(model);
+    }
+
+    private void escapePressed(KeyEvent event) {
+        taskService.fxNotifyLater(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
     }
 
     public void expandGridCell(MouseEvent mouseEvent) {

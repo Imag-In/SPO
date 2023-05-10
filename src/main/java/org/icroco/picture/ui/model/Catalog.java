@@ -7,5 +7,7 @@ import java.util.Set;
 
 @Builder
 public record Catalog(int id, Path path, Set<MediaFile> medias, Set<CatalogueEntry> subPaths) {
-
+    public Catalog {
+        path = path.normalize();
+    }
 }
