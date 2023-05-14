@@ -10,12 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 import org.icroco.picture.ui.config.ImageInConfiguration;
-import org.icroco.picture.ui.event.CatalogEvent;
+import org.icroco.picture.ui.event.CollectionEvent;
 import org.icroco.picture.ui.event.ExtractThumbnailEvent;
 import org.icroco.picture.ui.event.GenerateThumbnailEvent;
 import org.icroco.picture.ui.event.WarmThumbnailCacheEvent;
-import org.icroco.picture.ui.model.Catalog;
 import org.icroco.picture.ui.model.EThumbnailType;
+import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.model.mapper.ThumbnailMapper;
@@ -131,8 +131,8 @@ public class MediaLoader {
 
     @EventListener(WarmThumbnailCacheEvent.class)
     public void warmThumbnailCache(final WarmThumbnailCacheEvent event) {
-        var catalog = event.getCatalog();
-        log.info("warmThumbnailCache for '{}', size: {}", event.getCatalog().path(), event.getCatalog().medias().size());
+        var catalog = event.getMediaCollection();
+        log.info("warmThumbnailCache for '{}', size: {}", event.getMediaCollection().path(), event.getMediaCollection().medias().size());
 //        var mediaFiles = List.copyOf(catalog.medias());
         var mediaFiles = List.copyOf(catalog.medias().stream().sorted(Comparator.comparing(MediaFile::getOriginalDate)).limit(500).toList());
 
@@ -141,27 +141,27 @@ public class MediaLoader {
                               .toArray(new CompletableFuture[0]);
 
         CompletableFuture.allOf(futures)
-                         .thenAcceptAsync(unused -> taskService.fxNotifyLater(new CatalogEvent(catalog, CatalogEvent.EventType.SELECTED, this)))
+                         .thenAcceptAsync(unused -> taskService.fxNotifyLater(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this)))
                          .thenAcceptAsync(u -> lockThenRunOrSkip(catalog, () -> mayRegenerateThubmnail(catalog)));
-//        taskService.fxNotifyLater(new CatalogEvent(catalog, CatalogEvent.EventType.SELECTED, this));
+//        taskService.fxNotifyLater(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this));
     }
 
-    public void warmThumbnailCache(final Catalog catalog, final List<MediaFile> mediaFiles) {
-        log.info("warmThumbnailCache -no event- for '{}', size: {}", catalog.path(), mediaFiles.size());
+    public void warmThumbnailCache(final MediaCollection mediaCollection, final List<MediaFile> mediaFiles) {
+        log.info("warmThumbnailCache -no event- for '{}', size: {}", mediaCollection.path(), mediaFiles.size());
 
         var mf = mediaFiles.stream().sorted(Comparator.comparing(MediaFile::getOriginalDate)).limit(500).toList();
 
         Collections.splitByCoreWithIdx(mf).values()
-                   .forEach(entry -> taskService.supply(warmCache(catalog, entry.getValue())));
+                   .forEach(entry -> taskService.supply(warmCache(mediaCollection, entry.getValue())));
 //                   .peek(mediaFiles1 -> log.info("foo: {}", mediaFiles1.getValue().size()))
-//                   .map(files -> taskService.supply(warmCache(catalog, files.getValue())));
+//                   .map(files -> taskService.supply(warmCache(mediaCollection, files.getValue())));
     }
 
-    Task<List<ThumbnailRes>> warmCache(Catalog catalog, final List<MediaFile> files) {
+    Task<List<ThumbnailRes>> warmCache(MediaCollection mediaCollection, final List<MediaFile> files) {
         return new AbstractTask<>() {
             @Override
             protected List<ThumbnailRes> call() throws Exception {
-                log.info("Warm Cache for: '{}', size: {}", catalog.path(), files.size());
+                log.info("Warm Cache for: '{}', size: {}", mediaCollection.path(), files.size());
                 updateTitle("Loading thumbnails ...");
                 updateProgress(0, files.size());
                 return EntryStream.of(new ArrayList<>(files))
@@ -191,8 +191,8 @@ public class MediaLoader {
         };
     }
 
-    private <R> R lockThenRunOrSkip(Catalog catalog, Supplier<R> callable) {
-        var lock = catalogLock.computeIfAbsent(catalog.id(), integer -> new ReentrantLock());
+    private <R> R lockThenRunOrSkip(MediaCollection mediaCollection, Supplier<R> callable) {
+        var lock = catalogLock.computeIfAbsent(mediaCollection.id(), integer -> new ReentrantLock());
 
         try {
             if (lock.tryLock(1, TimeUnit.SECONDS)) {
@@ -200,7 +200,7 @@ public class MediaLoader {
             }
         }
         catch (InterruptedException e) {
-            log.error("Cannot acquire lock for catalog: '{}'", catalog.path(), e);
+            log.error("Cannot acquire lock for mediaCollection: '{}'", mediaCollection.path(), e);
         }
         finally {
             lock.unlock();
@@ -208,10 +208,10 @@ public class MediaLoader {
         return null;
     }
 
-    Void mayRegenerateThubmnail(Catalog catalog) {
-        if (catalogToReGenerate.contains(catalog.id())) {
-            taskService.fxNotifyLater(new GenerateThumbnailEvent(catalog, this));
-            catalogToReGenerate.remove(catalog.id());
+    Void mayRegenerateThubmnail(MediaCollection mediaCollection) {
+        if (catalogToReGenerate.contains(mediaCollection.id())) {
+            taskService.fxNotifyLater(new GenerateThumbnailEvent(mediaCollection, this));
+            catalogToReGenerate.remove(mediaCollection.id());
         }
         return null;
     }
@@ -234,7 +234,7 @@ public class MediaLoader {
 
     @EventListener(ExtractThumbnailEvent.class)
     public void extractThumbnails(ExtractThumbnailEvent event) {
-        var       catalog    = event.getCatalog();
+        var       catalog    = event.getMediaCollection();
         var       mediaFiles = List.copyOf(catalog.medias());
         final var start      = System.currentTimeMillis();
 
@@ -258,19 +258,21 @@ public class MediaLoader {
                                                         catalog.path(),
                                                         AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())))
                          .thenAccept(u -> catalogToReGenerate.add(catalog.id()))
-                         .thenAccept(u -> taskService.fxNotifyLater(new CatalogEvent(catalog, CatalogEvent.EventType.READY, this)))
+                         .thenAccept(u -> taskService.fxNotifyLater(new CollectionEvent(catalog, CollectionEvent.EventType.READY, this)))
         ;
-//        taskService.notifyLater(new CatalogEvent(catalog, CatalogEvent.EventType.READY, this));
+//        taskService.notifyLater(new CollectionEvent(catalog, CollectionEvent.EventType.READY, this));
     }
 
-    Task<List<Pair<MediaFile, EThumbnailType>>> thumbnailBatchExtraction(Catalog catalog, final int nbBatches, Map.Entry<Integer, List<MediaFile>> e) {
+    Task<List<Pair<MediaFile, EThumbnailType>>> thumbnailBatchExtraction(MediaCollection mediaCollection,
+                                                                         final int nbBatches,
+                                                                         Map.Entry<Integer, List<MediaFile>> e) {
         return new AbstractTask<>() {
             //            StopWatch w = new StopWatch("Load Task");
             @Override
             protected List<Pair<MediaFile, EThumbnailType>> call() {
                 var files = e.getValue();
                 var size  = files.size();
-                log.debug("Generate a batch of '{}' thumbnails for: {}", size, catalog.path());
+                log.debug("Generate a batch of '{}' thumbnails for: {}", size, mediaCollection.path());
                 updateTitle("Thumbnail fast extraction for '%s' image, batch: %d/%d".formatted(size, e.getKey(), nbBatches));
                 updateProgress(0, size);
                 return StreamEx.ofSubLists(EntryStream.of(files).toList(), 20)
@@ -320,7 +322,7 @@ public class MediaLoader {
 
     @EventListener(GenerateThumbnailEvent.class)
     public void generateThumbnails(GenerateThumbnailEvent event) {
-        var catalog    = event.getCatalog();
+        var catalog    = event.getMediaCollection();
         var mediaFiles = List.copyOf(catalog.medias());
 
         log.info("Generate high quality thumbnail, nbEntries: {}", mediaFiles.size());
@@ -339,12 +341,14 @@ public class MediaLoader {
 //                   .toArray(new CompletableFuture[0]);
     }
 
-    Task<List<Pair<MediaFile, EThumbnailType>>> thumbnailBatchGeneration(Catalog catalog, final Map.Entry<Integer, List<MediaFile>> files, int nbBatches) {
+    Task<List<Pair<MediaFile, EThumbnailType>>> thumbnailBatchGeneration(MediaCollection mediaCollection,
+                                                                         final Map.Entry<Integer, List<MediaFile>> files,
+                                                                         int nbBatches) {
         return new AbstractTask<>() {
             @Override
             protected List<Pair<MediaFile, EThumbnailType>> call() throws Exception {
                 var size = files.getValue().size();
-                log.debug("Generate a batch of '{}' thumbnails for: {}", size, catalog.path());
+                log.debug("Generate a batch of '{}' thumbnails for: {}", size, mediaCollection.path());
                 updateTitle("Thumbnail high quality generation for '%s' images, batch %d/%d".formatted(size, files.getKey(), nbBatches));
                 updateProgress(0, size);
                 return StreamEx.ofSubLists(EntryStream.of(files.getValue()).toList(), 20)

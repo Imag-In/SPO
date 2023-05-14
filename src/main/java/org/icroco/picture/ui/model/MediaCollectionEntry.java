@@ -5,4 +5,4 @@ import lombok.Builder;
 import java.nio.file.Path;
 
 @Builder
-public record CatalogueEntry(long id, Path name) {}
+public record MediaCollectionEntry(long id, Path name) {}

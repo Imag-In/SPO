@@ -25,10 +25,10 @@ import org.controlsfx.control.BreadCrumbBar;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.CarouselEvent;
-import org.icroco.picture.ui.event.CatalogEntrySelectedEvent;
-import org.icroco.picture.ui.event.CatalogEvent;
+import org.icroco.picture.ui.event.CollectionEvent;
+import org.icroco.picture.ui.event.CollectionSubPathSelectedEvent;
 import org.icroco.picture.ui.event.PhotoSelectedEvent;
-import org.icroco.picture.ui.model.Catalog;
+import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.task.TaskService;
@@ -83,14 +83,14 @@ public class GalleryController extends FxInitOnce {
     @FXML
     private ListView<MediaFile>       carouselIcons;
 
-    private final BooleanProperty               expandCell     = new SimpleBooleanProperty(false);
-    private final ObservableList<MediaFile>     images         = FXCollections.observableArrayList(MediaFile.extractor());
-    private final FilteredList<MediaFile>       filteredImages = new FilteredList<>(images);
-    private final SortedList<MediaFile>         sortedImages   = new SortedList<>(filteredImages);
-    private       double                        gridCellWidth;
-    private       double                        gridCellHeight;
-    private       double                        zoomLevel      = 0;
-    private final SimpleObjectProperty<Catalog> currentCatalog = new SimpleObjectProperty<>(null);
+    private final BooleanProperty                       expandCell     = new SimpleBooleanProperty(false);
+    private final ObservableList<MediaFile>             images         = FXCollections.observableArrayList(MediaFile.extractor());
+    private final FilteredList<MediaFile>               filteredImages = new FilteredList<>(images);
+    private final SortedList<MediaFile>                 sortedImages   = new SortedList<>(filteredImages);
+    private       double                                gridCellWidth;
+    private       double                                gridCellHeight;
+    private       double                                zoomLevel      = 0;
+    private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
 
     @Override
     protected void initializedOnce() {
@@ -190,12 +190,12 @@ public class GalleryController extends FxInitOnce {
         event.consume();
     }
 
-    @EventListener(CatalogEvent.class)
-    public void updateImages(CatalogEvent event) {
-        log.info("CatalogEvent: {}, Add images to grid view: {}", event.getType(), event.getCatalog().medias().size());
+    @EventListener(CollectionEvent.class)
+    public void updateImages(CollectionEvent event) {
+        log.info("CollectionEvent: {}, Add images to grid view: {}", event.getType(), event.getMediaCollection().medias().size());
         images.clear();
         filteredImages.setPredicate(null);
-        currentCatalog.set(event.getCatalog());
+        currentCatalog.set(event.getMediaCollection());
 
         switch (event.getType()) {
             case DELETED -> {
@@ -203,15 +203,15 @@ public class GalleryController extends FxInitOnce {
                 currentCatalog.set(null);
             }
             case SELECTED, CREATED, UPDATED -> {
-                resetBcbModel(event.getCatalog().path(), null);
-                images.addAll(event.getCatalog().medias());
+                resetBcbModel(event.getMediaCollection().path(), null);
+                images.addAll(event.getMediaCollection().medias());
             }
         }
     }
 
-    @EventListener(CatalogEntrySelectedEvent.class)
-    public void updateImages(CatalogEntrySelectedEvent event) {
-        log.info("Entry selected: root: {}, entry: {}", event.getRoot(), event.getEntry());
+    @EventListener(CollectionSubPathSelectedEvent.class)
+    public void updateImages(CollectionSubPathSelectedEvent event) {
+        log.info("MediaCollection subpath selected: root: {}, entry: {}", event.getRoot(), event.getEntry());
         resetBcbModel(event.getRoot(), event.getEntry());
         final var path = event.getRoot().resolve(event.getEntry());
         filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));

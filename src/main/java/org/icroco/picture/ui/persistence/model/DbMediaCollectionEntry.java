@@ -12,8 +12,8 @@ import java.nio.file.Path;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "catalog_entry")
-public class DbCatalogEntry {
+@Table(name = "media_collection_entry")
+public class DbMediaCollectionEntry {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

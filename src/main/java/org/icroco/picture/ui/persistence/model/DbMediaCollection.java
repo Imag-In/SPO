@@ -14,8 +14,8 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "catalog")
-public class DbCatalog {
+@Table(name = "media_collection")
+public class DbMediaCollection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     int id;
@@ -33,5 +33,5 @@ public class DbCatalog {
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @Type(PathType.class)
     @JoinColumn(name = "sub_path_id")
-    protected Set<DbCatalogEntry> subPaths;
+    protected Set<DbMediaCollectionEntry> subPaths;
 }

@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
-import org.icroco.picture.ui.event.CatalogEvent;
+import org.icroco.picture.ui.event.CollectionEvent;
 import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.Tag;
 import org.icroco.picture.ui.util.MediaLoader;
@@ -55,8 +55,8 @@ public class DetailsController extends FxInitOnce {
         gps.setText(mf.getTags().stream().map(Tag::name).collect(Collectors.joining(",")));
     }
 
-    @EventListener(CatalogEvent.class)
-    public void catalogEvent(CatalogEvent event) {
-        container.setVisible(event.getType() != CatalogEvent.EventType.DELETED);
+    @EventListener(CollectionEvent.class)
+    public void catalogEvent(CollectionEvent event) {
+        container.setVisible(event.getType() != CollectionEvent.EventType.DELETED);
     }
 }

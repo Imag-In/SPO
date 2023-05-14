@@ -6,7 +6,7 @@
             fx:controller="org.icroco.picture.ui.MainController">
     <!--
      <left>
-         <fx:include fx:id="collection" source="/org/icroco/picture/ui/catalog/collection.fxml" />
+         <fx:include fx:id="collection" source="/org/icroco/picture/ui/mediaCollection/collection.fxml" />
      </left>
      -->
     <!--

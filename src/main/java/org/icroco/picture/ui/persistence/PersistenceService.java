@@ -3,13 +3,13 @@ package org.icroco.picture.ui.persistence;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.ui.model.Catalog;
+import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
-import org.icroco.picture.ui.model.mapper.CatalogMapper;
+import org.icroco.picture.ui.model.mapper.MediaCollectionMapper;
 import org.icroco.picture.ui.model.mapper.MediaFileMapper;
 import org.icroco.picture.ui.model.mapper.ThumbnailMapper;
-import org.icroco.picture.ui.persistence.model.DbCatalog;
+import org.icroco.picture.ui.persistence.model.DbMediaCollection;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
@@ -22,27 +22,27 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class PersistenceService {
-    private final CollectionRepository collectionRepo;
-    private final MediaFileRepository  mfRepo;
-    private final ThumbnailRepository  thumbRepo;
-    private final CatalogMapper        colMapper;
-    private final MediaFileMapper      mfMapper;
-    private final ThumbnailMapper      thumbMapper;
+    private final CollectionRepository  collectionRepo;
+    private final MediaFileRepository   mfRepo;
+    private final ThumbnailRepository   thumbRepo;
+    private final MediaCollectionMapper colMapper;
+    private final MediaFileMapper       mfMapper;
+    private final ThumbnailMapper       thumbMapper;
 
     @Transactional
-    public Optional<Catalog> findCatalogById(int id) {
+    public Optional<MediaCollection> findCatalogById(int id) {
         return collectionRepo.findById(id)
                              .map(colMapper::map);
     }
 
     @Transactional
-    public List<Catalog> findAllCatalog() {
+    public List<MediaCollection> findAllCatalog() {
         return collectionRepo.findAll().stream().map(colMapper::map).toList();
     }
 
     @Transactional
-    public Catalog saveCatalog(@NonNull final Catalog catalog) {
-        DbCatalog saved = collectionRepo.saveAndFlush(colMapper.map(catalog));
+    public MediaCollection saveCatalog(@NonNull final MediaCollection mediaCollection) {
+        DbMediaCollection saved = collectionRepo.saveAndFlush(colMapper.map(mediaCollection));
         return colMapper.map(saved);
     }
 
@@ -52,10 +52,10 @@ public class PersistenceService {
     }
 
     @Transactional
-    public void deleteCatalog(@NonNull Catalog catalog) {
-        log.info("Catalog deleted, id: '{}', path: '{}'", catalog.id(), catalog.path());
-        collectionRepo.deleteById(catalog.id());
-//        collectionRepo.findById(catalog.id()).ifPresent(collectionRepo::delete);
+    public void deleteCatalog(@NonNull MediaCollection mediaCollection) {
+        log.info("MediaCollection deleted, id: '{}', path: '{}'", mediaCollection.id(), mediaCollection.path());
+        collectionRepo.deleteById(mediaCollection.id());
+//        collectionRepo.findById(mediaCollection.id()).ifPresent(collectionRepo::delete);
     }
 
     public Thumbnail saveOrUpdate(Thumbnail thumbnail) {

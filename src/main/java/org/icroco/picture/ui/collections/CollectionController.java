@@ -21,10 +21,10 @@ import one.util.streamex.EntryStream;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.*;
-import org.icroco.picture.ui.event.CatalogEvent.EventType;
-import org.icroco.picture.ui.model.Catalog;
-import org.icroco.picture.ui.model.CatalogueEntry;
+import org.icroco.picture.ui.event.CollectionEvent.EventType;
 import org.icroco.picture.ui.model.EThumbnailType;
+import org.icroco.picture.ui.model.MediaCollection;
+import org.icroco.picture.ui.model.MediaCollectionEntry;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
@@ -54,7 +54,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-@FxViewBinding(id = "catalog", fxmlLocation = "collection.fxml")
+@FxViewBinding(id = "mediaCollection", fxmlLocation = "collection.fxml")
 @RequiredArgsConstructor
 public class CollectionController extends FxInitOnce {
     private final TaskService           taskService;
@@ -91,10 +91,10 @@ public class CollectionController extends FxInitOnce {
 
     private void titlePaneChanged(ObservableValue<? extends TitledPane> observableValue, TitledPane oldValue, TitledPane newValue) {
         if (newValue != null) {
-            Catalog c = (Catalog) newValue.getUserData();
+            MediaCollection c = (MediaCollection) newValue.getUserData();
             pref.getUserPreference().getCollection().setLastViewed((c).id());
             taskService.fxNotifyLater(new WarmThumbnailCacheEvent(c, this));
-//            taskService.notifyLater(new CatalogEvent(c, EventType.SELECTED, this));
+//            taskService.notifyLater(new CollectionEvent(c, EventType.SELECTED, this));
         }
     }
 
@@ -105,42 +105,42 @@ public class CollectionController extends FxInitOnce {
     }
 
     private void initCollections(int id) {
-        List<Catalog> catalogs = service.findAllCatalog();
-        catalogs.stream()
-                .peek(this::watchDir)
-                .map(this::createTreeView)
-                .toList()
-                .stream()
-                .filter(p -> p.getKey().id() == id)
-                .findFirst()
-                .ifPresent(p -> {
-                    mediaCollections.setExpandedPane(p.getValue().tp());
-                    taskService.fxNotifyLater(new MediaCollectionsLoadedEvent(catalogs, this));
-                });
+        List<MediaCollection> mediaCollections = service.findAllCatalog();
+        mediaCollections.stream()
+                        .peek(this::watchDir)
+                        .map(this::createTreeView)
+                        .toList()
+                        .stream()
+                        .filter(p -> p.getKey().id() == id)
+                        .findFirst()
+                        .ifPresent(p -> {
+                            this.mediaCollections.setExpandedPane(p.getValue().tp());
+                            taskService.fxNotifyLater(new CollectionsLoadedEvent(mediaCollections, this));
+                        });
     }
 
-    private void watchDir(Catalog catalog) {
-        directoryWatcher.registerAll(catalog.path());
+    private void watchDir(MediaCollection mediaCollection) {
+        directoryWatcher.registerAll(mediaCollection.path());
     }
 
-    private Pair<Catalog, PaneTreeView> createTreeView(final Catalog catalog) {
-        var rootItem = new TreeItem<>(catalog.path());
+    private Pair<MediaCollection, PaneTreeView> createTreeView(final MediaCollection mediaCollection) {
+        var rootItem = new TreeItem<>(mediaCollection.path());
         var treeView = new TreeView<>(rootItem);
         treeView.setShowRoot(false);
         treeView.setEditable(false);
         rootItem.setExpanded(true);
         treeView.setCellFactory(param -> new TextFieldTreeCell<>(new PathConverter()));
-        log.info("Add collection: {}", catalog.path());
+        log.info("Add collection: {}", mediaCollection.path());
 
-        catalog.subPaths().forEach(c -> {
-            var p = catalog.path().relativize(c.name());
+        mediaCollection.subPaths().forEach(c -> {
+            var p = mediaCollection.path().relativize(c.name());
             addSubDir(rootItem, p);
             log.debug("Path: {}", p);
         });
 
-        final TitledPane title = new TitledPane(catalog.path().getFileName().toString(), treeView);
-        title.setUserData(catalog);
-        title.setTooltip(new Tooltip(catalog.path() + " (id: " + catalog.id() + ")"));
+        final TitledPane title = new TitledPane(mediaCollection.path().getFileName().toString(), treeView);
+        title.setUserData(mediaCollection);
+        title.setTooltip(new Tooltip(mediaCollection.path() + " (id: " + mediaCollection.id() + ")"));
 
         FontIcon delete = new FontIcon();
         delete.setId("deleteCollection");
@@ -154,11 +154,11 @@ public class CollectionController extends FxInitOnce {
         treeView.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
             if (newValue != null) {
                 log.debug("Tree view selected: {} ", newValue.getValue());
-                taskService.fxNotifyLater(new CatalogEntrySelectedEvent(catalog.path(), newValue.getValue(), CollectionController.this));
+                taskService.fxNotifyLater(new CollectionSubPathSelectedEvent(mediaCollection.path(), newValue.getValue(), CollectionController.this));
             }
         });
 
-        return new Pair<>(catalog, new PaneTreeView(title, treeView));
+        return new Pair<>(mediaCollection, new PaneTreeView(title, treeView));
     }
 
     private void addSubDir(TreeItem<Path> current, Path path) {
@@ -171,17 +171,18 @@ public class CollectionController extends FxInitOnce {
         }
     }
 
-    record TitlePaneEntry(TitledPane titledPane, Catalog catalog) {}
+    record TitlePaneEntry(TitledPane titledPane, MediaCollection mediaCollection) {}
 
     private void onDeleteCollection(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 1) {
             Node source = (Node) mouseEvent.getSource();
             Nodes.getFirstParent(source, TitledPane.class)
-                 .map(t -> new TitlePaneEntry(t, (Catalog) t.getUserData()))
+                 .map(t -> new TitlePaneEntry(t, (MediaCollection) t.getUserData()))
                  .ifPresent(tpe -> {
                      final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, "");
-                     dlg.setTitle("You do want delete Catalog ?");
-                     dlg.getDialogPane().setContentText("Do you want to delete Catalog: " + tpe.catalog.path() + " id: " + tpe.catalog.id());
+                     dlg.setTitle("You do want delete MediaCollection ?");
+                     dlg.getDialogPane()
+                        .setContentText("Do you want to delete MediaCollection: " + tpe.mediaCollection.path() + " id: " + tpe.mediaCollection.id());
 
                      dlg.show();
                      dlg.resultProperty()
@@ -195,9 +196,9 @@ public class CollectionController extends FxInitOnce {
     }
 
     private void deleteCollection(TitlePaneEntry entry) {
-        service.deleteCatalog(entry.catalog);
+        service.deleteCatalog(entry.mediaCollection);
         mediaCollections.getPanes().remove(entry.titledPane);
-        taskService.fxNotifyLater(new CatalogEvent(entry.catalog, EventType.DELETED, this));
+        taskService.fxNotifyLater(new CollectionEvent(entry.mediaCollection, EventType.DELETED, this));
         // TODO: Clean Thumbnail Cache and DB.
     }
 
@@ -210,8 +211,8 @@ public class CollectionController extends FxInitOnce {
             var rootPath = selectedDirectory.toPath().normalize();
             mediaCollections.getPanes()
                             .stream()
-                            .map(t -> new TitlePaneEntry(t, (Catalog) t.getUserData()))
-                            .filter(tpe -> rootPath.startsWith(tpe.catalog.path()))
+                            .map(t -> new TitlePaneEntry(t, (MediaCollection) t.getUserData()))
+                            .filter(tpe -> rootPath.startsWith(tpe.mediaCollection.path()))
                             .findFirst()
                             .ifPresent(p -> {
                                 // TODO: Rather than getting an error, jump to that dir into the proper collection.
@@ -219,8 +220,8 @@ public class CollectionController extends FxInitOnce {
                             });
             mediaCollections.getPanes()
                             .stream()
-                            .map(t -> new TitlePaneEntry(t, (Catalog) t.getUserData()))
-                            .filter(tpe -> tpe.catalog.path().startsWith(rootPath))
+                            .map(t -> new TitlePaneEntry(t, (MediaCollection) t.getUserData()))
+                            .filter(tpe -> tpe.mediaCollection.path().startsWith(rootPath))
                             .findFirst()
                             .ifPresent(this::deleteCollection); // TODO: Ask user confirmation.
 
@@ -249,20 +250,20 @@ public class CollectionController extends FxInitOnce {
         }
     }
 
-    public Task<Catalog> scanDirectory(Path rootPath) {
+    public Task<MediaCollection> scanDirectory(Path rootPath) {
         return new AbstractTask<>() {
             @Override
-            protected Catalog call() throws Exception {
+            protected MediaCollection call() throws Exception {
                 updateTitle("Scanning directory: " + rootPath.getFileName());
                 updateMessage("%s: scanning".formatted(rootPath));
-                Set<CatalogueEntry> children;
-                var                 now = LocalDate.now();
+                Set<MediaCollectionEntry> children;
+                var                       now = LocalDate.now();
                 try (var s = Files.walk(rootPath)) {
                     children = s.filter(Files::isDirectory)
                                 .map(Path::normalize)
                                 .filter(p -> !p.equals(rootPath))
                                 .filter(FileUtil::isLastDir)
-                                .map(p -> CatalogueEntry.builder().name(p).build())
+                                .map(p -> MediaCollectionEntry.builder().name(p).build())
                                 .collect(Collectors.toSet());
                 }
                 try (var images = Files.walk(rootPath)) {
@@ -272,13 +273,13 @@ public class CollectionController extends FxInitOnce {
                                                      .toList();
                     final var size = filteredImages.size();
                     updateProgress(0, size);
-                    return Catalog.builder().path(rootPath)
-                                            .subPaths(children)
-                                            .medias(EntryStream.of(filteredImages)
-                                                               .peek(i -> updateProgress(i.getKey(), size))
-                                                               .map(i -> create(now, i.getValue()))
-                                                               .collect(Collectors.toSet()))
-                                            .build();
+                    return MediaCollection.builder().path(rootPath)
+                                                    .subPaths(children)
+                                                    .medias(EntryStream.of(filteredImages)
+                                                                       .peek(i -> updateProgress(i.getKey(), size))
+                                                                       .map(i -> create(now, i.getValue()))
+                                                                       .collect(Collectors.toSet()))
+                                                    .build();
                 }
             }
 
@@ -319,9 +320,9 @@ public class CollectionController extends FxInitOnce {
             protected void succeeded() {
                 log.info("Files hasking time: {}", System.currentTimeMillis() - start);
 //            // We do not expand now, we're waiting thumbnails creation.
-//            createTreeView(catalog);
+//            createTreeView(mediaCollection);
 //            disablePathActions.set(false);
-//            taskService.notifyLater(new ExtractThumbnailEvent(catalog, this));
+//            taskService.notifyLater(new ExtractThumbnailEvent(mediaCollection, this));
             }
         };
     }
@@ -338,13 +339,13 @@ public class CollectionController extends FxInitOnce {
                 .build();
     }
 
-    @EventListener(CatalogEvent.class)
-    public void catalogEvent(final CatalogEvent event) {
+    @EventListener(CollectionEvent.class)
+    public void catalogEvent(final CollectionEvent event) {
         if (Objects.requireNonNull(event.getType()) == EventType.READY) {
             Platform.runLater(() -> {
                 mediaCollections.getPanes()
                                 .stream()
-                                .filter(tp -> ((Catalog) tp.getUserData()).id() == event.getCatalog().id())
+                                .filter(tp -> ((MediaCollection) tp.getUserData()).id() == event.getMediaCollection().id())
                                 .findFirst()
                                 .ifPresent(tp -> mediaCollections.setExpandedPane(tp));
             });

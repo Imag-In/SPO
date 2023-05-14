@@ -6,8 +6,8 @@ import java.nio.file.Path;
 import java.util.Set;
 
 @Builder
-public record Catalog(int id, Path path, Set<MediaFile> medias, Set<CatalogueEntry> subPaths) {
-    public Catalog {
+public record MediaCollection(int id, Path path, Set<MediaFile> medias, Set<MediaCollectionEntry> subPaths) {
+    public MediaCollection {
         path = path.normalize();
     }
 }

@@ -1,16 +1,15 @@
 package org.icroco.picture.ui.event;
 
-import javafx.scene.control.TitledPane;
 import lombok.Getter;
-import org.icroco.picture.ui.model.Catalog;
+import org.icroco.picture.ui.model.MediaCollection;
 import org.springframework.context.ApplicationEvent;
 
 @Getter
 public class GenerateThumbnailEvent extends ApplicationEvent {
-    private final Catalog catalog;
+    private final MediaCollection mediaCollection;
 
-    public GenerateThumbnailEvent(Catalog catalog, Object source) {
+    public GenerateThumbnailEvent(MediaCollection mediaCollection, Object source) {
         super(source);
-        this.catalog = catalog;
+        this.mediaCollection = mediaCollection;
     }
 }
