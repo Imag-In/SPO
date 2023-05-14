@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 @Component
 @AllArgsConstructor
@@ -23,9 +24,22 @@ public class TaskService {
     /**
      * Execute Task in background
      */
+
     public <T> CompletableFuture<T> supply(final Task<T> task) {
         return supply(task, true);
     }
+
+    public <T> CompletableFuture<T> supply(final Task<T> task, Consumer<T> onSucceeded) {
+        task.setOnSucceeded(event -> onSucceeded.accept(task.getValue()));
+        return supply(task, true);
+    }
+
+    public <T> CompletableFuture<T> supply(final Task<T> task, Consumer<T> onSucceeded, Consumer<Throwable> onFailed) {
+        task.setOnSucceeded(event -> onSucceeded.accept(task.getValue()));
+        task.setOnFailed(event -> onFailed.accept(task.getException()));
+        return supply(task, true);
+    }
+
 
     public <T> CompletableFuture<T> supply(final Task<T> task, boolean visualFeedback) {
         log.debug("Start new task: {}", task);
@@ -35,6 +49,7 @@ public class TaskService {
         }
         return CompletableFuture.supplyAsync(() -> {
             task.run();
+            task.setOnSucceeded();
             try {
                 return task.get();
             }

@@ -35,7 +35,6 @@ import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.icroco.picture.ui.util.metadata.MetadataHeader;
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -94,29 +93,23 @@ public class CollectionController extends FxInitOnce {
             MediaCollection c = (MediaCollection) newValue.getUserData();
             pref.getUserPreference().getCollection().setLastViewed((c).id());
             taskService.fxNotifyLater(new WarmThumbnailCacheEvent(c, this));
-//            taskService.notifyLater(new CollectionEvent(c, EventType.SELECTED, this));
         }
     }
 
-    @EventListener(ApplicationStartedEvent.class)
-    public void applicationStarted() {
-        log.info("Application Started.");
-        Platform.runLater(() -> initCollections(pref.getUserPreference().getCollection().getLastViewed()));
-    }
-
-    private void initCollections(int id) {
-        List<MediaCollection> mediaCollections = service.findAllCatalog();
-        mediaCollections.stream()
-                        .peek(this::watchDir)
-                        .map(this::createTreeView)
-                        .toList()
-                        .stream()
-                        .filter(p -> p.getKey().id() == id)
-                        .findFirst()
-                        .ifPresent(p -> {
-                            this.mediaCollections.setExpandedPane(p.getValue().tp());
-                            taskService.fxNotifyLater(new CollectionsLoadedEvent(mediaCollections, this));
-                        });
+    @EventListener(CollectionsLoadedEvent.class)
+    private void initCollections(CollectionsLoadedEvent event) {
+        var id = pref.getUserPreference().getCollection().getLastViewed();
+        event.getMediaCollections()
+             .stream()
+             .peek(this::watchDir)
+             .map(this::createTreeView)
+             .toList()
+             .stream()
+             .filter(p -> p.getKey().id() == id)
+             .findFirst()
+             .ifPresent(p -> {
+                 this.mediaCollections.setExpandedPane(p.getValue().tp());
+             });
     }
 
     private void watchDir(MediaCollection mediaCollection) {

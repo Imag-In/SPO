@@ -30,8 +30,10 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class ImageInConfiguration {
 
-    public static final String THUMBNAILS        = "thumbnails";
-    public static final String FULL_SIZE         = "fullSize";
+    public static final String THUMBNAILS = "thumbnails";
+    public static final String FULL_SIZE  = "fullSize";
+
+    public static final String CATALOG           = "catalog";
     public static final String DIRECTORY_WATCHER = "DirWatch";
 
     @Bean(name = THUMBNAILS)
@@ -58,6 +60,15 @@ public class ImageInConfiguration {
                                          .recordStats()
                                          .maximumSize(100)
                                          .expireAfterAccess(1, TimeUnit.HOURS)
+                                         .build());
+    }
+
+    @Bean(name = CATALOG)
+    public CaffeineCache catalogCache() {
+        return new CaffeineCache(CATALOG,
+                                 Caffeine.newBuilder()
+//                                         .softValues()
+                                         .recordStats()
                                          .build());
     }
 

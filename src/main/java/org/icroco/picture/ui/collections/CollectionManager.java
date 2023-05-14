@@ -3,12 +3,17 @@ package org.icroco.picture.ui.collections;
 import javafx.concurrent.Task;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.ui.config.ImageInConfiguration;
 import org.icroco.picture.ui.event.CollectionsLoadedEvent;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
+import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.task.AbstractTask;
 import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.Constant;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
+import org.springframework.cache.Cache;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -24,10 +29,21 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class CollectionManager {
-    private final TaskService taskService;
+    @Qualifier(ImageInConfiguration.CATALOG)
+    private final Cache              cache;
+    private final PersistenceService service;
+    private final TaskService        taskService;
 
-    @EventListener(CollectionsLoadedEvent.class)
-    public void applicationShowingUp(CollectionsLoadedEvent event) {
+    @EventListener(ApplicationStartedEvent.class)
+    public void loadAllCatalog() {
+        List<MediaCollection> mediaCollections = service.findAllCatalog();
+        for (MediaCollection c : mediaCollections) {
+            cache.put(c.id(), c);
+        }
+        taskService.fxNotifyLater(new CollectionsLoadedEvent(mediaCollections, this));
+    }
+
+    private void applicationShowingUp(CollectionsLoadedEvent event) {
         taskService.supply(analyseCollections(event.getMediaCollections()))
                    .thenRun(() -> {
                        log.info("TODO: Add a timer to rescan folders on regular basics");
