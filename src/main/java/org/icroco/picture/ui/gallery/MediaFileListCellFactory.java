@@ -28,32 +28,12 @@ public class MediaFileListCellFactory implements Callback<ListView<MediaFile>, L
             var mf = ((MediaFileListCell) t.getSource()).getItem();
             if (t.getClickCount() == 1) {
 //                cell.requestLayout();
-                taskService.sendEventIntoFx(new PhotoSelectedEvent(mf, this));
+                taskService.sendFxEvent(new PhotoSelectedEvent(mf, this));
             } else if (t.getClickCount() == 2) {
-                taskService.sendEventIntoFx(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.HIDE).build());
+                taskService.sendFxEvent(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.HIDE).build());
             }
             t.consume();
         });
-
-//        cell.itemProperty().addListener((ov, oldMediaItem, newMediaItem) -> {
-////            if (newMediaItem != null) {
-//            log.info("old: {}, new: {}", oldMediaItem, newMediaItem);
-//            if (newMediaItem != null && oldMediaItem == null) {
-////                Platform.runLater(() -> {
-////                    newMediaItem.getThumbnailType().set(EThumbnailType.ABSENT);
-////                    mediaLoader.getCachedValue(newMediaItem)
-////                               .map(Thumbnail::getOrigin)
-////                               .ifPresent(tn -> newMediaItem.getThumbnailType().set(tn));
-////                });
-//
-////                log.info("new Cell: "+newMediaItem.fullPath());
-////                if (newMediaItem.getThumbnailType().get() == EThumbnailType.ABSENT) {
-////                    mediaLoader.loadThumbnailFromFx(newMediaItem);
-//////                                              newMediaItem.thumbnail().setThumbnail(mediaLoader.loadThumbnail(newMediaItem.id(), newMediaItem.fullPath()));
-////                }
-//            }
-//        });
-
         return cell;
     }
 

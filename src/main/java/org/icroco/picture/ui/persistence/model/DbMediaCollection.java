@@ -18,7 +18,7 @@ import java.util.Set;
 public class DbMediaCollection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    int id;
+    Integer id;
 
     @NotNull
     @Column(length = 1024, unique = true)

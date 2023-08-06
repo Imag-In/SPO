@@ -21,10 +21,12 @@ import org.springframework.context.event.EventListener;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings("unchecked")
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -36,7 +38,7 @@ public class PersistenceService {
     private final MediaFileMapper       mfMapper;
     private final ThumbnailMapper       thumbMapper;
     @Qualifier(ImageInConfiguration.CATALOG)
-    private final Cache                 cache;
+    private final Cache                 mcCache;
     private final TaskService           taskService;
 
     @EventListener(ApplicationStartedEvent.class)
@@ -45,16 +47,16 @@ public class PersistenceService {
             Collection<MediaCollection> mediaCollections = collectionRepo.findAll()
                                                                          .stream()
                                                                          .map(colMapper::map)
-                                                                         .peek(c -> cache.put(c.id(), c))
+                                                                         .peek(c -> mcCache.put(c.id(), c))
                                                                          .toList();
-            taskService.sendEventIntoFx(new CollectionsLoadedEvent(mediaCollections, this));
+            taskService.sendFxEvent(new CollectionsLoadedEvent(mediaCollections, this));
         }
     }
 
     @Transactional
 //    @Cacheable(cacheNames = ImageInConfiguration.CATALOG, unless = "#result == null")
     public synchronized Optional<MediaCollection> findCatalogById(int id) {
-        return Optional.ofNullable(cache.get(id, MediaCollection.class));
+        return Optional.ofNullable(mcCache.get(id, MediaCollection.class));
     }
 
     /**
@@ -67,9 +69,17 @@ public class PersistenceService {
 
     @SuppressWarnings("unchecked")
     public Collection<MediaCollection> findAllCatalog() {
-        var nativeCache = (com.github.benmanes.caffeine.cache.Cache<Integer, MediaCollection>) cache.getNativeCache();
+        var nativeCache = (com.github.benmanes.caffeine.cache.Cache<Integer, MediaCollection>) mcCache.getNativeCache();
         return nativeCache.asMap().values();
 //        return collectionRepo.findAll().stream().map(colMapper::map).toList();
+    }
+
+    public Optional<MediaCollection> findCatalogForFile(Path path) {
+        var nativeCache = (com.github.benmanes.caffeine.cache.Cache<Integer, MediaCollection>) mcCache.getNativeCache();
+        return nativeCache.asMap().values()
+                          .stream()
+                          .filter(mediaCollection -> path.startsWith(mediaCollection.path()))
+                          .findFirst();
     }
 
     @Transactional
@@ -79,7 +89,7 @@ public class PersistenceService {
             DbMediaCollection saved             = collectionRepo.saveAndFlush(colMapper.map(mediaCollection));
             var               updatedCollection = colMapper.map(saved);
 
-            cache.put(updatedCollection.id(), mediaCollection);
+            mcCache.put(updatedCollection.id(), mediaCollection);
             log.info("Collection saved, id: '{}', path: '{}'", updatedCollection.id(), updatedCollection.path());
             return updatedCollection;
         }
@@ -100,7 +110,7 @@ public class PersistenceService {
         synchronized (collectionRepo) {
             log.info("MediaCollection deleted, id: '{}'", mediaCollectionId);
             collectionRepo.deleteById(mediaCollectionId);
-            cache.evictIfPresent(mediaCollectionId);
+            mcCache.evictIfPresent(mediaCollectionId);
         }
     }
 
@@ -112,8 +122,8 @@ public class PersistenceService {
         return thumbnail;
     }
 
-    public void saveAll(Collection<Thumbnail> thumbnails) {
-        thumbRepo.saveAll(thumbnails.stream().map(thumbMapper::map).toList());
+    public List<Thumbnail> saveAll(Collection<Thumbnail> thumbnails) {
+        return thumbRepo.saveAll(thumbnails.stream().map(thumbMapper::map).toList()).stream().map(thumbMapper::map).toList();
     }
 
 //    public Optional<MediaFile> findByPath(Path p) {
@@ -144,7 +154,7 @@ public class PersistenceService {
             mediaFiles.addAll(toBeAddedSaved);
             // just to delete values
             mc = saveCollection(mc);
-            cache.put(mc.id(), mc);
+            mcCache.put(mc.id(), mc);
 
 //            var newUpdated = mc.medias().stream()
 //                               .filter(toBeAdded::contains)
@@ -152,7 +162,7 @@ public class PersistenceService {
 //            var delUpdated = mc.medias().stream()
 //                               .filter(toBeDeleted::contains)
 //                               .toList();
-            taskService.sendEventIntoFx(new CollectionUpdatedEvent(mc.id(), toBeAddedSaved, toBeDeleted, this));
+            taskService.sendFxEvent(new CollectionUpdatedEvent(mc.id(), toBeAddedSaved, toBeDeleted, this));
         }
     }
 

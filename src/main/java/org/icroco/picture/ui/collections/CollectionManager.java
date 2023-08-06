@@ -5,6 +5,7 @@ import javafx.concurrent.Task;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.event.CollectionsLoadedEvent;
+import org.icroco.picture.ui.event.FilesChangesDetectedEvent;
 import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
@@ -23,10 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -82,6 +80,7 @@ public class CollectionManager {
 
         difference.leftMissing().forEach(path -> log.info("Collections: '{}', file added: {}", mediaCollection.path(), path));
         difference.rightMissing().forEach(path -> log.info("Collections: '{}', file deleted: {}", mediaCollection.path(), path));
+        //TODO: Add files updated.
 
         if (difference.isNotEmpty()) {
             updateCollection(mediaCollection.id(), difference.leftMissing(), difference.rightMissing(), Collections.emptyList());
@@ -92,7 +91,7 @@ public class CollectionManager {
         var now = LocalDate.now();
         persistenceService.updateCollection(collectionId,
                                             toBeAdded.stream().map(p -> create(now, p)).toList(),
-                                            toBeDeleted.stream().map(p -> create(now, p)).toList());
+                                            toBeDeleted.stream().map(p -> MediaFile.builder().fullPath(p).build()).toList());
         // TODO: Process hasBeenModified.
     }
 
@@ -120,5 +119,34 @@ public class CollectionManager {
                 .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))
                 .build();
     }
+
+
+    @EventListener(FilesChangesDetectedEvent.class)
+    public void filesChangeDetected(FilesChangesDetectedEvent event) {
+
+        groupByCollection(event.getCreated()).forEach((mediaCollection, files) -> updateCollection(mediaCollection.id(),
+                                                                                                   files,
+                                                                                                   Collections.emptyList(),
+                                                                                                   Collections.emptyList()));
+        groupByCollection(event.getDeleted()).forEach((mediaCollection, files) -> updateCollection(mediaCollection.id(),
+                                                                                                   Collections.emptyList(),
+                                                                                                   files,
+                                                                                                   Collections.emptyList()));
+        groupByCollection(event.getModified()).forEach((mediaCollection, files) -> updateCollection(mediaCollection.id(),
+                                                                                                    Collections.emptyList(),
+                                                                                                    Collections.emptyList(),
+                                                                                                    files));
+    }
+
+    private Map<MediaCollection, List<Path>> groupByCollection(Collection<Path> files) {
+        record PathAndCollection(Path path, MediaCollection mediaCollection) {}
+
+        return files.stream()
+                    .map(path -> new PathAndCollection(path, persistenceService.findCatalogForFile(path).orElse(null)))
+                    .filter(it -> it.mediaCollection != null)
+                    .collect(Collectors.groupingBy(pathAndCollection -> pathAndCollection.mediaCollection,
+                                                   Collectors.mapping(PathAndCollection::path, Collectors.toList())));
+    }
+
 
 }

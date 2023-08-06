@@ -6,7 +6,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 
 @Getter
-public class FilesChangesDetectedEvent extends IiEvent {
+public final class FilesChangesDetectedEvent extends IiEvent {
     private final Collection<Path> created;
     private final Collection<Path> deleted;
     private final Collection<Path> modified;
@@ -16,5 +16,13 @@ public class FilesChangesDetectedEvent extends IiEvent {
         this.created = created;
         this.deleted = deleted;
         this.modified = modified;
+    }
+
+    public boolean isEmpty() {
+        return created.isEmpty() && deleted.isEmpty() && modified.isEmpty();
+    }
+
+    public boolean isNotEmpty() {
+        return !isEmpty();
     }
 }

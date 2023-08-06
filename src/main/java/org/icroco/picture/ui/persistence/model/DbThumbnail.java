@@ -21,7 +21,7 @@ import java.nio.file.Path;
 public class DbThumbnail {
 
     @Id
-    long id;
+    Long id;
 
     @NotNull
     @Column(length = 1024, unique = true)

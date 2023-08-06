@@ -111,18 +111,30 @@ public class DirectoryWatcher {
                 log.info("Drain files changes detected, nb changes: '{}'", changes.size());
                 FilesChangesDetectedEvent event = new FilesChangesDetectedEvent(changes.stream()
                                                                                        .filter(fc -> fc.type == FileChangeType.CREATED)
+                                                                                       .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                                     Constant.isSupportedExtension(fc.path))
                                                                                        .map(FileChange::path)
                                                                                        .toList(),
                                                                                 changes.stream()
                                                                                        .filter(fc -> fc.type == FileChangeType.DELETED)
+                                                                                       .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                                     Constant.isSupportedExtension(fc.path))
                                                                                        .map(FileChange::path)
                                                                                        .toList(),
                                                                                 changes.stream()
                                                                                        .filter(fc -> fc.type == FileChangeType.MODIFIED)
+                                                                                       .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                                     Constant.isSupportedExtension(fc.path))
                                                                                        .map(FileChange::path)
                                                                                        .toList(),
                                                                                 this);
-                taskService.sendEvent(event);
+                if (event.isNotEmpty()) {
+                    log.info("Drain files changes detected, valid changes are: '{}' creation, '{}' deletion, '{}' updates",
+                             event.getCreated().size(),
+                             event.getDeleted().size(),
+                             event.getModified().size());
+                    taskService.sendEvent(event);
+                }
                 changes.clear();
                 lastDrain = System.currentTimeMillis();
             }

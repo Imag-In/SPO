@@ -16,6 +16,8 @@ import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.CustomGridView;
 import org.icroco.picture.ui.util.MediaLoader;
 
+import java.util.Optional;
+
 @Slf4j
 @RequiredArgsConstructor
 public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, GridCell<MediaFile>> {
@@ -36,9 +38,9 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
                 ((CustomGridView<MediaFile>) grid).getSelectionModel().clear();
                 ((CustomGridView<MediaFile>) grid).getSelectionModel().add(mf);
 //                cell.requestLayout();
-                taskService.sendEventIntoFx(new PhotoSelectedEvent(mf, this));
+                taskService.sendFxEvent(new PhotoSelectedEvent(mf, this));
             } else if (t.getClickCount() == 2) {
-                taskService.sendEventIntoFx(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.SHOW).build());
+                taskService.sendFxEvent(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.SHOW).build());
             }
             t.consume();
         });
@@ -46,6 +48,8 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
         cell.itemProperty().addListener((ov, oldMediaItem, newMediaItem) -> {
             if (newMediaItem != null && oldMediaItem != newMediaItem) {
                 if (isCellVisible(grid, cell)) {
+                    log.debug("is Cell really visible?, old: '{}', new: '{}'", Optional.ofNullable(oldMediaItem).map(MediaFile::getId).orElse(null),
+                              Optional.ofNullable(newMediaItem).map(MediaFile::getId).orElse(null));
                     mediaLoader.loadAndCachedValue(newMediaItem);
                 }
             }

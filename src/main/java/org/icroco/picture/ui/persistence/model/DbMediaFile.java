@@ -21,7 +21,7 @@ public class DbMediaFile {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    long id;
+    Long id;
 
     @NotNull
     @Column(length = 1024, unique = true)

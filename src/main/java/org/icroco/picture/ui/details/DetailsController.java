@@ -42,6 +42,8 @@ public class DetailsController extends FxInitOnce {
     public TextField creationDate;
     @FXML
     public TextField gps;
+    @FXML
+    public TextField name;
 
     protected void initializedOnce() {
         container.setVisible(false);
@@ -52,6 +54,7 @@ public class DetailsController extends FxInitOnce {
         var mf        = event.getFile();
         var thumbnail = mediaLoader.getCachedValue(mf);
         dbId.setText(Long.toString(mf.getId()));
+        name.setText(mf.getFileName());
         thumbnailType.setText(thumbnail.map(tn -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
         thumbnailSize.setText(thumbnail.map(tn -> "%d x %d".formatted((int) tn.getImage().getWidth(), (int) tn.getImage().getHeight())).orElse(FILE_NOT_FOUND));
         creationDate.setText(mf.originalDate().toString());

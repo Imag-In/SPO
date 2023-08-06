@@ -50,7 +50,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 
     @Override
     protected void updateItem(MediaFile item, boolean empty) {
-        log.debug("updateItem: cell:{}, item: '{}' , empty: '{}'", this.hashCode(), item == null ? "null" : item.getFileName(), empty);
+//        log.debug("updateItem: cell:{}, item: '{}' , empty: '{}'", this.hashCode(), item == null ? "null" : item.getId()+":"+item.getFileName(), empty);
         super.updateItem(item, empty);
 
         if (empty || item == null) {
@@ -59,7 +59,10 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
             if (item.isLoaded()) {
                 setImage(mediaLoader.getCachedValue(item)
                                     .map(Thumbnail::getImage)
-                                    .orElse(MediaLoader.LOADING));
+                                    .orElseGet(() -> {
+                                        mediaLoader.loadAndCachedValue(item);
+                                        return MediaLoader.LOADING;
+                                    }));
             } else {
                 setImage(MediaLoader.LOADING);
             }

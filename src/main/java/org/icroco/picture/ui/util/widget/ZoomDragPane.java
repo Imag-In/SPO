@@ -171,7 +171,7 @@ public class ZoomDragPane extends BorderPane {
         final Point2D mouseInImage = imageViewToImage(x, y);
 
         final Point2D newLocation = zoomCalculateNewViewportXY(mouseInImage, zoom.getScale());
-        log.info("zoomLevel: {}, scale:{}, x:{}, y:{}, nouseImage:{}, newLocation: {}", zoomLevel, zoom.getScale(), x, y, mouseInImage, newLocation);
+        log.debug("zoomLevel: {}, scale:{}, x:{}, y:{}, nouseImage:{}, newLocation: {}", zoomLevel, zoom.getScale(), x, y, mouseInImage, newLocation);
 
         /*
          * Store the new Coordinates & Size in the Viewport...

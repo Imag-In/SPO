@@ -71,19 +71,21 @@ public class TaskService {
     /**
      * post an event into the bus through Fx Thread.
      */
-    public void sendEventIntoFx(final ApplicationEvent event) {
+    public void sendFxEvent(final ApplicationEvent event) {
         Platform.runLater(() -> {
-            log.info("Send Event: {}", event.getClass().getSimpleName());
+            log.info("Send Fx Event: {}, source: {}", event.getClass().getSimpleName(), event.getSource());
             eventBus.multicastEvent(event);
         });
-//        fxRun(() -> eventBus.multicastEvent(event));
     }
 
     public void sendEvent(final ApplicationEvent event) {
-        supply(() -> eventBus.multicastEvent(event));
+        supply(() -> {
+            log.info("Send Event: {}, source: {}", event.getClass().getSimpleName(), event.getSource());
+            eventBus.multicastEvent(event);
+        });
     }
 
-    public static void fxRun(Runnable runnable) {
+    private static void fxRun(Runnable runnable) {
         if (Platform.isFxApplicationThread()) {
             runnable.run();
         } else {

@@ -8,6 +8,8 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.CacheHint;
@@ -82,8 +84,8 @@ public class GalleryController extends FxInitOnce {
 
     private final BooleanProperty                       expandCell     = new SimpleBooleanProperty(true);
     private final ObservableList<MediaFile>             images         = FXCollections.observableArrayList(MediaFile.extractor());
-    //    private final FilteredList<MediaFile>               filteredImages = new FilteredList<>(images);
-//    private final SortedList<MediaFile>                 sortedImages   = new SortedList<>(filteredImages);
+    private final FilteredList<MediaFile>               filteredImages = new FilteredList<>(images);
+    private final SortedList<MediaFile>                 sortedImages   = new SortedList<>(filteredImages);
     private       double                                gridCellWidth;
     private       double                                gridCellHeight;
     private       double                                zoomLevel      = 0;
@@ -98,7 +100,7 @@ public class GalleryController extends FxInitOnce {
                  gridView.getHorizontalCellSpacing(),
                  gridView.getVerticalCellSpacing());
 //        sortedImages.setComparator(Comparator.comparing(MediaFile::getOriginalDate));
-        gridView.setItems(images);
+        gridView.setItems(sortedImages);
 //        gridCellWidth = Optional.ofNullable(pref.getUserPreference().getGrid().getCellWidth()).orElse((int)gridView.getCellWidth());
 //        gridCellHeight = Optional.ofNullable(pref.getUserPreference().getGrid().getCellHeight()).orElse((int)gridView.getCellHeight());
         gridCellWidth = gridView.getCellWidth() * 2;
@@ -111,7 +113,7 @@ public class GalleryController extends FxInitOnce {
         gridView.setOnZoom(this::zoomOnGrid);
 
         carouselIcons.setCellFactory(new MediaFileListCellFactory(mediaLoader, taskService));
-//        carouselIcons.setItems(images);
+        carouselIcons.setItems(sortedImages);
         carouselIcons.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         carouselIcons.getSelectionModel().selectedItemProperty().addListener(this::carouselItemSelected);
         carouselIcons.setFixedCellSize(128);
@@ -193,7 +195,7 @@ public class GalleryController extends FxInitOnce {
         MediaCollection mediaCollection = event.getMediaCollection();
         log.info("CollectionEvent: {}, Add images to grid view: {}", event.getType(), mediaCollection.medias().size());
         images.clear();
-//        filteredImages.setPredicate(null);
+        filteredImages.setPredicate(null);
         currentCatalog.set(mediaCollection);
 
         switch (event.getType()) {
@@ -217,7 +219,6 @@ public class GalleryController extends FxInitOnce {
                  event.getDeletedItems().size());
         images.addAll(event.getNewItems());
         images.removeAll(event.getDeletedItems());
-
     }
 
     @EventListener(CollectionSubPathSelectedEvent.class)
@@ -225,9 +226,9 @@ public class GalleryController extends FxInitOnce {
         log.info("MediaCollection subpath selected: root: {}, entry: {}", event.getRoot(), event.getEntry());
         resetBcbModel(event.getRoot(), event.getEntry());
         final var path = event.getRoot().resolve(event.getEntry());
-//        filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
+        filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);
-        taskService.sendEventIntoFx(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
+        taskService.sendFxEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
     }
 
     private MediaCollection getCurrentCatalog() {
@@ -238,7 +239,7 @@ public class GalleryController extends FxInitOnce {
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         final var source = Optional.ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
         final var mf     = event.getFile();
-        log.info("Photo selected: root: {}, from: {}", mf.getFileName(), source.getSimpleName());
+        log.info("Photo selected: root: '{}', '{}', from: {}", mf.getId(), mf.getFileName(), source.getSimpleName());
         // TODO: it works with only one item selected.
 
         TreeItem<Path> root    = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
@@ -328,7 +329,7 @@ public class GalleryController extends FxInitOnce {
     }
 
     private void escapePressed(KeyEvent event) {
-        taskService.sendEventIntoFx(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
+        taskService.sendFxEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
     }
 
     public void expandGridCell(MouseEvent mouseEvent) {

@@ -17,7 +17,7 @@ public class DbMediaCollectionEntry {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    long id;
+    Long id;
 
     @Column(length = 64, nullable = false)
     @Type(PathType.class)

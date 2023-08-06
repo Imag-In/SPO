@@ -41,7 +41,7 @@ public class MediaFileListCell extends ListCell<MediaFile> {
 
     @Override
     protected void updateItem(MediaFile item, boolean empty) {
-        log.debug("updateItem: cell:{}, item: '{}' , empty: '{}'", this.hashCode(), item == null ? "null" : item.getFileName(), empty);
+//        log.debug("updateItem: cell:{}, item: '{}' , empty: '{}'", this.hashCode(), item == null ? "null" : item.getFileName(), empty);
         super.updateItem(item, empty);
 
         if (empty || item == null) {

@@ -91,7 +91,7 @@ public class CollectionController extends FxInitOnce {
         if (newValue != null) {
             int id = (int) newValue.getUserData();
             pref.getUserPreference().getCollection().setLastViewed(id);
-            taskService.sendEventIntoFx(new WarmThumbnailCacheEvent(persistenceService.getCatalogById(id), this));
+            taskService.sendFxEvent(new WarmThumbnailCacheEvent(persistenceService.getCatalogById(id), this));
         }
     }
 
@@ -141,7 +141,7 @@ public class CollectionController extends FxInitOnce {
         treeView.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
             if (newValue != null) {
                 log.debug("Tree view selected: {} ", newValue.getValue());
-                taskService.sendEventIntoFx(new CollectionSubPathSelectedEvent(mediaCollection.path(), newValue.getValue(), CollectionController.this));
+                taskService.sendFxEvent(new CollectionSubPathSelectedEvent(mediaCollection.path(), newValue.getValue(), CollectionController.this));
             }
         });
 
@@ -187,7 +187,7 @@ public class CollectionController extends FxInitOnce {
         var mc = persistenceService.getCatalogById(entry.mediaCollectionId);
         persistenceService.deleteCatalog(entry.mediaCollectionId);
         mediaCollections.getPanes().remove(entry.titledPane);
-        taskService.sendEventIntoFx(new CollectionEvent(mc, EventType.DELETED, this));
+        taskService.sendFxEvent(new CollectionEvent(mc, EventType.DELETED, this));
         // TODO: Clean Thumbnail Cache and DB.
     }
 
@@ -247,7 +247,7 @@ public class CollectionController extends FxInitOnce {
                        .thenAccept(mediaCollection -> {
                            Platform.runLater(() -> {
                                createTreeView(mediaCollection);
-                               taskService.sendEventIntoFx(new ExtractThumbnailEvent(mediaCollection, this));
+                               taskService.sendFxEvent(new ExtractThumbnailEvent(mediaCollection, this));
                            });
                        });
         }

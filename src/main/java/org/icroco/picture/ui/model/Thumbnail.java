@@ -4,12 +4,14 @@ import javafx.scene.image.Image;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.nio.file.Path;
 
 @Data
 @Builder
 @AllArgsConstructor
+@EqualsAndHashCode(of = "id")
 public class Thumbnail {
     private long           id;
     private Path           fullPath;
