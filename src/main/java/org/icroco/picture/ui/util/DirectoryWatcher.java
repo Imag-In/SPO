@@ -2,7 +2,9 @@ package org.icroco.picture.ui.util;
 
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.config.ImageInConfiguration;
+import org.icroco.picture.ui.event.FilesChangesDetectedEvent;
 import org.icroco.picture.ui.persistence.CollectionRepository;
+import org.icroco.picture.ui.task.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.lang.Nullable;
@@ -11,7 +13,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -25,27 +29,30 @@ public class DirectoryWatcher {
     private final WatchService        watcher;
     private final Map<WatchKey, Path> keys;
     private final boolean             recursive;
+    private final TaskService         taskService;
 
     @Autowired
-    public DirectoryWatcher(CollectionRepository repository,
+    public DirectoryWatcher(TaskService taskService,
+                            CollectionRepository repository,
                             @Qualifier(ImageInConfiguration.DIRECTORY_WATCHER) ExecutorService executorService) throws IOException {
-        this(null, true);
-        repository.findAll()
-                  .forEach(c -> registerAll(c.getPath()));
+        this(taskService, null, true);
+//        repository.findAll()
+//                  .forEach(c -> registerAll(c.getPath()));
         executorService.submit(this::processEvents);
     }
 
     /**
      * Creates a WatchService and registers the given directory
      */
-    DirectoryWatcher(@Nullable Path dir, boolean recursive) throws IOException {
+    DirectoryWatcher(TaskService taskService, @Nullable Path dir, boolean recursive) throws IOException {
+        this.taskService = taskService;
         this.watcher = FileSystems.getDefault().newWatchService();
         this.keys = new ConcurrentHashMap<>();
         this.recursive = recursive;
 
         if (dir != null) {
             if (recursive) {
-                log.info("Scanning '{}'", dir);
+                log.debug("Scanning '{}'", dir);
                 registerAll(dir);
             } else {
                 register(dir);
@@ -64,7 +71,7 @@ public class DirectoryWatcher {
     private void register(Path dir) throws IOException {
         WatchKey key = dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
         keys.put(key, dir);
-        log.info("Watch: '{}'", dir);
+        log.debug("Watch: '{}'", dir);
     }
 
     /**
@@ -88,12 +95,37 @@ public class DirectoryWatcher {
         }
     }
 
+    enum FileChangeType {CREATED, DELETED, MODIFIED}
+
+    record FileChange(Path path, FileChangeType type) {}
 
     /**
      * Process all events for keys queued to the watcher
      */
     void processEvents() {
+        Set<FileChange> changes   = new HashSet<>();
+        long            lastDrain = System.currentTimeMillis();
+
         for (; ; ) {
+            if (!changes.isEmpty() && System.currentTimeMillis() > lastDrain + 5_000) {
+                log.info("Drain files changes detected, nb changes: '{}'", changes.size());
+                FilesChangesDetectedEvent event = new FilesChangesDetectedEvent(changes.stream()
+                                                                                       .filter(fc -> fc.type == FileChangeType.CREATED)
+                                                                                       .map(FileChange::path)
+                                                                                       .toList(),
+                                                                                changes.stream()
+                                                                                       .filter(fc -> fc.type == FileChangeType.DELETED)
+                                                                                       .map(FileChange::path)
+                                                                                       .toList(),
+                                                                                changes.stream()
+                                                                                       .filter(fc -> fc.type == FileChangeType.MODIFIED)
+                                                                                       .map(FileChange::path)
+                                                                                       .toList(),
+                                                                                this);
+                taskService.sendEvent(event);
+                changes.clear();
+                lastDrain = System.currentTimeMillis();
+            }
             // wait for key to be signalled
             WatchKey key;
             try {
@@ -136,11 +168,11 @@ public class DirectoryWatcher {
                         }
                     } else {
                         if (kind == ENTRY_CREATE) {
-                            log.info("File created: {}", child);
+                            changes.add(new FileChange(child, FileChangeType.CREATED));
                         } else if (kind == ENTRY_DELETE) {
-                            log.info("File deleted: {}", child);
+                            changes.add(new FileChange(child, FileChangeType.DELETED));
                         } else if (kind == ENTRY_MODIFY) {
-                            log.info("File modified: {}", child);
+                            changes.add(new FileChange(child, FileChangeType.MODIFIED));
                         }
                     }
                 }

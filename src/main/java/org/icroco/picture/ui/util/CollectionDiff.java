@@ -6,4 +6,8 @@ public record CollectionDiff<T>(Collection<T> leftMissing, Collection<T> rightMi
     public boolean isEmpty() {
         return leftMissing.isEmpty() && rightMissing.isEmpty();
     }
+
+    public boolean isNotEmpty() {
+        return !isEmpty();
+    }
 }

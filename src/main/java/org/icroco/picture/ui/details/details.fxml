@@ -2,7 +2,7 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:id="container"
+<VBox fx:id="container" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="org.icroco.picture.ui.details.DetailsController">
     <GridPane minWidth="200" prefWidth="300.0">
         <columnConstraints>
@@ -14,15 +14,18 @@
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
         </rowConstraints>
-        <Label text="Thumnail type"/>
-        <TextField fx:id="thumbnailType" editable="false" GridPane.columnIndex="1"/>
-        <Label text="Date" GridPane.rowIndex="2"/>
-        <TextField fx:id="creationDate" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
-        <Label text="GPS" GridPane.rowIndex="3"/>
-        <TextField fx:id="gps" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
-        <Label text="Thumbnail size (WxH)" GridPane.rowIndex="1"/>
-        <TextField fx:id="thumbnailSize" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+        <Label text="Thumnail type" GridPane.rowIndex="1"/>
+        <TextField fx:id="thumbnailType" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+        <Label text="Date" GridPane.rowIndex="3"/>
+        <TextField fx:id="creationDate" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+        <Label text="GPS" GridPane.rowIndex="4"/>
+        <TextField fx:id="gps" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+        <Label text="Thumbnail size (WxH)" GridPane.rowIndex="2"/>
+        <TextField fx:id="thumbnailSize" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+        <Label text="ID"/>
+        <TextField fx:id="dbId" GridPane.columnIndex="1" editable="false"/>
     </GridPane>
     <Region VBox.vgrow="ALWAYS"/>
 

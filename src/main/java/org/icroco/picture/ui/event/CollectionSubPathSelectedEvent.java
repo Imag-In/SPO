@@ -1,13 +1,12 @@
 package org.icroco.picture.ui.event;
 
 import lombok.Getter;
-import org.springframework.context.ApplicationEvent;
 
 import java.nio.file.Path;
 import java.time.Clock;
 
 @Getter
-public class CollectionSubPathSelectedEvent extends ApplicationEvent {
+public class CollectionSubPathSelectedEvent extends IiEvent {
     private final Path root;
     private final Path entry;
 

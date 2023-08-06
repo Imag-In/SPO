@@ -26,4 +26,6 @@ spring:
 logging:
   level:
     root: INFO
-    org.icroco.javafx: INFO
+    "org.icroco.javafx": INFO
+    "org.icroco.picture.ui.task": INFO
+    "org.icroco.picture.ui.util": INFO

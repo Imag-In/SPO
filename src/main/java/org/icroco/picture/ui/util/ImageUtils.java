@@ -41,10 +41,10 @@ public class ImageUtils {
 
     public static void readImageIoCodec() {
         for (String codec : ImageIO.getReaderFormatNames()) {
-            log.info("Supported codec: {}", codec);
+            log.debug("Supported codec: {}", codec);
             Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(codec);
             while (readers.hasNext()) {
-                log.info("    reader: {}", readers.next());
+                log.debug("    reader: {}", readers.next());
             }
         }
     }

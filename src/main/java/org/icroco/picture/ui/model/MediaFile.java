@@ -73,7 +73,7 @@ public class MediaFile implements IMediaFile {
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[]{ mf.thumbnailType, mf.loaded };
+        return mf -> new Observable[]{ mf.loaded };
     }
 
     public boolean isLoaded() {

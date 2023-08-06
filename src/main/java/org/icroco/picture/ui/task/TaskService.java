@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Component
 @AllArgsConstructor
@@ -42,14 +43,13 @@ public class TaskService {
 
 
     public <T> CompletableFuture<T> supply(final Task<T> task, boolean visualFeedback) {
-        log.debug("Start new task: {}", task);
+        log.debug("Start new task: {}, visualEffect: {}", task, visualFeedback);
         if (visualFeedback) {
             // TODO: Use event to decouple from controller.
             Platform.runLater(() -> taskController.addTask(task));
         }
         return CompletableFuture.supplyAsync(() -> {
             task.run();
-            task.setOnSucceeded();
             try {
                 return task.get();
             }
@@ -59,12 +59,28 @@ public class TaskService {
         }, executor);
     }
 
+    public <T> CompletableFuture<T> supply(final Supplier<T> task) {
+        return CompletableFuture.supplyAsync(task, executor);
+    }
+
+    public CompletableFuture<Void> supply(final Runnable task) {
+        return CompletableFuture.runAsync(task, executor);
+    }
+
 
     /**
      * post an event into the bus through Fx Thread.
      */
-    public void fxNotifyLater(final ApplicationEvent event) {
-        fxRun(() -> eventBus.multicastEvent(event));
+    public void sendEventIntoFx(final ApplicationEvent event) {
+        Platform.runLater(() -> {
+            log.info("Send Event: {}", event.getClass().getSimpleName());
+            eventBus.multicastEvent(event);
+        });
+//        fxRun(() -> eventBus.multicastEvent(event));
+    }
+
+    public void sendEvent(final ApplicationEvent event) {
+        supply(() -> eventBus.multicastEvent(event));
     }
 
     public static void fxRun(Runnable runnable) {

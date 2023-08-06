@@ -2,6 +2,8 @@ package org.icroco.picture.ui.gallery;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.geometry.Pos;
+import javafx.scene.control.IndexedCell;
+import javafx.scene.control.skin.VirtualFlow;
 import javafx.util.Callback;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,40 +35,48 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
             if (mf != null && t.getClickCount() == 1) {
                 ((CustomGridView<MediaFile>) grid).getSelectionModel().clear();
                 ((CustomGridView<MediaFile>) grid).getSelectionModel().add(mf);
-                cell.requestLayout();
-                taskService.fxNotifyLater(new PhotoSelectedEvent(mf, this));
+//                cell.requestLayout();
+                taskService.sendEventIntoFx(new PhotoSelectedEvent(mf, this));
             } else if (t.getClickCount() == 2) {
-                taskService.fxNotifyLater(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.SHOW).build());
+                taskService.sendEventIntoFx(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.SHOW).build());
             }
             t.consume();
         });
 
         cell.itemProperty().addListener((ov, oldMediaItem, newMediaItem) -> {
-//            if (newMediaItem != null) {
-//            log.info("old: {}, new: {}", oldMediaItem, newMediaItem);
             if (newMediaItem != null && oldMediaItem != newMediaItem) {
-                // This is a hack because GridView is messed up with Cell.updateItems (too many fire)
-                final var isVisible = ((CustomGridView<MediaFile>) grid).isCellVisible(cell);
-//                log.info("Cell: {}, visible: {}", cell.getItem().getFileName(), isVisible);
-                if (isVisible) {
+                if (isCellVisible(grid, cell)) {
                     mediaLoader.loadAndCachedValue(newMediaItem);
                 }
-
-//                Platform.runLater(() -> {
-//                    newMediaItem.getThumbnailType().set(EThumbnailType.ABSENT);
-//                    mediaLoader.getCachedValue(newMediaItem)
-//                               .map(Thumbnail::getOrigin)
-//                               .ifPresent(tn -> newMediaItem.getThumbnailType().set(tn));
-//                });
-
-//                log.info("new Cell: "+newMediaItem.fullPath());
-//                if (newMediaItem.getThumbnailType().get() == EThumbnailType.ABSENT) {
-//                    mediaLoader.loadThumbnailFromFx(newMediaItem);
-////                                              newMediaItem.thumbnail().setThumbnail(mediaLoader.loadThumbnail(newMediaItem.id(), newMediaItem.fullPath()));
-//                }
             }
         });
 
         return cell;
+    }
+
+    public boolean isCellVisible(GridView<MediaFile> grid, MediaFileGridCell cell) {
+        VirtualFlow<? extends IndexedCell<MediaFile>> vf  = (VirtualFlow<? extends IndexedCell<MediaFile>>) grid.getChildrenUnmodifiable().get(0);
+        boolean                                       ret = false;
+        if (vf.getFirstVisibleCell() == null) {
+//            log.info("Cell: {}, visible: {}, index: {} null", cell.getItem().getFileName(), false, cell.getIndex());
+            return false;
+        }
+        int start = vf.getFirstVisibleCell().getIndex();
+        int end   = vf.getLastVisibleCell().getIndex();
+        if (start == end) {
+//            log.info("Cell: {}, visible: {}, index: {} ==", cell.getItem().getFileName(), true, cell.getIndex());
+            return true;
+        }
+
+        for (int i = start; i <= end; i++) {
+            if (vf.getCell(i).getChildrenUnmodifiable().contains(cell)) {
+                ret = true;
+                break;
+            }
+        }
+
+//        log.info("Cell: {}, visible: {}, index: {}", cell.getItem().getFileName(), ret, cell.getIndex());
+
+        return ret;
     }
 }

@@ -46,6 +46,9 @@ public class DbMediaFile {
     @Column(name = "last_access", columnDefinition = "DATE")
     private LocalDate lastAccess;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    private DbMediaCollection mediaCollection;
+
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "tag_id")
     private Set<DbTag> tags;

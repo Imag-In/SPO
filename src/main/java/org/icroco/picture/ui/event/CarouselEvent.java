@@ -3,10 +3,9 @@ package org.icroco.picture.ui.event;
 import lombok.Builder;
 import lombok.Getter;
 import org.icroco.picture.ui.model.MediaFile;
-import org.springframework.context.ApplicationEvent;
 
 @Getter
-public class CarouselEvent extends ApplicationEvent {
+public class CarouselEvent extends IiEvent {
 
     public enum EventType {
         SHOW,

@@ -35,6 +35,8 @@ public class DetailsController extends FxInitOnce {
     @FXML
     public TextField thumbnailType;
     @FXML
+    public TextField dbId;
+    @FXML
     public TextField thumbnailSize;
     @FXML
     public TextField creationDate;
@@ -49,6 +51,7 @@ public class DetailsController extends FxInitOnce {
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         var mf        = event.getFile();
         var thumbnail = mediaLoader.getCachedValue(mf);
+        dbId.setText(Long.toString(mf.getId()));
         thumbnailType.setText(thumbnail.map(tn -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
         thumbnailSize.setText(thumbnail.map(tn -> "%d x %d".formatted((int) tn.getImage().getWidth(), (int) tn.getImage().getHeight())).orElse(FILE_NOT_FOUND));
         creationDate.setText(mf.originalDate().toString());

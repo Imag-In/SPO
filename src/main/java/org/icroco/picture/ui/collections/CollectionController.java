@@ -57,11 +57,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CollectionController extends FxInitOnce {
     private final TaskService           taskService;
-    private final PersistenceService    service;
+    private final PersistenceService    persistenceService;
     private final UserPreferenceService pref;
     private final IMetadataExtractor    metadataExtractor;
     private final IHashGenerator        hashGenerator;
-    private final DirectoryWatcher      directoryWatcher;
     private final BooleanProperty       disablePathActions = new SimpleBooleanProperty(false);
     @FXML
     private       Accordion             mediaCollections;
@@ -90,9 +89,9 @@ public class CollectionController extends FxInitOnce {
 
     private void titlePaneChanged(ObservableValue<? extends TitledPane> observableValue, TitledPane oldValue, TitledPane newValue) {
         if (newValue != null) {
-            MediaCollection c = (MediaCollection) newValue.getUserData();
-            pref.getUserPreference().getCollection().setLastViewed((c).id());
-            taskService.fxNotifyLater(new WarmThumbnailCacheEvent(c, this));
+            int id = (int) newValue.getUserData();
+            pref.getUserPreference().getCollection().setLastViewed(id);
+            taskService.sendEventIntoFx(new WarmThumbnailCacheEvent(persistenceService.getCatalogById(id), this));
         }
     }
 
@@ -101,19 +100,14 @@ public class CollectionController extends FxInitOnce {
         var id = pref.getUserPreference().getCollection().getLastViewed();
         event.getMediaCollections()
              .stream()
-             .peek(this::watchDir)
              .map(this::createTreeView)
              .toList()
              .stream()
              .filter(p -> p.getKey().id() == id)
              .findFirst()
              .ifPresent(p -> {
-                 this.mediaCollections.setExpandedPane(p.getValue().tp());
+                 mediaCollections.setExpandedPane(p.getValue().tp());
              });
-    }
-
-    private void watchDir(MediaCollection mediaCollection) {
-        directoryWatcher.registerAll(mediaCollection.path());
     }
 
     private Pair<MediaCollection, PaneTreeView> createTreeView(final MediaCollection mediaCollection) {
@@ -132,7 +126,7 @@ public class CollectionController extends FxInitOnce {
         });
 
         final TitledPane title = new TitledPane(mediaCollection.path().getFileName().toString(), treeView);
-        title.setUserData(mediaCollection);
+        title.setUserData(mediaCollection.id());
         title.setTooltip(new Tooltip(mediaCollection.path() + " (id: " + mediaCollection.id() + ")"));
 
         FontIcon delete = new FontIcon();
@@ -147,7 +141,7 @@ public class CollectionController extends FxInitOnce {
         treeView.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
             if (newValue != null) {
                 log.debug("Tree view selected: {} ", newValue.getValue());
-                taskService.fxNotifyLater(new CollectionSubPathSelectedEvent(mediaCollection.path(), newValue.getValue(), CollectionController.this));
+                taskService.sendEventIntoFx(new CollectionSubPathSelectedEvent(mediaCollection.path(), newValue.getValue(), CollectionController.this));
             }
         });
 
@@ -164,18 +158,19 @@ public class CollectionController extends FxInitOnce {
         }
     }
 
-    record TitlePaneEntry(TitledPane titledPane, MediaCollection mediaCollection) {}
+    record TitlePaneEntry(TitledPane titledPane, int mediaCollectionId) {}
 
     private void onDeleteCollection(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 1) {
             Node source = (Node) mouseEvent.getSource();
             Nodes.getFirstParent(source, TitledPane.class)
-                 .map(t -> new TitlePaneEntry(t, (MediaCollection) t.getUserData()))
+                 .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
                  .ifPresent(tpe -> {
-                     final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, "");
+                     final Alert dlg             = new Alert(Alert.AlertType.CONFIRMATION, "");
+                     final var   mediaCollection = persistenceService.getCatalogById(tpe.mediaCollectionId);
                      dlg.setTitle("You do want delete MediaCollection ?");
                      dlg.getDialogPane()
-                        .setContentText("Do you want to delete MediaCollection: " + tpe.mediaCollection.path() + " id: " + tpe.mediaCollection.id());
+                        .setContentText("Do you want to delete MediaCollection: " + mediaCollection.path() + " id: " + mediaCollection.id());
 
                      dlg.show();
                      dlg.resultProperty()
@@ -189,9 +184,10 @@ public class CollectionController extends FxInitOnce {
     }
 
     private void deleteCollection(TitlePaneEntry entry) {
-        service.deleteCatalog(entry.mediaCollection);
+        var mc = persistenceService.getCatalogById(entry.mediaCollectionId);
+        persistenceService.deleteCatalog(entry.mediaCollectionId);
         mediaCollections.getPanes().remove(entry.titledPane);
-        taskService.fxNotifyLater(new CollectionEvent(entry.mediaCollection, EventType.DELETED, this));
+        taskService.sendEventIntoFx(new CollectionEvent(mc, EventType.DELETED, this));
         // TODO: Clean Thumbnail Cache and DB.
     }
 
@@ -204,8 +200,8 @@ public class CollectionController extends FxInitOnce {
             var rootPath = selectedDirectory.toPath().normalize();
             mediaCollections.getPanes()
                             .stream()
-                            .map(t -> new TitlePaneEntry(t, (MediaCollection) t.getUserData()))
-                            .filter(tpe -> rootPath.startsWith(tpe.mediaCollection.path()))
+                            .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
+                            .filter(tpe -> rootPath.startsWith(persistenceService.getCatalogById(tpe.mediaCollectionId).path()))
                             .findFirst()
                             .ifPresent(p -> {
                                 // TODO: Rather than getting an error, jump to that dir into the proper collection.
@@ -213,14 +209,17 @@ public class CollectionController extends FxInitOnce {
                             });
             mediaCollections.getPanes()
                             .stream()
-                            .map(t -> new TitlePaneEntry(t, (MediaCollection) t.getUserData()))
-                            .filter(tpe -> tpe.mediaCollection.path().startsWith(rootPath))
+                            .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
+                            .filter(tpe -> rootPath.startsWith(persistenceService.getCatalogById(tpe.mediaCollectionId).path()))
                             .findFirst()
                             .ifPresent(this::deleteCollection); // TODO: Ask user confirmation.
 
             disablePathActions.set(true);
+
+            record CatalogAndTask(MediaCollection mediaCollection, CompletableFuture<?>[] futures) {}
+
             taskService.supply(scanDirectory(rootPath))
-                       .thenAccept(catalog -> {
+                       .thenApply(catalog -> {
                            final var allFiles   = new ArrayBlockingQueue<MediaFile>(catalog.medias().size());
                            final var mediaFiles = List.copyOf(catalog.medias());
                            final var result     = Collections.splitByCoreWithIdx(mediaFiles);
@@ -230,15 +229,26 @@ public class CollectionController extends FxInitOnce {
                                                                                                   result.splitCount()))
                                                                                 .thenApply(allFiles::addAll))
                                                      .toArray(new CompletableFuture[0]);
-
-                           CompletableFuture.allOf(futures)
-                                            .thenAccept(unused -> {
-                                                final var newCatalog = service.saveCatalog(catalog);
-                                                Platform.runLater(() -> {
-                                                    createTreeView(newCatalog);
-                                                    taskService.fxNotifyLater(new ExtractThumbnailEvent(newCatalog, this));
-                                                });
-                                            });
+                           return new CatalogAndTask(catalog, futures);
+//                           CompletableFuture.allOf(futures)
+//                                            .thenAccept(unused -> {
+//                                                final var newCatalog = persistenceService.saveCollection(catalog);
+//                                                Platform.runLater(() -> {
+//                                                    createTreeView(newCatalog);
+//                                                    taskService.fxNotifyLater(new ExtractThumbnailEvent(newCatalog, this));
+//                                                });
+//                                            });
+                       })
+                       .thenApply(catalogAndTask -> {
+                           CompletableFuture.allOf(catalogAndTask.futures);
+                           return catalogAndTask.mediaCollection;
+                       })
+                       .thenApply(persistenceService::saveCollection)
+                       .thenAccept(mediaCollection -> {
+                           Platform.runLater(() -> {
+                               createTreeView(mediaCollection);
+                               taskService.sendEventIntoFx(new ExtractThumbnailEvent(mediaCollection, this));
+                           });
                        });
         }
     }
@@ -338,7 +348,7 @@ public class CollectionController extends FxInitOnce {
             Platform.runLater(() -> {
                 mediaCollections.getPanes()
                                 .stream()
-                                .filter(tp -> ((MediaCollection) tp.getUserData()).id() == event.getMediaCollection().id())
+                                .filter(tp -> ((int) tp.getUserData()) == event.getMediaCollection().id())
                                 .findFirst()
                                 .ifPresent(tp -> mediaCollections.setExpandedPane(tp));
             });

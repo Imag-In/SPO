@@ -67,9 +67,9 @@ public class MediaLoader {
     public Optional<Thumbnail> getCachedValue(MediaFile mf) {
         return Optional.ofNullable(thumbnailCache.get(mf, Thumbnail.class))
                        .or(() -> {
-                           log.info("Cache missed size:{}, for: {}",
-                                    ((com.github.benmanes.caffeine.cache.Cache<Long, Thumbnail>) thumbnailCache.getNativeCache()).estimatedSize(),
-                                    mf.getFullPath().getFileName());
+                           log.debug("Cache missed size:{} , for: {}",
+                                     ((com.github.benmanes.caffeine.cache.Cache<Long, Thumbnail>) thumbnailCache.getNativeCache()).estimatedSize(),
+                                     mf.getFullPath().getFileName());
                            return persistenceService.findByPathOrId(mf)
                                                     .map(t -> {
                                                         thumbnailCache.put(mf, t);
@@ -92,7 +92,13 @@ public class MediaLoader {
     private Thumbnail extractThumbnail(MediaFile mf) {
         try {
             var thumbnail = Optional.ofNullable(thumbnailGenerator.extractThumbnail(mf.getFullPath()))
-                                    .orElseGet(() -> thumbnailGenerator.generate(mf.getFullPath(), IThumbnailGenerator.DEFAULT_THUMB_SIZE));
+                                    .orElseGet(() -> Thumbnail.builder()
+                                            .fullPath(mf.getFullPath())
+                                            .image(LOADING)
+                                            .origin(EThumbnailType.ABSENT)
+                                            .embeddedAvailable(true)
+                                            .build());
+//                                    .orElseGet(() -> thumbnailGenerator.generate(mf.getFullPath(), IThumbnailGenerator.DEFAULT_THUMB_SIZE));
             thumbnail.setId(mf.getId());
             return thumbnail;
         }
@@ -134,16 +140,18 @@ public class MediaLoader {
         var catalog = event.getMediaCollection();
         log.info("warmThumbnailCache for '{}', size: {}", event.getMediaCollection().path(), event.getMediaCollection().medias().size());
 //        var mediaFiles = List.copyOf(catalog.medias());
-        var mediaFiles = List.copyOf(catalog.medias().stream().sorted(Comparator.comparing(MediaFile::getOriginalDate)).limit(500).toList());
+        taskService.sendEventIntoFx(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this));
 
-        var futures = StreamEx.ofSubLists(mediaFiles, Constant.split(mediaFiles.size()))
-                              .map(files -> taskService.supply(warmCache(catalog, files)))
-                              .toArray(new CompletableFuture[0]);
-
-        CompletableFuture.allOf(futures)
-                         .thenAcceptAsync(unused -> taskService.fxNotifyLater(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this)))
-                         .thenAcceptAsync(u -> lockThenRunOrSkip(catalog, () -> mayRegenerateThubmnail(catalog)));
-//        taskService.fxNotifyLater(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this));
+//        var mediaFiles = List.copyOf(catalog.medias().stream().sorted(Comparator.comparing(MediaFile::getOriginalDate)).limit(500).toList());
+//
+//        var futures = StreamEx.ofSubLists(mediaFiles, Constant.split(mediaFiles.size()))
+//                              .map(files -> taskService.supply(warmCache(catalog, files)))
+//                              .toArray(new CompletableFuture[0]);
+//
+//        CompletableFuture.allOf(futures)
+//                         .thenAcceptAsync(unused -> taskService.senfEventIntoFx(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this)))
+//                         .thenAcceptAsync(u -> lockThenRunOrSkip(catalog, () -> mayRegenerateThubmnail(catalog)));
+////        taskService.fxNotifyLater(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this));
     }
 
     public void warmThumbnailCache(final MediaCollection mediaCollection, final List<MediaFile> mediaFiles) {
@@ -161,7 +169,7 @@ public class MediaLoader {
         return new AbstractTask<>() {
             @Override
             protected List<ThumbnailRes> call() throws Exception {
-                log.info("Warm Cache for: '{}', size: {}", mediaCollection.path(), files.size());
+                log.debug("Warm Cache for: '{}', size: {}", mediaCollection.path(), files.size());
                 updateTitle("Loading thumbnails ...");
                 updateProgress(0, files.size());
                 return EntryStream.of(new ArrayList<>(files))
@@ -210,7 +218,7 @@ public class MediaLoader {
 
     Void mayRegenerateThubmnail(MediaCollection mediaCollection) {
         if (catalogToReGenerate.contains(mediaCollection.id())) {
-            taskService.fxNotifyLater(new GenerateThumbnailEvent(mediaCollection, this));
+            taskService.sendEventIntoFx(new GenerateThumbnailEvent(mediaCollection, this));
             catalogToReGenerate.remove(mediaCollection.id());
         }
         return null;
@@ -258,8 +266,8 @@ public class MediaLoader {
                                                         catalog.path(),
                                                         AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())))
                          .thenAccept(u -> catalogToReGenerate.add(catalog.id()))
-                         .thenAccept(u -> taskService.fxNotifyLater(new CollectionEvent(catalog, CollectionEvent.EventType.READY, this)))
-        ;
+                         .thenAccept(u -> taskService.sendEventIntoFx(new CollectionEvent(catalog, CollectionEvent.EventType.READY, this)))
+                         .thenAcceptAsync(u -> taskService.sendEvent(new GenerateThumbnailEvent(catalog, this)));
 //        taskService.notifyLater(new CollectionEvent(catalog, CollectionEvent.EventType.READY, this));
     }
 
@@ -272,7 +280,7 @@ public class MediaLoader {
             protected List<Pair<MediaFile, EThumbnailType>> call() {
                 var files = e.getValue();
                 var size  = files.size();
-                log.debug("Generate a batch of '{}' thumbnails for: {}", size, mediaCollection.path());
+                log.debug("thumbnailBatchExtraction a batch of '{}' thumbnails for: {}", size, mediaCollection.path());
                 updateTitle("Thumbnail fast extraction for '%s' image, batch: %d/%d".formatted(size, e.getKey(), nbBatches));
                 updateProgress(0, size);
                 return StreamEx.ofSubLists(EntryStream.of(files).toList(), 20)
@@ -323,7 +331,7 @@ public class MediaLoader {
     @EventListener(GenerateThumbnailEvent.class)
     public void generateThumbnails(GenerateThumbnailEvent event) {
         var catalog    = event.getMediaCollection();
-        var mediaFiles = List.copyOf(catalog.medias());
+        var mediaFiles = List.copyOf(catalog.medias().stream().filter(mf -> mf.getThumbnailType().get() != EThumbnailType.GENERATED).toList());
 
         log.info("Generate high quality thumbnail, nbEntries: {}", mediaFiles.size());
         if (catalog.medias().isEmpty()) {
@@ -348,7 +356,7 @@ public class MediaLoader {
             @Override
             protected List<Pair<MediaFile, EThumbnailType>> call() throws Exception {
                 var size = files.getValue().size();
-                log.debug("Generate a batch of '{}' thumbnails for: {}", size, mediaCollection.path());
+                log.debug("thumbnailBatchGeneration a batch of '{}' thumbnails for: {}", size, mediaCollection.path());
                 updateTitle("Thumbnail high quality generation for '%s' images, batch %d/%d".formatted(size, files.getKey(), nbBatches));
                 updateProgress(0, size);
                 return StreamEx.ofSubLists(EntryStream.of(files.getValue()).toList(), 20)
@@ -370,11 +378,11 @@ public class MediaLoader {
                                             })
                                             .toList())
                                .flatMap(thumbails -> {
-                                   log.debug("Update '{}' thumbnails", thumbails.size());
-                                   persistenceService.saveAll(thumbails.stream()
-                                                                       .map(ThumbnailUpdate::thumbnail)
-                                                                       .toList());
-                                   return thumbails.stream().map(tr -> new Pair<>(tr.mf, tr.thumbnail.getOrigin()));
+                                            log.debug("Update '{}' high res thumbnails", thumbails.size());
+                                            persistenceService.saveAll(thumbails.stream()
+                                                                                .map(ThumbnailUpdate::thumbnail)
+                                                                                .toList());
+                                            return thumbails.stream().map(tr -> new Pair<>(tr.mf, tr.thumbnail.getOrigin()));
                                         }
                                )
                                .toList();

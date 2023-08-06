@@ -1,25 +1,29 @@
 package org.icroco.picture.ui.collections;
 
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.ui.config.ImageInConfiguration;
 import org.icroco.picture.ui.event.CollectionsLoadedEvent;
+import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.task.AbstractTask;
 import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.Constant;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.context.event.ApplicationStartedEvent;
-import org.springframework.cache.Cache;
+import org.icroco.picture.ui.util.DirectoryWatcher;
+import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
+import org.icroco.picture.ui.util.metadata.MetadataHeader;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -29,22 +33,24 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class CollectionManager {
-    @Qualifier(ImageInConfiguration.CATALOG)
-    private final Cache              cache;
-    private final PersistenceService service;
+    private final IMetadataExtractor metadataExtractor;
     private final TaskService        taskService;
+    private final DirectoryWatcher   directoryWatcher;
+    private final PersistenceService persistenceService;
 
-    @EventListener(ApplicationStartedEvent.class)
-    public void loadAllCatalog() {
-        List<MediaCollection> mediaCollections = service.findAllCatalog();
-        for (MediaCollection c : mediaCollections) {
-            cache.put(c.id(), c);
-        }
-        taskService.fxNotifyLater(new CollectionsLoadedEvent(mediaCollections, this));
-    }
+    @EventListener(CollectionsLoadedEvent.class)
+    public void collectionLoaded(CollectionsLoadedEvent event) {
+        taskService.supply(() -> {
+            event.getMediaCollections()
+                 .stream()
+                 .map(MediaCollection::path)
+                 .forEach(directoryWatcher::registerAll);
 
-    private void applicationShowingUp(CollectionsLoadedEvent event) {
-        taskService.supply(analyseCollections(event.getMediaCollections()))
+            log.info("End of adding directory watcher");
+        });
+
+
+        taskService.supply(analyseCollections(List.copyOf(event.getMediaCollections())))
                    .thenRun(() -> {
                        log.info("TODO: Add a timer to rescan folders on regular basics");
                    });
@@ -72,11 +78,22 @@ public class CollectionManager {
                                            .map(MediaFile::getFullPath)
                                            .collect(Collectors.toSet());
         var currenFiles = Set.copyOf(getAllFiles(mediaCollection.path()));
-
-        var difference = org.icroco.picture.ui.util.Collections.difference(recordedFiles, currenFiles);
+        var difference  = org.icroco.picture.ui.util.Collections.difference(recordedFiles, currenFiles);
 
         difference.leftMissing().forEach(path -> log.info("Collections: '{}', file added: {}", mediaCollection.path(), path));
         difference.rightMissing().forEach(path -> log.info("Collections: '{}', file deleted: {}", mediaCollection.path(), path));
+
+        if (difference.isNotEmpty()) {
+            updateCollection(mediaCollection.id(), difference.leftMissing(), difference.rightMissing(), Collections.emptyList());
+        }
+    }
+
+    public void updateCollection(int collectionId, Collection<Path> toBeAdded, Collection<Path> toBeDeleted, Collection<Path> hasBeenModified) {
+        var now = LocalDate.now();
+        persistenceService.updateCollection(collectionId,
+                                            toBeAdded.stream().map(p -> create(now, p)).toList(),
+                                            toBeDeleted.stream().map(p -> create(now, p)).toList());
+        // TODO: Process hasBeenModified.
     }
 
     List<Path> getAllFiles(Path rootPath) {
@@ -90,6 +107,18 @@ public class CollectionManager {
             log.error("Cannot walk through directory: '{}'", rootPath);
             return Collections.emptyList();
         }
+    }
+
+    private MediaFile create(LocalDate now, Path p) {
+        final var h = metadataExtractor.header(p);
+
+        return MediaFile.builder()
+                .fullPath(p)
+                .fileName(p.getFileName().toString())
+                .thumbnailType(new SimpleObjectProperty<>(EThumbnailType.ABSENT))
+                .hashDate(now)
+                .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))
+                .build();
     }
 
 }

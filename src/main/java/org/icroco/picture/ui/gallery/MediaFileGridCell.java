@@ -37,7 +37,6 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         loadingView = new ImageView(MediaLoader.LOADING);
         loadingView.maxHeight(128);
         loadingView.maxWidth(128);
-//        loadingView.setImage(MediaLoader.LOADING);
         imageView = new ImageView();
         imageView.fitHeightProperty().bind(this.heightProperty().subtract(3));
         imageView.fitWidthProperty().bind(this.widthProperty().subtract(3));
@@ -49,37 +48,10 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 
     }
 
-//    @Override
-//    protected void updateItem(MediaFile item, boolean empty) {
-//        super.updateItem(item, empty);
-//        if (item == null || item == oldValue) {
-//            return; // NO CHANGE
-//        }
-//        oldValue = item;
-//        if (empty) {
-//            this.setGraphic(null);
-//        } else {
-//            root.getChildren().clear();
-////            log.info("Grid Cell updated: {}, type: {}", item.fullPath(), item.getThumbnailType().get());
-////            if (item.getThumbnailType().get() == EThumbnailType.ABSENT) {
-////                root.getChildren().add(loadingView);
-////            } else {
-//            root.getChildren().add(mediaLoader.getCachedValue(item)
-//                                              .map(Thumbnail::getImage)
-//                                              .map(this::setImage)
-//                                              .orElse(loadingView));
-//
-////            }
-////            updateSelected(item.isSelected());
-//            setGraphic(root);
-//        }
-//    }
-
     @Override
     protected void updateItem(MediaFile item, boolean empty) {
         log.debug("updateItem: cell:{}, item: '{}' , empty: '{}'", this.hashCode(), item == null ? "null" : item.getFileName(), empty);
         super.updateItem(item, empty);
-
 
         if (empty || item == null) {
             this.setGraphic(null);
