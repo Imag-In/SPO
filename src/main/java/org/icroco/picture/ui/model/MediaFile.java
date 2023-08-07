@@ -2,6 +2,7 @@ package org.icroco.picture.ui.model;
 
 import javafx.beans.Observable;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.util.Callback;
 import lombok.*;
@@ -17,24 +18,28 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor
 public class MediaFile implements IMediaFile {
-    private       long                                 id;
-    private       Path                                 fullPath;
-    private       String                               fileName;
-    private       LocalDateTime                        originalDate;
-    private       Set<Tag>                             tags;
-    private       String                               gps;
-    private       String                               hash;
-    private       LocalDate                            hashDate;
+    private       long                                id;
+    private       Path                                fullPath;
+    private       String                              fileName;
+    private       LocalDateTime                       originalDate;
+    private       Set<Tag>                            tags;
+    private       String                              gps;
+    private       String                              hash;
+    private       LocalDate                           hashDate;
     //    @NonNull
 //    @Builder.Default
 //    private SimpleObjectProperty<Thumbnail> thumbnail = new SimpleObjectProperty<>(null);
     @NonNull
     @Builder.Default
-    private final SimpleObjectProperty<EThumbnailType> thumbnailType = new SimpleObjectProperty<>(EThumbnailType.ABSENT);
+    private final SimpleObjectProperty<LocalDateTime> thumbnailUpdateProperty = new SimpleObjectProperty<>(LocalDateTime.MIN.plusHours(1L));
 
     @NonNull
     @Builder.Default
     private SimpleBooleanProperty loaded = new SimpleBooleanProperty(false);
+
+    @NonNull
+    @Builder.Default
+    private SimpleLongProperty idProperty = new SimpleLongProperty(0);
 
     private boolean selected;
 
@@ -73,7 +78,7 @@ public class MediaFile implements IMediaFile {
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[]{ mf.thumbnailType, mf.loaded };
+        return mf -> new Observable[]{ mf.thumbnailUpdateProperty, mf.loaded };
     }
 
     public boolean isLoaded() {
@@ -82,6 +87,11 @@ public class MediaFile implements IMediaFile {
 
     public void setLoaded(boolean value) {
         loaded.setValue(value);
+    }
+
+    public void setId(long id) {
+        this.id = id;
+        idProperty.set(id);
     }
 }
 

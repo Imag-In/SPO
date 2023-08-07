@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.config.ImageInConfiguration;
 import org.icroco.picture.ui.event.CollectionUpdatedEvent;
 import org.icroco.picture.ui.event.CollectionsLoadedEvent;
+import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
@@ -39,10 +40,12 @@ public class PersistenceService {
     private final ThumbnailMapper       thumbMapper;
     @Qualifier(ImageInConfiguration.CATALOG)
     private final Cache                 mcCache;
+    @Qualifier(ImageInConfiguration.THUMBNAILS)
+    private final Cache                 thCache;
     private final TaskService           taskService;
 
     @EventListener(ApplicationStartedEvent.class)
-    public void loadAllCatalog() {
+    public void loadAllMediaCollection() {
         synchronized (collectionRepo) {
             Collection<MediaCollection> mediaCollections = collectionRepo.findAll()
                                                                          .stream()
@@ -55,26 +58,26 @@ public class PersistenceService {
 
     @Transactional
 //    @Cacheable(cacheNames = ImageInConfiguration.CATALOG, unless = "#result == null")
-    public synchronized Optional<MediaCollection> findCatalogById(int id) {
+    public synchronized Optional<MediaCollection> findMediaCollection(int id) {
         return Optional.ofNullable(mcCache.get(id, MediaCollection.class));
     }
 
     /**
-     * Identical to @{link {@link #findCatalogById(int)}} but expect a non-empty result.
+     * Identical to @{link {@link #findMediaCollection(int)}} but expect a non-empty result.
      */
-    public MediaCollection getCatalogById(int id) {
-        return findCatalogById(id).orElseThrow(() -> new IllegalStateException(
+    public MediaCollection getMediaCollection(int id) {
+        return findMediaCollection(id).orElseThrow(() -> new IllegalStateException(
                 "Technical Error: Collection not found: " + id));
     }
 
     @SuppressWarnings("unchecked")
-    public Collection<MediaCollection> findAllCatalog() {
+    public Collection<MediaCollection> findAllMediaCollection() {
         var nativeCache = (com.github.benmanes.caffeine.cache.Cache<Integer, MediaCollection>) mcCache.getNativeCache();
         return nativeCache.asMap().values();
 //        return collectionRepo.findAll().stream().map(colMapper::map).toList();
     }
 
-    public Optional<MediaCollection> findCatalogForFile(Path path) {
+    public Optional<MediaCollection> findMediaCollectionForFile(Path path) {
         var nativeCache = (com.github.benmanes.caffeine.cache.Cache<Integer, MediaCollection>) mcCache.getNativeCache();
         return nativeCache.asMap().values()
                           .stream()
@@ -89,7 +92,7 @@ public class PersistenceService {
             DbMediaCollection saved             = collectionRepo.saveAndFlush(colMapper.map(mediaCollection));
             var               updatedCollection = colMapper.map(saved);
 
-            mcCache.put(updatedCollection.id(), mediaCollection);
+            mcCache.put(updatedCollection.id(), updatedCollection);
             log.info("Collection saved, id: '{}', path: '{}'", updatedCollection.id(), updatedCollection.path());
             return updatedCollection;
         }
@@ -100,17 +103,31 @@ public class PersistenceService {
         mfRepo.saveAll(files.stream().map(mfMapper::map).toList());
     }
 
-    public void deleteCatalog(@NonNull MediaCollection mediaCollection) {
-        deleteCatalog(mediaCollection.id());
+    public void deleteMediaCollection(@NonNull MediaCollection mediaCollection) {
+        deleteMediaCollection(mediaCollection.id());
     }
 
     @Transactional
 //    @CacheEvict(cacheNames = ImageInConfiguration.CATALOG)
-    public void deleteCatalog(int mediaCollectionId) {
+    public void deleteMediaCollection(int mediaCollectionId) {
         synchronized (collectionRepo) {
-            log.info("MediaCollection deleted, id: '{}'", mediaCollectionId);
+            log.info("MediaCollection delete, id: '{}'", mediaCollectionId);
+            Optional<MediaCollection> catalogById = findMediaCollection(mediaCollectionId);
+            log.info("thRepo size before: {}, thCache: {}",
+                     thumbRepo.findAll().size(),
+                     ((com.github.benmanes.caffeine.cache.Cache<?, ?>) thCache.getNativeCache()).asMap().size());
             collectionRepo.deleteById(mediaCollectionId);
             mcCache.evictIfPresent(mediaCollectionId);
+            catalogById.ifPresent(mc -> {
+//                thumbRepo.deleteAll();
+                log.info("Thumbnail Id to be deleted: {}", mc.medias().stream().map(MediaFile::getId).toList());
+                thumbRepo.deleteAllById(mc.medias().stream().map(MediaFile::getId).toList());
+                mc.medias().forEach(thCache::evict);
+                thumbRepo.flush();
+            });
+            log.info("thRepo size after: {}, thCache: {}",
+                     thumbRepo.findAll().size(),
+                     ((com.github.benmanes.caffeine.cache.Cache<?, ?>) thCache.getNativeCache()).asMap().size());
         }
     }
 
@@ -123,7 +140,17 @@ public class PersistenceService {
     }
 
     public List<Thumbnail> saveAll(Collection<Thumbnail> thumbnails) {
-        return thumbRepo.saveAll(thumbnails.stream().map(thumbMapper::map).toList()).stream().map(thumbMapper::map).toList();
+        return saveAll(thumbnails, EThumbnailType.ABSENT);
+    }
+
+    public List<Thumbnail> saveAll(Collection<Thumbnail> thumbnails, EThumbnailType type) {
+        return thumbRepo.saveAllAndFlush(thumbnails.stream()
+                                                   .map(thumbMapper::map)
+                                                   .peek(t -> t.setOrigin(type))
+                                                   .toList())
+                        .stream()
+                        .map(thumbMapper::map).
+                        toList();
     }
 
 //    public Optional<MediaFile> findByPath(Path p) {
@@ -132,7 +159,8 @@ public class PersistenceService {
 //    }
 
     public Optional<Thumbnail> findByPathOrId(MediaFile mediaFile) {
-        return thumbRepo.findByFullPath(mediaFile.fullPath())
+        return thumbRepo.findById(mediaFile.getId())
+//        return thumbRepo.findByFullPath(mediaFile.fullPath())
 //                        .orElseGet(() -> thumbRepo.findById(mediaFile.getId()))
                         .map(thumbMapper::map);
     }
@@ -140,7 +168,7 @@ public class PersistenceService {
     @Transactional
     public synchronized void updateCollection(int id, Collection<MediaFile> toBeAdded, Collection<MediaFile> toBeDeleted) {
         synchronized (collectionRepo) {
-            var mc         = getCatalogById(id);
+            var mc         = getMediaCollection(id);
             var mediaFiles = mc.medias();
 
             mediaFiles.removeIf(toBeDeleted::contains);

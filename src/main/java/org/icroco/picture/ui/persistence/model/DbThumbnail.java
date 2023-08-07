@@ -9,6 +9,7 @@ import org.icroco.picture.ui.model.EThumbnailType;
 import org.springframework.lang.NonNull;
 
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -19,9 +20,8 @@ import java.nio.file.Path;
 @Table(name = "thumbnail")
 @Slf4j
 public class DbThumbnail {
-
     @Id
-    Long id;
+    Long mfId;
 
     @NotNull
     @Column(length = 1024, unique = true)
@@ -37,6 +37,7 @@ public class DbThumbnail {
     private EThumbnailType origin = EThumbnailType.ABSENT;
 
     @NonNull
-    @Column(name = "embeddedAvailable")
-    private boolean embeddedAvailable;
+    @Column(name = "last_update", columnDefinition = "DATE")
+    private LocalDateTime lastUpdate;
+
 }

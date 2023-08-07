@@ -7,16 +7,17 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
 @AllArgsConstructor
-@EqualsAndHashCode(of = "id")
+@EqualsAndHashCode(of = "mfId")
 public class Thumbnail {
-    private long           id;
+    private long           mfId;
     private Path           fullPath;
     private Image          image;
     private EThumbnailType origin;
-    @Builder.Default
-    private boolean        embeddedAvailable = false;
+    private LocalDateTime  lastUpdate;
+
 }

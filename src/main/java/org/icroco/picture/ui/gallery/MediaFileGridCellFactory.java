@@ -37,7 +37,7 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
             if (mf != null && t.getClickCount() == 1) {
                 ((CustomGridView<MediaFile>) grid).getSelectionModel().clear();
                 ((CustomGridView<MediaFile>) grid).getSelectionModel().add(mf);
-//                cell.requestLayout();
+                cell.requestLayout();
                 taskService.sendFxEvent(new PhotoSelectedEvent(mf, this));
             } else if (t.getClickCount() == 2) {
                 taskService.sendFxEvent(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.SHOW).build());
@@ -49,7 +49,7 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
             if (newMediaItem != null && oldMediaItem != newMediaItem) {
                 if (isCellVisible(grid, cell)) {
                     log.debug("is Cell really visible?, old: '{}', new: '{}'", Optional.ofNullable(oldMediaItem).map(MediaFile::getId).orElse(null),
-                              Optional.ofNullable(newMediaItem).map(MediaFile::getId).orElse(null));
+                              Optional.of(newMediaItem).map(MediaFile::getId).orElse(null));
                     mediaLoader.loadAndCachedValue(newMediaItem);
                 }
             }

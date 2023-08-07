@@ -22,7 +22,6 @@ import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.*;
 import org.icroco.picture.ui.event.CollectionEvent.EventType;
-import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaCollectionEntry;
 import org.icroco.picture.ui.model.MediaFile;
@@ -91,7 +90,9 @@ public class CollectionController extends FxInitOnce {
         if (newValue != null) {
             int id = (int) newValue.getUserData();
             pref.getUserPreference().getCollection().setLastViewed(id);
-            taskService.sendFxEvent(new WarmThumbnailCacheEvent(persistenceService.getCatalogById(id), this));
+            var catalogById = persistenceService.getMediaCollection(id);
+            taskService.sendFxEvent(new CollectionEvent(catalogById, EventType.CREATED, this));
+            taskService.sendFxEvent(new WarmThumbnailCacheEvent(catalogById, this));
         }
     }
 
@@ -167,7 +168,7 @@ public class CollectionController extends FxInitOnce {
                  .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
                  .ifPresent(tpe -> {
                      final Alert dlg             = new Alert(Alert.AlertType.CONFIRMATION, "");
-                     final var   mediaCollection = persistenceService.getCatalogById(tpe.mediaCollectionId);
+                     final var   mediaCollection = persistenceService.getMediaCollection(tpe.mediaCollectionId);
                      dlg.setTitle("You do want delete MediaCollection ?");
                      dlg.getDialogPane()
                         .setContentText("Do you want to delete MediaCollection: " + mediaCollection.path() + " id: " + mediaCollection.id());
@@ -184,8 +185,8 @@ public class CollectionController extends FxInitOnce {
     }
 
     private void deleteCollection(TitlePaneEntry entry) {
-        var mc = persistenceService.getCatalogById(entry.mediaCollectionId);
-        persistenceService.deleteCatalog(entry.mediaCollectionId);
+        var mc = persistenceService.getMediaCollection(entry.mediaCollectionId);
+        persistenceService.deleteMediaCollection(entry.mediaCollectionId);
         mediaCollections.getPanes().remove(entry.titledPane);
         taskService.sendFxEvent(new CollectionEvent(mc, EventType.DELETED, this));
         // TODO: Clean Thumbnail Cache and DB.
@@ -201,7 +202,7 @@ public class CollectionController extends FxInitOnce {
             mediaCollections.getPanes()
                             .stream()
                             .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
-                            .filter(tpe -> rootPath.startsWith(persistenceService.getCatalogById(tpe.mediaCollectionId).path()))
+                            .filter(tpe -> rootPath.startsWith(persistenceService.getMediaCollection(tpe.mediaCollectionId).path()))
                             .findFirst()
                             .ifPresent(p -> {
                                 // TODO: Rather than getting an error, jump to that dir into the proper collection.
@@ -210,7 +211,7 @@ public class CollectionController extends FxInitOnce {
             mediaCollections.getPanes()
                             .stream()
                             .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
-                            .filter(tpe -> rootPath.startsWith(persistenceService.getCatalogById(tpe.mediaCollectionId).path()))
+                            .filter(tpe -> rootPath.startsWith(persistenceService.getMediaCollection(tpe.mediaCollectionId).path()))
                             .findFirst()
                             .ifPresent(this::deleteCollection); // TODO: Ask user confirmation.
 
@@ -321,7 +322,7 @@ public class CollectionController extends FxInitOnce {
 
             @Override
             protected void succeeded() {
-                log.info("Files hasking time: {}", System.currentTimeMillis() - start);
+                log.info("'{}' files hashing time: {}", mediaFiles.size(), System.currentTimeMillis() - start);
 //            // We do not expand now, we're waiting thumbnails creation.
 //            createTreeView(mediaCollection);
 //            disablePathActions.set(false);
@@ -336,7 +337,7 @@ public class CollectionController extends FxInitOnce {
         return MediaFile.builder()
                 .fullPath(p)
                 .fileName(p.getFileName().toString())
-                .thumbnailType(new SimpleObjectProperty<>(EThumbnailType.ABSENT))
+                .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN))
                 .hashDate(now)
                 .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))
                 .build();

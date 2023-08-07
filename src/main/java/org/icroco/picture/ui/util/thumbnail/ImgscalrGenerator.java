@@ -23,6 +23,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.*;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.Iterator;
 
 @Slf4j
@@ -53,7 +54,6 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             int orientation = metadataExtractor.orientation(path).orElse(1);
             // Get the reader
             Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
-
 
             while (readers.hasNext()) {
                 ImageReader reader = readers.next();
@@ -86,7 +86,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                             .fullPath(path)
                             .image(SwingFXUtils.toFXImage(bi, null))
                             .origin(EThumbnailType.EXTRACTED)
-                            .embeddedAvailable(true)
+                            .lastUpdate(LocalDateTime.now())
                             .build();
 
 //                        new Thumbnail(path, SwingFXUtils.toFXImage(bi, null), EThumbnailType.EXTRACTED, null);

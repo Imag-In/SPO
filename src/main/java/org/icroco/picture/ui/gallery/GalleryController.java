@@ -150,7 +150,6 @@ public class GalleryController extends FxInitOnce {
         breadCrumbBar.setAutoNavigationEnabled(false);
 //        breadCrumbBar.setOnCrumbAction(bae -> log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!"));
 
-
         expand.setUserData(expandCell);
         gridView.addScrollAndKeyhandler();
         expandCell.addListener((observable, oldValue, newValue) -> gridView.refreshItems());
@@ -239,7 +238,7 @@ public class GalleryController extends FxInitOnce {
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         final var source = Optional.ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
         final var mf     = event.getFile();
-        log.info("Photo selected: root: '{}', '{}', from: {}", mf.getId(), mf.getFileName(), source.getSimpleName());
+        log.debug("Photo selected: root: '{}', '{}', from: {}", mf.getId(), mf.getFileName(), source.getSimpleName());
         // TODO: it works with only one item selected.
 
         TreeItem<Path> root    = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());

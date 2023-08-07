@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.event.CollectionsLoadedEvent;
 import org.icroco.picture.ui.event.FilesChangesDetectedEvent;
-import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.persistence.PersistenceService;
@@ -114,7 +113,7 @@ public class CollectionManager {
         return MediaFile.builder()
                 .fullPath(p)
                 .fileName(p.getFileName().toString())
-                .thumbnailType(new SimpleObjectProperty<>(EThumbnailType.ABSENT))
+                .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN))
                 .hashDate(now)
                 .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))
                 .build();
@@ -142,7 +141,7 @@ public class CollectionManager {
         record PathAndCollection(Path path, MediaCollection mediaCollection) {}
 
         return files.stream()
-                    .map(path -> new PathAndCollection(path, persistenceService.findCatalogForFile(path).orElse(null)))
+                    .map(path -> new PathAndCollection(path, persistenceService.findMediaCollectionForFile(path).orElse(null)))
                     .filter(it -> it.mediaCollection != null)
                     .collect(Collectors.groupingBy(pathAndCollection -> pathAndCollection.mediaCollection,
                                                    Collectors.mapping(PathAndCollection::path, Collectors.toList())));
