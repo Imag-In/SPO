@@ -2,9 +2,11 @@ package org.icroco.picture.ui.event;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 import org.icroco.picture.ui.model.MediaFile;
 
 @Getter
+@ToString
 public class CarouselEvent extends IiEvent {
 
     public enum EventType {

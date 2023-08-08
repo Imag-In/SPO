@@ -1,9 +1,11 @@
 package org.icroco.picture.ui.event;
 
+import lombok.ToString;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.Clock;
 
+@ToString
 public class IiEvent extends ApplicationEvent {
     public IiEvent(Object source) {
         super(source);

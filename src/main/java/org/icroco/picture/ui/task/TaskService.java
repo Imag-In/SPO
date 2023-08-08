@@ -73,14 +73,14 @@ public class TaskService {
      */
     public void sendFxEvent(final ApplicationEvent event) {
         fxRun(() -> {
-            log.info("Send Fx Event: {}, source: {}", event.getClass().getSimpleName(), event.getSource());
+            log.info("Send Fx Event from source: {}, event: {}", event.getSource().getClass().getSimpleName(), event);
             eventBus.multicastEvent(event);
         });
     }
 
     public void sendEvent(final ApplicationEvent event) {
         supply(() -> {
-            log.info("Send Event: {}, source: {}", event.getClass().getSimpleName(), event.getSource());
+            log.info("Send Event from source: {}, event: {}", event.getSource().getClass().getSimpleName(), event);
             eventBus.multicastEvent(event);
         });
     }

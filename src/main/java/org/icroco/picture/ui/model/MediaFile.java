@@ -1,7 +1,6 @@
 package org.icroco.picture.ui.model;
 
 import javafx.beans.Observable;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.util.Callback;
@@ -32,10 +31,6 @@ public class MediaFile implements IMediaFile {
     @NonNull
     @Builder.Default
     private final SimpleObjectProperty<LocalDateTime> thumbnailUpdateProperty = new SimpleObjectProperty<>(LocalDateTime.MIN.plusHours(1L));
-
-    @NonNull
-    @Builder.Default
-    private SimpleBooleanProperty loaded = new SimpleBooleanProperty(false);
 
     @NonNull
     @Builder.Default
@@ -78,15 +73,7 @@ public class MediaFile implements IMediaFile {
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[]{ mf.thumbnailUpdateProperty, mf.loaded };
-    }
-
-    public boolean isLoaded() {
-        return loaded.get();
-    }
-
-    public void setLoaded(boolean value) {
-        loaded.setValue(value);
+        return mf -> new Observable[]{ mf.thumbnailUpdateProperty };
     }
 
     public void setId(long id) {

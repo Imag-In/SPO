@@ -1,11 +1,13 @@
 package org.icroco.picture.ui.event;
 
 import lombok.Getter;
+import lombok.ToString;
 
 import java.nio.file.Path;
 import java.time.Clock;
 
 @Getter
+@ToString
 public class CollectionSubPathSelectedEvent extends IiEvent {
     private final Path root;
     private final Path entry;

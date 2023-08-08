@@ -45,7 +45,6 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 //        root = Borders.wrap(this.imageView).lineBorder().innerPadding(5, 5, 5,5).color(Color.WHITE).build().build();
         root = new StackPane(imageView);
         this.grid = grid;
-
     }
 
     @Override

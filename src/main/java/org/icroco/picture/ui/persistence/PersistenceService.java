@@ -37,7 +37,7 @@ public class PersistenceService {
     private final ThumbnailRepository   thumbRepo;
     private final MediaCollectionMapper colMapper;
     private final MediaFileMapper       mfMapper;
-    private final ThumbnailMapper       thumbMapper;
+    private final ThumbnailMapper       thMapper;
     @Qualifier(ImageInConfiguration.CATALOG)
     private final Cache                 mcCache;
     @Qualifier(ImageInConfiguration.THUMBNAILS)
@@ -122,7 +122,7 @@ public class PersistenceService {
 //                thumbRepo.deleteAll();
                 log.info("Thumbnail Id to be deleted: {}", mc.medias().stream().map(MediaFile::getId).toList());
                 thumbRepo.deleteAllById(mc.medias().stream().map(MediaFile::getId).toList());
-                mc.medias().forEach(thCache::evict);
+                mc.medias().stream().map(MediaFile::id).forEach(thCache::evict);
                 thumbRepo.flush();
             });
             log.info("thRepo size after: {}, thCache: {}",
@@ -132,7 +132,7 @@ public class PersistenceService {
     }
 
     public Thumbnail saveOrUpdate(Thumbnail thumbnail) {
-        var dbThumbnail = thumbMapper.map(thumbnail);
+        var dbThumbnail = thMapper.map(thumbnail);
 
         thumbRepo.save(dbThumbnail);
 
@@ -145,12 +145,13 @@ public class PersistenceService {
 
     public List<Thumbnail> saveAll(Collection<Thumbnail> thumbnails, EThumbnailType type) {
         return thumbRepo.saveAllAndFlush(thumbnails.stream()
-                                                   .map(thumbMapper::map)
+                                                   .map(thMapper::map)
                                                    .peek(t -> t.setOrigin(type))
                                                    .toList())
                         .stream()
-                        .map(thumbMapper::map).
-                        toList();
+                        .map(thMapper::map)
+                        .peek(t -> thCache.put(t.getMfId(), t))
+                        .toList();
     }
 
 //    public Optional<MediaFile> findByPath(Path p) {
@@ -158,11 +159,23 @@ public class PersistenceService {
 //        // TODO: Load thumbnail ?
 //    }
 
+    public Optional<Thumbnail> getThumbnailFromCache(MediaFile mediaFile) {
+        return Optional.ofNullable(thCache.get(mediaFile.id(), Thumbnail.class));
+    }
+
     public Optional<Thumbnail> findByPathOrId(MediaFile mediaFile) {
         return thumbRepo.findById(mediaFile.getId())
 //        return thumbRepo.findByFullPath(mediaFile.fullPath())
 //                        .orElseGet(() -> thumbRepo.findById(mediaFile.getId()))
-                        .map(thumbMapper::map);
+                        .map(thMapper::map);
+    }
+
+    public List<Thumbnail> findAllByIdAndNotGenerated(Collection<Long> ids) {
+        return thumbRepo.findAllById(ids)
+                        .stream()
+                        .filter(t -> t.getOrigin() != EThumbnailType.GENERATED)
+                        .map(thMapper::map)
+                        .toList();
     }
 
     @Transactional

@@ -1,11 +1,13 @@
 package org.icroco.picture.ui.event;
 
 import lombok.Getter;
+import lombok.ToString;
 import org.icroco.picture.ui.model.MediaFile;
 
 import java.util.Collection;
 
 @Getter
+@ToString(exclude = { "newItems", "deletedItems" })
 public class CollectionUpdatedEvent extends IiEvent {
     private final int                   mediaCollectionId;
     private final Collection<MediaFile> newItems;

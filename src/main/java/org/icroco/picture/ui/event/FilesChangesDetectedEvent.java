@@ -1,11 +1,13 @@
 package org.icroco.picture.ui.event;
 
 import lombok.Getter;
+import lombok.ToString;
 
 import java.nio.file.Path;
 import java.util.Collection;
 
 @Getter
+@ToString(onlyExplicitlyIncluded = true)
 public final class FilesChangesDetectedEvent extends IiEvent {
     private final Collection<Path> created;
     private final Collection<Path> deleted;

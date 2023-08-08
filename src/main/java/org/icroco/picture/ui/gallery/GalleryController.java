@@ -25,8 +25,10 @@ import org.controlsfx.control.BreadCrumbBar;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.*;
+import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
+import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.task.TaskService;
@@ -192,20 +194,22 @@ public class GalleryController extends FxInitOnce {
     public void updateImages(CollectionEvent event) {
         // FIXME: Confilt with dir scanning.
         MediaCollection mediaCollection = event.getMediaCollection();
-        log.info("CollectionEvent: {}, Add images to grid view: {}", event.getType(), mediaCollection.medias().size());
-        images.clear();
-        filteredImages.setPredicate(null);
-        currentCatalog.set(mediaCollection);
+        log.info("CollectionEvent type {}, Collection: {}, mediaFiles size: {}", event.getType(), mediaCollection.id(), mediaCollection.medias().size());
 
         switch (event.getType()) {
             case DELETED -> {
                 breadCrumbBar.setSelectedCrumb(null);
                 currentCatalog.set(null);
+                filteredImages.setPredicate(null);
                 images.clear();
             }
-            case SELECTED, CREATED -> {
+            case SELECTED -> {
+                images.clear();
                 resetBcbModel(mediaCollection.path(), null);
                 images.addAll(mediaCollection.medias());
+                currentCatalog.set(mediaCollection);
+            }
+            case READY -> {
             }
         }
     }
@@ -238,7 +242,19 @@ public class GalleryController extends FxInitOnce {
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         final var source = Optional.ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
         final var mf     = event.getFile();
-        log.debug("Photo selected: root: '{}', '{}', from: {}", mf.getId(), mf.getFileName(), source.getSimpleName());
+        log.atDebug().log(() -> {
+            Optional<Thumbnail> cache = persistenceService.getThumbnailFromCache(mf);
+            Optional<Thumbnail> db    = persistenceService.findByPathOrId(mf);
+            return "Photo selected: root: '%s', '%s', from: '%s'. Thumbhnail DB id: '%s', type: '%s'. Tumbhnail Cache, id: '%s', type: '%s'"
+                    .formatted(mf.getId(),
+                               mf.getFileName(),
+                               source.getSimpleName(),
+                               db.map(Thumbnail::getMfId).orElse(-1L),
+                               db.map(Thumbnail::getOrigin).orElse(EThumbnailType.ABSENT),
+                               cache.map(Thumbnail::getMfId).orElse(-1L),
+                               cache.map(Thumbnail::getOrigin).orElse(EThumbnailType.ABSENT));
+        });
+
         // TODO: it works with only one item selected.
 
         TreeItem<Path> root    = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
@@ -374,5 +390,13 @@ public class GalleryController extends FxInitOnce {
 
     private void carouselItemSelected(ObservableValue<? extends MediaFile> observableValue, MediaFile oldValue, MediaFile newValue) {
         photo.setImage(mediaLoader.loadImage(newValue));
+    }
+
+    @EventListener(GalleryRefreshEvent.class)
+    public void refreshGrid(GalleryRefreshEvent event) {
+        if (event.getMediaCollectionId() == Optional.ofNullable(currentCatalog.get()).map(MediaCollection::id).orElse(event.getMediaCollectionId())) {
+            log.info("Refresh collection id: '{}'", event.getMediaCollectionId());
+            gridView.refreshItems();
+        }
     }
 }

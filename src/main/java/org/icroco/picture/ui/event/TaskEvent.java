@@ -2,11 +2,12 @@ package org.icroco.picture.ui.event;
 
 import javafx.concurrent.Task;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.time.Clock;
 
 @Getter
-
+@ToString
 public class TaskEvent extends IiEvent {
 
     private final Task<?> task;

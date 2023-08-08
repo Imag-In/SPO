@@ -1,9 +1,7 @@
 package org.icroco.picture.ui.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
-import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.hash.IHashGenerator;
@@ -43,11 +41,11 @@ public class ImageInConfiguration {
                                          .recordStats()
 //                                         .softValues()
                                          .maximumSize(1000) // TODO: Compute this at runtime.
-                                         .removalListener((key, value, cause) -> Platform.runLater(() -> {
-                                             if (key != null) {
-                                                 ((MediaFile) key).setLoaded(false);
-                                             }
-                                         }))
+//                                         .removalListener((key, value, cause) -> Platform.runLater(() -> {
+//                                             if (key != null) {
+//                                                 ((MediaFile) key).setLoaded(false);
+//                                             }
+//                                         }))
 //                                         .expireAfterAccess(1, TimeUnit.DAYS)
                                          .build());
     }

@@ -20,8 +20,11 @@ import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
-import org.icroco.picture.ui.event.*;
+import org.icroco.picture.ui.event.CollectionEvent;
 import org.icroco.picture.ui.event.CollectionEvent.EventType;
+import org.icroco.picture.ui.event.CollectionSubPathSelectedEvent;
+import org.icroco.picture.ui.event.CollectionsLoadedEvent;
+import org.icroco.picture.ui.event.ExtractThumbnailEvent;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaCollectionEntry;
 import org.icroco.picture.ui.model.MediaFile;
@@ -91,8 +94,8 @@ public class CollectionController extends FxInitOnce {
             int id = (int) newValue.getUserData();
             pref.getUserPreference().getCollection().setLastViewed(id);
             var catalogById = persistenceService.getMediaCollection(id);
-            taskService.sendFxEvent(new CollectionEvent(catalogById, EventType.CREATED, this));
-            taskService.sendFxEvent(new WarmThumbnailCacheEvent(catalogById, this));
+            taskService.sendFxEvent(new CollectionEvent(catalogById, EventType.SELECTED, this));
+//            taskService.sendFxEvent(new WarmThumbnailCacheEvent(catalogById, this));
         }
     }
 
@@ -220,7 +223,7 @@ public class CollectionController extends FxInitOnce {
             record CatalogAndTask(MediaCollection mediaCollection, CompletableFuture<?>[] futures) {}
 
             taskService.supply(scanDirectory(rootPath))
-                       .thenApply(catalog -> {
+                       .thenApplyAsync(catalog -> {
                            final var allFiles   = new ArrayBlockingQueue<MediaFile>(catalog.medias().size());
                            final var mediaFiles = List.copyOf(catalog.medias());
                            final var result     = Collections.splitByCoreWithIdx(mediaFiles);
@@ -231,20 +234,12 @@ public class CollectionController extends FxInitOnce {
                                                                                 .thenApply(allFiles::addAll))
                                                      .toArray(new CompletableFuture[0]);
                            return new CatalogAndTask(catalog, futures);
-//                           CompletableFuture.allOf(futures)
-//                                            .thenAccept(unused -> {
-//                                                final var newCatalog = persistenceService.saveCollection(catalog);
-//                                                Platform.runLater(() -> {
-//                                                    createTreeView(newCatalog);
-//                                                    taskService.fxNotifyLater(new ExtractThumbnailEvent(newCatalog, this));
-//                                                });
-//                                            });
                        })
-                       .thenApply(catalogAndTask -> {
+                       .thenApplyAsync(catalogAndTask -> {
                            CompletableFuture.allOf(catalogAndTask.futures);
                            return catalogAndTask.mediaCollection;
                        })
-                       .thenApply(persistenceService::saveCollection)
+                       .thenApplyAsync(persistenceService::saveCollection)
                        .thenAccept(mediaCollection -> {
                            Platform.runLater(() -> {
                                createTreeView(mediaCollection);
@@ -254,7 +249,7 @@ public class CollectionController extends FxInitOnce {
         }
     }
 
-    public Task<MediaCollection> scanDirectory(Path rootPath) {
+    private Task<MediaCollection> scanDirectory(Path rootPath) {
         return new AbstractTask<>() {
             @Override
             protected MediaCollection call() throws Exception {
@@ -303,7 +298,7 @@ public class CollectionController extends FxInitOnce {
         };
     }
 
-    public Task<List<MediaFile>> hashFiles(final List<MediaFile> mediaFiles, final int batchId, final int nbBatches) {
+    private Task<List<MediaFile>> hashFiles(final List<MediaFile> mediaFiles, final int batchId, final int nbBatches) {
         return new AbstractTask<>() {
             @Override
             protected List<MediaFile> call() throws Exception {
