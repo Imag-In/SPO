@@ -101,6 +101,7 @@ public class MediaLoader {
         taskService.supply(t, false);
     }
 
+
     private Thumbnail extractThumbnail(MediaFile mf) {
         try {
             var thumbnail = Optional.ofNullable(thumbnailGenerator.extractThumbnail(mf.getFullPath()))

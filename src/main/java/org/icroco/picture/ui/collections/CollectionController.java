@@ -348,10 +348,11 @@ public class CollectionController extends FxInitOnce {
                                 .findFirst()
                                 .ifPresent(tp -> mediaCollections.setExpandedPane(tp));
             });
+        } else if (EventType.SELECTED == event.getType()) {
+            ((TreeView<?>) mediaCollections.getExpandedPane().getContent()).getSelectionModel().clearSelection();
         }
     }
 
     record PaneTreeView(TitledPane tp, TreeView<Path> treeView) {
     }
-
 }

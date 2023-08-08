@@ -202,12 +202,16 @@ public class GalleryController extends FxInitOnce {
                 currentCatalog.set(null);
                 filteredImages.setPredicate(null);
                 images.clear();
+                // TODO: clear thumbnail cache ?
             }
             case SELECTED -> {
                 images.clear();
                 resetBcbModel(mediaCollection.path(), null);
+                filteredImages.setPredicate(null);
                 images.addAll(mediaCollection.medias());
+
                 currentCatalog.set(mediaCollection);
+                // TODO: Warm thumbnail cache ?
             }
             case READY -> {
             }

@@ -16,8 +16,6 @@ import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.CustomGridView;
 import org.icroco.picture.ui.util.MediaLoader;
 
-import java.util.Optional;
-
 @Slf4j
 @RequiredArgsConstructor
 public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, GridCell<MediaFile>> {
@@ -29,9 +27,9 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
     public GridCell<MediaFile> call(final GridView<MediaFile> grid) {
         final var selectionModel = ((CustomGridView<MediaFile>) grid).getSelectionModel();
         final var cell           = new MediaFileGridCell(true, mediaLoader, isExpandCell, selectionModel, (CustomGridView<MediaFile>) grid);
+
         cell.setAlignment(Pos.CENTER);
         cell.setEditable(false);
-
         cell.setOnMouseClicked((t) -> {
             var mf = ((MediaFileGridCell) t.getSource()).getItem();
             if (mf != null && t.getClickCount() == 1) {
@@ -46,10 +44,11 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
         });
 
         cell.itemProperty().addListener((ov, oldMediaItem, newMediaItem) -> {
+//            log.info("old: {}, new: {}", oldMediaItem, newMediaItem);
             if (newMediaItem != null && oldMediaItem != newMediaItem) {
                 if (isCellVisible(grid, cell)) {
-                    log.debug("is Cell really visible?, old: '{}', new: '{}'", Optional.ofNullable(oldMediaItem).map(MediaFile::getId).orElse(null),
-                              Optional.of(newMediaItem).map(MediaFile::getId).orElse(null));
+//                    log.debug("is Cell really visible?, old: '{}', new: '{}'", Optional.ofNullable(oldMediaItem).map(MediaFile::getId).orElse(null),
+//                              Optional.of(newMediaItem).map(MediaFile::getId).orElse(null));
                     mediaLoader.loadAndCachedValue(newMediaItem);
                 }
             }
