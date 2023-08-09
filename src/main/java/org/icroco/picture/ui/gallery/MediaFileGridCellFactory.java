@@ -45,7 +45,8 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
 
         cell.itemProperty().addListener((ov, oldMediaItem, newMediaItem) -> {
 //            log.info("old: {}, new: {}", oldMediaItem, newMediaItem);
-            if (newMediaItem != null && oldMediaItem != newMediaItem) {
+            if (newMediaItem != null && oldMediaItem == null) {
+//                if (newMediaItem != null && oldMediaItem != newMediaItem) {
                 if (isCellVisible(grid, cell)) {
 //                    log.debug("is Cell really visible?, old: '{}', new: '{}'", Optional.ofNullable(oldMediaItem).map(MediaFile::getId).orElse(null),
 //                              Optional.of(newMediaItem).map(MediaFile::getId).orElse(null));
@@ -57,7 +58,7 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
         return cell;
     }
 
-    public boolean isCellVisible(GridView<MediaFile> grid, MediaFileGridCell cell) {
+    public static boolean isCellVisible(GridView<MediaFile> grid, MediaFileGridCell cell) {
         VirtualFlow<? extends IndexedCell<MediaFile>> vf  = (VirtualFlow<? extends IndexedCell<MediaFile>>) grid.getChildrenUnmodifiable().get(0);
         boolean                                       ret = false;
         if (vf.getFirstVisibleCell() == null) {
@@ -66,6 +67,7 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
         }
         int start = vf.getFirstVisibleCell().getIndex();
         int end   = vf.getLastVisibleCell().getIndex();
+
         if (start == end) {
 //            log.info("Cell: {}, visible: {}, index: {} ==", cell.getItem().getFileName(), true, cell.getIndex());
             return true;
@@ -78,7 +80,7 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
             }
         }
 
-//        log.info("Cell: {}, visible: {}, index: {}", cell.getItem().getFileName(), ret, cell.getIndex());
+//        log.info("Cell: {}:{}, visible: {}, index: {}", cell.getItem().getId(), cell.getItem().getFileName(), ret, cell.getIndex());
 
         return ret;
     }

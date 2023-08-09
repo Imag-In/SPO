@@ -55,12 +55,22 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         if (empty || item == null) {
             this.setGraphic(null);
         } else {
-            setImage(mediaLoader.getCachedValue(item)
-                                .map(Thumbnail::getImage)
-                                .orElseGet(() -> {
-                                    mediaLoader.loadAndCachedValue(item);
-                                    return MediaLoader.LOADING;
-                                }));
+            if (item.isLoadedInCache()) {
+                setImage(mediaLoader.getCachedValue(item)
+                                    .map(Thumbnail::getImage)
+                                    .orElse(MediaLoader.LOADING));
+            } else {
+                setImage(MediaLoader.LOADING);
+//                mediaLoader.loadAndCachedValue(item);
+            }
+//            if (MediaFileGridCellFactory.isCellVisible(grid, this)) {
+//                setImage(mediaLoader.getCachedValue(item)
+//                                    .map(Thumbnail::getImage)
+//                                    .orElseGet(() -> {
+//                                        mediaLoader.loadAndCachedValue(item);
+//                                        return MediaLoader.LOADING;
+//                                    }));
+//            }
 
             updateSelected(selectionModel.contains(item));
             setGraphic(root);

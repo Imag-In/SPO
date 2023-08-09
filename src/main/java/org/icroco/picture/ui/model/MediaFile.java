@@ -1,6 +1,7 @@
 package org.icroco.picture.ui.model;
 
 import javafx.beans.Observable;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.util.Callback;
@@ -31,6 +32,9 @@ public class MediaFile implements IMediaFile {
     @NonNull
     @Builder.Default
     private final SimpleObjectProperty<LocalDateTime> thumbnailUpdateProperty = new SimpleObjectProperty<>(LocalDateTime.MIN.plusHours(1L));
+    @NonNull
+    @Builder.Default
+    private final SimpleBooleanProperty               loadedInCache           = new SimpleBooleanProperty(false);
 
     @NonNull
     @Builder.Default
@@ -73,12 +77,20 @@ public class MediaFile implements IMediaFile {
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[]{ mf.thumbnailUpdateProperty };
+        return mf -> new Observable[]{ mf.loadedInCache, mf.thumbnailUpdateProperty };
     }
 
     public void setId(long id) {
         this.id = id;
         idProperty.set(id);
+    }
+
+    public void setLoadedInCahce(boolean value) {
+        loadedInCache.set(value);
+    }
+
+    public boolean isLoadedInCache() {
+        return loadedInCache.get();
     }
 }
 

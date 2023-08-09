@@ -63,7 +63,7 @@ public class MediaLoader {
 //    private final LRUCache<MediaFile, Thumbnail> lruCache = new LRUCache<>(1000);
 
     public Optional<Thumbnail> getCachedValue(MediaFile mf) {
-        return Optional.ofNullable(thCache.get(mf.id(), Thumbnail.class));
+        return Optional.ofNullable(thCache.get(mf, Thumbnail.class));
 //                       .or(() -> {
 //                           log.debug("thumbnailCache missed for: {}:'{}', size: '{}'",
 //                                     mf.getId(),
@@ -79,26 +79,27 @@ public class MediaLoader {
     }
 
     public void loadAndCachedValue(final MediaFile mf) {
-        Task<Optional<ThumbnailRes>> t = new AbstractTask<>() {
+        Task<Optional<Thumbnail>> t = new AbstractTask<>() {
             @Override
-            protected Optional<ThumbnailRes> call() {
+            protected Optional<Thumbnail> call() {
                 return getCachedValue(mf).or(() -> {
-                                             log.debug("thumbnailCache missed for: {}:'{}', size: '{}'",
-                                                       mf.getId(),
-                                                       mf.getFullPath().getFileName(),
-                                                       ((com.github.benmanes.caffeine.cache.Cache<?, ?>) thCache.getNativeCache()).estimatedSize()
-                                             );
-                                             return persistenceService.findByPathOrId(mf)
-                                                                      .map(t -> {
-                                                                          thCache.put(mf.id(), t);
-                                                                          return t;
-                                                                      });
-                                         })
-                                         .map(thumbnail -> new ThumbnailRes(mf, thumbnail, false));
+//                                             log.debug("thumbnailCache missed for: {}:'{}', size: '{}'",
+//                                                       mf.getId(),
+//                                                       mf.getFullPath().getFileName(),
+//                                                       ((com.github.benmanes.caffeine.cache.Cache<?, ?>) thCache.getNativeCache()).estimatedSize()
+//                                             );
+                    return persistenceService.findByPathOrId(mf)
+                                             .map(t -> {
+                                                 thCache.put(mf, t);
+                                                 return t;
+                                             });
+                });
             }
         };
-        t.setOnSucceeded(unused -> t.getValue().ifPresent(tr -> tr.mf.setOriginalDate(LocalDateTime.now())));
-        taskService.supply(t, false);
+        t.setOnSucceeded(unused -> t.getValue().ifPresentOrElse(u -> mf.setLoadedInCahce(true), () -> mf.setLoadedInCahce(false)));
+        t.setOnFailed(unused -> t.getValue().ifPresent(u -> mf.setLoadedInCahce(false)));
+        t.setOnCancelled(unused -> t.getValue().ifPresent(u -> mf.setLoadedInCahce(false)));
+        taskService.supply(t, true);
     }
 
 
@@ -175,11 +176,11 @@ public class MediaLoader {
                 updateProgress(0, files.size());
                 return EntryStream.of(new ArrayList<>(files))
                                   .map(entry -> {
-                                      var thumbnail = thCache.get(entry.getValue().id(), Thumbnail.class);
+                                      var thumbnail = thCache.get(entry.getValue(), Thumbnail.class);
                                       if (thumbnail == null) {
                                           thumbnail = persistenceService.findByPathOrId(entry.getValue()).orElse(null);
                                           if (thumbnail != null) {
-                                              thCache.put(entry.getValue().id(), thumbnail);
+                                              thCache.put(entry.getValue(), thumbnail);
                                               updateMessage("Thumbnail loaded: " + entry.getValue().fullPath().getFileName());
                                           }
                                           updateProgress(entry.getKey(), files.size());
@@ -226,7 +227,7 @@ public class MediaLoader {
 
     public void removeFromCache(MediaFile oldValue) {
         if (oldValue != null) {
-            thCache.evict(oldValue.id());
+            thCache.evict(oldValue);
         }
     }
 
@@ -291,7 +292,7 @@ public class MediaLoader {
                                                 updateProgress(mf.getKey(), size);
                                                 updateMessage("Extract thumbnail from: " + file.getFullPath().getFileName());
                                                 log.debug("Extract thumbnail from: '{}'", file.getFullPath().getFileName());
-                                                var thumbnail = thCache.get(file.id(), Thumbnail.class);
+                                                var thumbnail = thCache.get(file, Thumbnail.class);
                                                 if (thumbnail == null) {
                                                     // Second Database Cache
                                                     thumbnail = persistenceService.findByPathOrId(file).orElse(null);
@@ -332,7 +333,7 @@ public class MediaLoader {
 
     private void generateThumbnails(Collection<MediaFile> mediaFiles, @Nullable MediaCollection mediaCollection) {
         final var start = System.currentTimeMillis();
-        final var mfFiltered = List.copyOf(mediaFiles.stream().filter(mf -> Optional.ofNullable(thCache.get(mf.getId(), Thumbnail.class))
+        final var mfFiltered = List.copyOf(mediaFiles.stream().filter(mf -> Optional.ofNullable(thCache.get(mf, Thumbnail.class))
                                                                                     .map(Thumbnail::getOrigin)
                                                                                     .orElse(EThumbnailType.ABSENT)
                                                                             != EThumbnailType.GENERATED).toList());

@@ -122,7 +122,7 @@ public class PersistenceService {
 //                thumbRepo.deleteAll();
                 log.info("Thumbnail Id to be deleted: {}", mc.medias().stream().map(MediaFile::getId).toList());
                 thumbRepo.deleteAllById(mc.medias().stream().map(MediaFile::getId).toList());
-                mc.medias().stream().map(MediaFile::id).forEach(thCache::evict);
+                mc.medias().forEach(thCache::evict);
                 thumbRepo.flush();
             });
             log.info("thRepo size after: {}, thCache: {}",
@@ -150,7 +150,7 @@ public class PersistenceService {
                                                    .toList())
                         .stream()
                         .map(thMapper::map)
-                        .peek(t -> thCache.put(t.getMfId(), t))
+//                        .peek(t -> thCache.put(t.getMfId(), t))
                         .toList();
     }
 
@@ -160,7 +160,7 @@ public class PersistenceService {
 //    }
 
     public Optional<Thumbnail> getThumbnailFromCache(MediaFile mediaFile) {
-        return Optional.ofNullable(thCache.get(mediaFile.id(), Thumbnail.class));
+        return Optional.ofNullable(thCache.get(mediaFile, Thumbnail.class));
     }
 
     public Optional<Thumbnail> findByPathOrId(MediaFile mediaFile) {
