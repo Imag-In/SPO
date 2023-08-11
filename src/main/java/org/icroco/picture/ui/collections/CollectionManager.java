@@ -146,6 +146,4 @@ public class CollectionManager {
                     .collect(Collectors.groupingBy(pathAndCollection -> pathAndCollection.mediaCollection,
                                                    Collectors.mapping(PathAndCollection::path, Collectors.toList())));
     }
-
-
 }

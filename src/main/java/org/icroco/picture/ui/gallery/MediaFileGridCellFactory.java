@@ -2,6 +2,7 @@ package org.icroco.picture.ui.gallery;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.geometry.Pos;
+import javafx.scene.control.Cell;
 import javafx.scene.control.IndexedCell;
 import javafx.scene.control.skin.VirtualFlow;
 import javafx.util.Callback;
@@ -73,14 +74,23 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
             return true;
         }
 
+//        log.info("<<<<");
         for (int i = start; i <= end; i++) {
-            if (vf.getCell(i).getChildrenUnmodifiable().contains(cell)) {
+//            log.info("row: {}, value: {}", i, vf.getCell(i).getChildrenUnmodifiable().stream().map(MediaFileGridCell.class::cast).map(Cell::getItem).map(MediaFile::getId).toList());
+            if (vf.getCell(i)
+                  .getChildrenUnmodifiable()
+                  .stream()
+                  .map(MediaFileGridCell.class::cast)
+                  .map(Cell::getItem)
+                  .map(MediaFile::getId)
+                  .toList()
+                  .contains(cell.getItem().getId())) {
                 ret = true;
                 break;
             }
         }
 
-//        log.info("Cell: {}:{}, visible: {}, index: {}", cell.getItem().getId(), cell.getItem().getFileName(), ret, cell.getIndex());
+//        log.info(">>>> Cell: {}:{}, visible: {}, index: {}", cell.getItem().getId(), cell.getItem().getFileName(), ret, cell.getIndex());
 
         return ret;
     }

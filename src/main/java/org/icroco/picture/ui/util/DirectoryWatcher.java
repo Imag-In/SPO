@@ -106,99 +106,109 @@ public class DirectoryWatcher {
         Set<FileChange> changes   = new HashSet<>();
         long            lastDrain = System.currentTimeMillis();
 
-        for (; ; ) {
-            if (!changes.isEmpty() && System.currentTimeMillis() > lastDrain + 5_000) {
-                log.info("Drain files changes detected, nb changes: '{}'", changes.size());
-                FilesChangesDetectedEvent event = new FilesChangesDetectedEvent(changes.stream()
-                                                                                       .filter(fc -> fc.type == FileChangeType.CREATED)
-                                                                                       .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                                     Constant.isSupportedExtension(fc.path))
-                                                                                       .map(FileChange::path)
-                                                                                       .toList(),
-                                                                                changes.stream()
-                                                                                       .filter(fc -> fc.type == FileChangeType.DELETED)
-                                                                                       .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                                     Constant.isSupportedExtension(fc.path))
-                                                                                       .map(FileChange::path)
-                                                                                       .toList(),
-                                                                                changes.stream()
-                                                                                       .filter(fc -> fc.type == FileChangeType.MODIFIED)
-                                                                                       .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                                     Constant.isSupportedExtension(fc.path))
-                                                                                       .map(FileChange::path)
-                                                                                       .toList(),
-                                                                                this);
-                if (event.isNotEmpty()) {
-                    log.info("Drain files changes detected, valid changes are: '{}' creation, '{}' deletion, '{}' updates",
-                             event.getCreated().size(),
-                             event.getDeleted().size(),
-                             event.getModified().size());
-                    taskService.sendEvent(event);
+        try {
+            for (; ; ) {
+                if (!changes.isEmpty() && System.currentTimeMillis() > lastDrain + 5_000) {
+                    log.info("Drain files changes detected, nb changes: '{}': ten first: {}", changes.size(), changes.stream().limit(10).toList());
+                    FilesChangesDetectedEvent event = new FilesChangesDetectedEvent(changes.stream()
+                                                                                           .filter(fc -> fc.type == FileChangeType.CREATED)
+                                                                                           .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                                         Constant.isSupportedExtension(fc.path))
+                                                                                           .map(FileChange::path)
+                                                                                           .toList(),
+                                                                                    changes.stream()
+                                                                                           .filter(fc -> fc.type == FileChangeType.DELETED)
+                                                                                           .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                                         Constant.isSupportedExtension(fc.path))
+                                                                                           .map(FileChange::path)
+                                                                                           .toList(),
+                                                                                    changes.stream()
+                                                                                           .filter(fc -> fc.type == FileChangeType.MODIFIED)
+                                                                                           .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                                         Constant.isSupportedExtension(fc.path))
+                                                                                           .map(FileChange::path)
+                                                                                           .toList(),
+                                                                                    this);
+                    if (event.isNotEmpty()) {
+                        log.info("Drain files changes detected, valid changes are: '{}' creation, '{}' deletion, '{}' updates",
+                                 event.getCreated().size(),
+                                 event.getDeleted().size(),
+                                 event.getModified().size());
+                        taskService.sendEvent(event);
+                    }
+                    changes.clear();
+                    lastDrain = System.currentTimeMillis();
                 }
-                changes.clear();
-                lastDrain = System.currentTimeMillis();
-            }
-            // wait for key to be signalled
-            WatchKey key;
-            try {
-                key = watcher.poll(5, TimeUnit.SECONDS);
-            }
-            catch (InterruptedException x) {
-                return;
-            }
-
-            if (key != null) {
-                Path dir = keys.get(key);
-                if (dir == null) {
-                    log.error("WatchKey not recognized!!");
-                    continue;
+                // wait for key to be signalled
+                WatchKey key;
+                try {
+                    key = watcher.poll(5, TimeUnit.SECONDS);
+                }
+                catch (InterruptedException x) {
+                    return;
                 }
 
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    WatchEvent.Kind<?> kind = event.kind();
-
-                    // TBD - provide example of how OVERFLOW event is handled
-                    if (kind == OVERFLOW) {
+                if (key != null) {
+                    Path dir = keys.get(key);
+                    if (dir == null) {
+                        log.error("WatchKey not recognized!!");
                         continue;
                     }
 
-                    // Context for directory entry event is the file name of entry
-                    WatchEvent<Path> ev    = cast(event);
-                    Path             name  = ev.context();
-                    Path             child = dir.resolve(name);
+                    for (WatchEvent<?> event : key.pollEvents()) {
+                        WatchEvent.Kind<?> kind = event.kind();
 
-                    // print out event
-                    log.debug("{}: {}", event.kind().name(), child);
-
-                    // if directory is created, and watching recursively, then
-                    // register it and its subdirectories
-                    if (recursive && Files.isDirectory(child, NOFOLLOW_LINKS)) {
-                        if (kind == ENTRY_CREATE) {
-                            registerAll(child);
-                        } else if (kind == ENTRY_DELETE) {
-                            keys.remove(key);
+                        // TBD - provide example of how OVERFLOW event is handled
+                        if (kind == OVERFLOW) {
+                            continue;
                         }
-                    } else {
-                        if (kind == ENTRY_CREATE) {
-                            changes.add(new FileChange(child, FileChangeType.CREATED));
-                        } else if (kind == ENTRY_DELETE) {
-                            changes.add(new FileChange(child, FileChangeType.DELETED));
-                        } else if (kind == ENTRY_MODIFY) {
-                            changes.add(new FileChange(child, FileChangeType.MODIFIED));
+
+                        // Context for directory entry event is the file name of entry
+                        WatchEvent<Path> ev    = cast(event);
+                        Path             name  = ev.context();
+                        Path             child = dir.resolve(name);
+
+                        // print out event
+                        log.debug("{}: {}", event.kind().name(), child);
+
+                        // if directory is created, and watching recursively, then
+                        // register it and its subdirectories
+                        if (recursive && Files.isDirectory(child, NOFOLLOW_LINKS)) {
+                            if (kind == ENTRY_CREATE) {
+                                log.info("Watch dir: {}", child);
+                                registerAll(child);
+                            } else if (kind == ENTRY_DELETE) {
+                                log.info("Un-watch dir: {}", child);
+                                keys.remove(key);
+                            } else if (kind == ENTRY_MODIFY) {
+                                log.info("Modify dir: {}", child);
+                            }
+                        } else {
+                            if (kind == ENTRY_CREATE) {
+                                changes.add(new FileChange(child, FileChangeType.CREATED));
+                            } else if (kind == ENTRY_DELETE) {
+                                changes.add(new FileChange(child, FileChangeType.DELETED));
+                                keys.remove(key); // because Files.isDirectory(child) return false on a deleted dir.
+                            } else if (kind == ENTRY_MODIFY) {
+                                changes.add(new FileChange(child, FileChangeType.MODIFIED));
+                            }
                         }
                     }
-                }
 
-                // reset key and remove from set if directory no longer accessible
-                boolean valid = key.reset();
-                if (!valid) {
-                    keys.remove(key);
+                    // reset key and remove from set if directory no longer accessible
+                    boolean valid = key.reset();
+                    if (!valid) {
+                        keys.remove(key);
 //                // all directories are inaccessible
 //                if (keys.isEmpty()) {
 //                    break;
 //                }
+                    }
                 }
             }
+        }
+        catch (Exception e) {
+            log.warn("Fail to scan dir", e);
         }
     }
 }

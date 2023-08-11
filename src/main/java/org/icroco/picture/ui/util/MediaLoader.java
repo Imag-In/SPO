@@ -262,11 +262,11 @@ public class MediaLoader {
                          .thenAcceptAsync(u -> catalogToReGenerate.add(mediaCollection.id()))
                          .thenAcceptAsync(u -> taskService.sendFxEvent(new GalleryRefreshEvent(mediaCollection.id(), this)))
                          .thenAcceptAsync(u -> {
-                             if (sendReadyEvent) {
+//                             if (sendReadyEvent) {
                                  taskService.sendFxEvent(new CollectionEvent(persistenceService.getMediaCollection(mediaCollection.id()),
                                                                              CollectionEvent.EventType.READY,
                                                                              this));
-                             }
+//                             }
                          })
                          .thenAcceptAsync(u -> taskService.sendEvent(new GenerateThumbnailEvent(mediaCollection, this)))
         ;
