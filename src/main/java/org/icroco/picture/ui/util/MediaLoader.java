@@ -416,5 +416,4 @@ public class MediaLoader {
             extractThumbnails(persistenceService.getMediaCollection(event.getMediaCollectionId()), List.copyOf(event.getNewItems()), false);
         }
     }
-
 }
