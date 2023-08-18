@@ -18,14 +18,18 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor
 public class MediaFile implements IMediaFile {
-    private       long                                id;
-    private       Path                                fullPath;
-    private       String                              fileName;
-    private       LocalDateTime                       originalDate;
-    private       Set<Tag>                            tags;
-    private       String                              gps;
-    private       String                              hash;
-    private       LocalDate                           hashDate;
+    private long           id;
+    private Path           fullPath;
+    private String         fileName;
+    private LocalDateTime  originalDate;
+    private Set<Tag>       tags;
+    private String         gps;
+    private String         hash;
+    private LocalDate      hashDate;
+    @NonNull
+    @Builder.Default
+    private EThumbnailType thumbnailType = EThumbnailType.ABSENT;
+
     //    @NonNull
 //    @Builder.Default
 //    private SimpleObjectProperty<Thumbnail> thumbnail = new SimpleObjectProperty<>(null);
@@ -85,7 +89,7 @@ public class MediaFile implements IMediaFile {
         idProperty.set(id);
     }
 
-    public void setLoadedInCahce(boolean value) {
+    public void setLoadedInCache(boolean value) {
         loadedInCache.set(value);
     }
 

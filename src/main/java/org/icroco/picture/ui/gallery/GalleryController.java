@@ -25,7 +25,6 @@ import org.controlsfx.control.BreadCrumbBar;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.*;
-import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
@@ -245,18 +244,17 @@ public class GalleryController extends FxInitOnce {
     @EventListener(PhotoSelectedEvent.class)
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         final var source = Optional.ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
-        final var mf     = event.getFile();
+        final var mf     = event.getMf();
         log.atDebug().log(() -> {
             Optional<Thumbnail> cache = persistenceService.getThumbnailFromCache(mf);
             Optional<Thumbnail> db    = persistenceService.findByPathOrId(mf);
-            return "Photo selected: root: '%s', '%s', from: '%s'. Thumbhnail DB id: '%s', type: '%s'. Tumbhnail Cache, id: '%s', type: '%s'"
+            return "Photo selected: root: '%s', '%s', from: '%s'. Thumbhnail DB id: '%s', type: '%s'. Tumbhnail Cache, id: '%s'"
                     .formatted(mf.getId(),
                                mf.getFileName(),
                                source.getSimpleName(),
                                db.map(Thumbnail::getMfId).orElse(-1L),
-                               db.map(Thumbnail::getOrigin).orElse(EThumbnailType.ABSENT),
-                               cache.map(Thumbnail::getMfId).orElse(-1L),
-                               cache.map(Thumbnail::getOrigin).orElse(EThumbnailType.ABSENT));
+                               mf.getThumbnailType(),
+                               cache.map(Thumbnail::getMfId).orElse(-1L));
         });
 
         // TODO: it works with only one item selected.

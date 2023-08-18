@@ -43,8 +43,9 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                     .fullPath(path)
                     .image(SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null))
                     .origin(EThumbnailType.GENERATED)
+                    .lastUpdate(LocalDateTime.now())
                     .build();
-        }).get();
+        }, throwable -> log.error("Cannot generate thumbnail for: '{}'", path, throwable)).get();
     }
 
 

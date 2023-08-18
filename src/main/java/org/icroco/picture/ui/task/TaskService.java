@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Component
@@ -61,6 +62,10 @@ public class TaskService {
 
     public <T> CompletableFuture<T> supply(final Supplier<T> task) {
         return CompletableFuture.supplyAsync(task, executor);
+    }
+
+    public <T, R> CompletableFuture<R> supply(final Function<T, R> task, T input) {
+        return CompletableFuture.supplyAsync(() -> task.apply(input), executor);
     }
 
     public CompletableFuture<Void> supply(final Runnable task) {

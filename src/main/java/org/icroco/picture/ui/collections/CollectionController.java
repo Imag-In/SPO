@@ -29,7 +29,10 @@ import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.task.AbstractTask;
 import org.icroco.picture.ui.task.TaskService;
-import org.icroco.picture.ui.util.*;
+import org.icroco.picture.ui.util.Constant;
+import org.icroco.picture.ui.util.FileUtil;
+import org.icroco.picture.ui.util.Nodes;
+import org.icroco.picture.ui.util.PathConverter;
 import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.icroco.picture.ui.util.metadata.MetadataHeader;
@@ -46,7 +49,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -233,26 +235,27 @@ public class CollectionController extends FxInitOnce {
             record CatalogAndTask(MediaCollection mediaCollection, CompletableFuture<?>[] futures) {}
 
             taskService.supply(scanDirectory(rootPath))
-                       .thenApplyAsync(catalog -> {
-                           final var allFiles   = new ArrayBlockingQueue<MediaFile>(catalog.medias().size());
-                           final var mediaFiles = List.copyOf(catalog.medias());
-                           final var result     = Collections.splitByCoreWithIdx(mediaFiles);
-                           final var futures = result.values()
-                                                     .map(batchMf -> taskService.supply(hashFiles(batchMf.getValue(),
-                                                                                                  batchMf.getKey(),
-                                                                                                  result.splitCount()))
-                                                                                .thenApply(allFiles::addAll))
-                                                     .toArray(new CompletableFuture[0]);
-                           return new CatalogAndTask(catalog, futures);
-                       })
-                       .thenApplyAsync(catalogAndTask -> {
-                           CompletableFuture.allOf(catalogAndTask.futures);
-                           return catalogAndTask.mediaCollection;
-                       })
+                       // TODO: generate hash only at the end of collection creation.
+//                       .thenApplyAsync(catalog -> {
+//                           final var allFiles   = new ArrayBlockingQueue<MediaFile>(catalog.medias().size());
+//                           final var mediaFiles = List.copyOf(catalog.medias());
+//                           final var result     = Collections.splitByCoreWithIdx(mediaFiles);
+//                           final var futures = result.values()
+//                                                     .map(batchMf -> taskService.supply(hashFiles(batchMf.getValue(),
+//                                                                                                  batchMf.getKey(),
+//                                                                                                  result.splitCount()))
+//                                                                                .thenApply(allFiles::addAll))
+//                                                     .toArray(new CompletableFuture[0]);
+//                           return new CatalogAndTask(catalog, futures);
+//                       })
+//                       .thenApplyAsync(catalogAndTask -> {
+//                           CompletableFuture.allOf(catalogAndTask.futures);
+//                           return catalogAndTask.mediaCollection;
+//                       })
                        .thenApplyAsync(persistenceService::saveCollection)
                        .thenAccept(mediaCollection -> Platform.runLater(() -> {
                            createTreeView(mediaCollection);
-                           taskService.sendFxEvent(new ExtractThumbnailEvent(mediaCollection, this));
+                           taskService.sendEvent(new ExtractThumbnailEvent(mediaCollection, this));
                        }));
         }
     }

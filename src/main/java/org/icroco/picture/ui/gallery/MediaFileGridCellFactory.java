@@ -46,13 +46,13 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
 
         cell.itemProperty().addListener((ov, oldMediaItem, newMediaItem) -> {
 //            log.info("old: {}, new: {}", oldMediaItem, newMediaItem);
-            if (newMediaItem != null && oldMediaItem == null) {
-//                if (newMediaItem != null && oldMediaItem != newMediaItem) {
-                if (isCellVisible(grid, cell)) {
+//            if (newMediaItem != null && oldMediaItem == null) {
+            if (newMediaItem != null && oldMediaItem != newMediaItem) {
+//                if (isCellVisible(grid, cell)) {
 //                    log.debug("is Cell really visible?, old: '{}', new: '{}'", Optional.ofNullable(oldMediaItem).map(MediaFile::getId).orElse(null),
 //                              Optional.of(newMediaItem).map(MediaFile::getId).orElse(null));
-                    mediaLoader.loadAndCachedValue(newMediaItem);
-                }
+                mediaLoader.loadAndCachedValue(newMediaItem);
+//                }
             }
         });
 

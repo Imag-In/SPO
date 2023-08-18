@@ -51,10 +51,12 @@ public class DetailsController extends FxInitOnce {
 
     @EventListener(PhotoSelectedEvent.class)
     public void updatePhotoSelected(PhotoSelectedEvent event) {
-        var mf = event.getFile();
+        var mf = event.getMf();
         mediaLoader.getCachedValue(mf).ifPresent(t -> {
-            thumbnailType.setText(t.getOrigin().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
-            thumbnailSize.setText("%d x %d".formatted((int) t.getImage().getWidth(), (int) t.getImage().getHeight()));
+            thumbnailType.setText(mf.getThumbnailType().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
+            if (t.getImage() != null) {
+                thumbnailSize.setText("%d x %d".formatted((int) t.getImage().getWidth(), (int) t.getImage().getHeight()));
+            }
         });
         dbId.setText(Long.toString(mf.getId()));
         name.setText(mf.getFileName());

@@ -121,7 +121,7 @@ public class Font_2 extends Application {
         }
     }
 
-    // Main Method
+    // Main.java Method
     public static void main(String args[]) {
 
 // launch the application

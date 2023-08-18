@@ -138,7 +138,7 @@ public class HashToByteBenchmark {
     }
 
     public static void main(String[] args) throws Exception {
-//        org.openjdk.jmh.Main.main(args);
+//        org.openjdk.jmh.Main.java.main(args);
         Options opt = new OptionsBuilder()
                 .include(HashToByteBenchmark.class.getSimpleName())
 //                .forks(1)

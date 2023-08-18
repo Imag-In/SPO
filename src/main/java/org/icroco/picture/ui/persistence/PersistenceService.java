@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.config.ImageInConfiguration;
 import org.icroco.picture.ui.event.CollectionUpdatedEvent;
 import org.icroco.picture.ui.event.CollectionsLoadedEvent;
-import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
@@ -140,17 +139,11 @@ public class PersistenceService {
     }
 
     public List<Thumbnail> saveAll(Collection<Thumbnail> thumbnails) {
-        return saveAll(thumbnails, EThumbnailType.ABSENT);
-    }
-
-    public List<Thumbnail> saveAll(Collection<Thumbnail> thumbnails, EThumbnailType type) {
         return thumbRepo.saveAllAndFlush(thumbnails.stream()
                                                    .map(thMapper::map)
-                                                   .peek(t -> t.setOrigin(type))
                                                    .toList())
                         .stream()
                         .map(thMapper::map)
-//                        .peek(t -> thCache.put(t.getMfId(), t))
                         .toList();
     }
 
@@ -168,14 +161,6 @@ public class PersistenceService {
 //        return thumbRepo.findByFullPath(mediaFile.fullPath())
 //                        .orElseGet(() -> thumbRepo.findById(mediaFile.getId()))
                         .map(thMapper::map);
-    }
-
-    public List<Thumbnail> findAllByIdAndNotGenerated(Collection<Long> ids) {
-        return thumbRepo.findAllById(ids)
-                        .stream()
-                        .filter(t -> t.getOrigin() != EThumbnailType.GENERATED)
-                        .map(thMapper::map)
-                        .toList();
     }
 
     @Transactional

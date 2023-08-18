@@ -45,7 +45,7 @@ public class ImageInConfiguration {
                                          .maximumSize(1000) // TODO: Compute this at runtime.
                                          .removalListener((key, value, cause) -> Platform.runLater(() -> {
                                              if (key != null) {
-                                                 ((MediaFile) key).setLoadedInCahce(false);
+                                                 ((MediaFile) key).setLoadedInCache(false);
                                              }
                                          }))
 //                                         .expireAfterAccess(1, TimeUnit.DAYS)

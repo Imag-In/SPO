@@ -95,7 +95,7 @@ public class HashBenchmark {
 
 
     public static void main(String[] args) throws Exception {
-//        org.openjdk.jmh.Main.main(args);
+//        org.openjdk.jmh.Main.java.main(args);
         Options opt = new OptionsBuilder()
                 .include(HashBenchmark.class.getSimpleName())
 //                .forks(1)

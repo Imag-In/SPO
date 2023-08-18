@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.Type;
+import org.icroco.picture.ui.model.EThumbnailType;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -52,4 +53,8 @@ public class DbMediaFile {
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "tag_id")
     private Set<DbTag> tags;
+
+    @NonNull
+    @Enumerated(EnumType.STRING)
+    private EThumbnailType thumbnailType = EThumbnailType.ABSENT;
 }

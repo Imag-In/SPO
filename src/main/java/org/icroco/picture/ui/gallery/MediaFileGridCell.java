@@ -49,20 +49,22 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 
     @Override
     protected void updateItem(MediaFile item, boolean empty) {
+//        setSelected(false);
 //        log.debug("updateItem: cell:{}, item: '{}' , empty: '{}'", this.hashCode(), item == null ? "null" : item.getId()+":"+item.getFileName(), empty);
         super.updateItem(item, empty);
 
         if (empty || item == null) {
             this.setGraphic(null);
         } else {
-            if (item.isLoadedInCache()) {
+            updateSelected(selectionModel.contains(item));
+            if (item.isLoadedInCache() || MediaFileGridCellFactory.isCellVisible(grid, this)) {
                 setImage(mediaLoader.getCachedValue(item)
                                     .map(Thumbnail::getImage)
                                     .orElse(MediaLoader.LOADING));
             } else {
                 setImage(MediaLoader.LOADING);
-//                mediaLoader.loadAndCachedValue(item);
             }
+            setGraphic(root);
 //            if (MediaFileGridCellFactory.isCellVisible(grid, this)) {
 //                setImage(mediaLoader.getCachedValue(item)
 //                                    .map(Thumbnail::getImage)
@@ -71,9 +73,6 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 //                                        return MediaLoader.LOADING;
 //                                    }));
 //            }
-
-            updateSelected(selectionModel.contains(item));
-            setGraphic(root);
         }
     }
 
