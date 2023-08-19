@@ -16,13 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.awt.*;
 
 
 @SpringBootApplication
-@EnableAsync
+//@EnableAsync(proxyTargetClass = true)
 @ImportAutoConfiguration(classes = ViewAutoConfiguration.class)
 public class ImagInApp extends AbstractJavaFxApplication {
     public static final String IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG = "/images/128px-GNOME_Photos_logo_2019.svg.png";

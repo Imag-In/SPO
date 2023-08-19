@@ -22,7 +22,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <resource.delimiter>@</resource.delimiter>
-        <spring-boot-javafx-starter.version>1.0.3-SNAPSHOT</spring-boot-javafx-starter.version>
+        <spring-boot-javafx-starter.version>1.0.4-SNAPSHOT</spring-boot-javafx-starter.version>
         <spring-boot.version>3.1.0</spring-boot.version>
         <imageio-jpeg.version>3.9.4</imageio-jpeg.version>
         <jmh.version>1.36</jmh.version>

@@ -44,6 +44,7 @@ public class Constant {
     }
 
     public static int split(int size) {
-        return Math.max(1, size / (Constant.NB_CORE));
+        // minus one core to get one free thread to dispatch event.
+        return Math.max(1, size / (Constant.NB_CORE - 1));
     }
 }

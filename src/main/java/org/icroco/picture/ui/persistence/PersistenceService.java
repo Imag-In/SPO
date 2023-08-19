@@ -51,7 +51,7 @@ public class PersistenceService {
                                                                          .map(colMapper::map)
                                                                          .peek(c -> mcCache.put(c.id(), c))
                                                                          .toList();
-            taskService.sendFxEvent(new CollectionsLoadedEvent(mediaCollections, this));
+            taskService.sendEvent(new CollectionsLoadedEvent(mediaCollections, this));
         }
     }
 
@@ -188,7 +188,7 @@ public class PersistenceService {
 //            var delUpdated = mc.medias().stream()
 //                               .filter(toBeDeleted::contains)
 //                               .toList();
-            taskService.sendFxEvent(new CollectionUpdatedEvent(mc.id(), toBeAddedSaved, toBeDeleted, this));
+            taskService.sendEvent(new CollectionUpdatedEvent(mc.id(), toBeAddedSaved, toBeDeleted, this));
         }
     }
 

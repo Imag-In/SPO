@@ -72,25 +72,18 @@ public class TaskService {
         return CompletableFuture.runAsync(task, executor);
     }
 
-
     /**
-     * post an event into the bus through Fx Thread.
+     *  We do not use thread pool TaskExecutor becaise if this pool is busy we want to make sure to dispatch event.
+     *
      */
-    public void sendFxEvent(final ApplicationEvent event) {
-        fxRun(() -> {
-            log.info("Send Fx Event from source: {}, event: {}", event.getSource().getClass().getSimpleName(), event);
-            eventBus.multicastEvent(event);
-        });
-    }
-
     public void sendEvent(final ApplicationEvent event) {
-        supply(() -> {
+        CompletableFuture.runAsync(() -> {
             log.info("Send Event from source: {}, event: {}", event.getSource().getClass().getSimpleName(), event);
             eventBus.multicastEvent(event);
         });
     }
 
-    private static void fxRun(Runnable runnable) {
+    public static void fxRun(Runnable runnable) {
         if (Platform.isFxApplicationThread()) {
             runnable.run();
         } else {

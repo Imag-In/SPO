@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.util.Constant;
+import org.icroco.picture.ui.util.FxPlatformExecutor;
 import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.hash.JdkHashGenerator;
 import org.icroco.picture.ui.util.metadata.DefaultMetadataExtractor;
@@ -21,6 +22,7 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +37,7 @@ public class ImageInConfiguration {
 
     public static final String CATALOG           = "catalog";
     public static final String DIRECTORY_WATCHER = "DirWatch";
+    public static final String FX_EXECUTOR       = "FX_EXECUTOR";
 
     @Bean(name = THUMBNAILS)
     public CaffeineCache thumbnails() {
@@ -83,6 +86,11 @@ public class ImageInConfiguration {
         executor.initialize();
 
         return executor;
+    }
+
+    @Bean(name = FX_EXECUTOR)
+    Executor fxExecutor() {
+        return new FxPlatformExecutor();
     }
 
     @Bean

@@ -56,5 +56,6 @@ public class DbMediaFile {
 
     @NonNull
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private EThumbnailType thumbnailType = EThumbnailType.ABSENT;
 }

@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
 
+import static javafx.application.Platform.runLater;
+
 @Slf4j
 @Component
 @FxViewBinding(id = "details", fxmlLocation = "details.fxml")
@@ -51,21 +53,26 @@ public class DetailsController extends FxInitOnce {
 
     @EventListener(PhotoSelectedEvent.class)
     public void updatePhotoSelected(PhotoSelectedEvent event) {
-        var mf = event.getMf();
-        mediaLoader.getCachedValue(mf).ifPresent(t -> {
-            thumbnailType.setText(mf.getThumbnailType().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
-            if (t.getImage() != null) {
-                thumbnailSize.setText("%d x %d".formatted((int) t.getImage().getWidth(), (int) t.getImage().getHeight()));
-            }
+        runLater(() -> {
+
+            var mf = event.getMf();
+            mediaLoader.getCachedValue(mf).ifPresent(t -> {
+                thumbnailType.setText(mf.getThumbnailType().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
+                if (t.getImage() != null) {
+                    thumbnailSize.setText("%d x %d".formatted((int) t.getImage().getWidth(), (int) t.getImage().getHeight()));
+                }
+            });
+            dbId.setText(Long.toString(mf.getId()));
+            name.setText(mf.getFileName());
+            creationDate.setText(mf.originalDate().toString());
+            gps.setText(mf.getTags().stream().map(Tag::name).collect(Collectors.joining(",")));
         });
-        dbId.setText(Long.toString(mf.getId()));
-        name.setText(mf.getFileName());
-        creationDate.setText(mf.originalDate().toString());
-        gps.setText(mf.getTags().stream().map(Tag::name).collect(Collectors.joining(",")));
     }
 
     @EventListener(CollectionEvent.class)
     public void catalogEvent(CollectionEvent event) {
-        container.setVisible(event.getType() != CollectionEvent.EventType.DELETED);
+        runLater(() -> {
+            container.setVisible(event.getType() != CollectionEvent.EventType.DELETED);
+        });
     }
 }

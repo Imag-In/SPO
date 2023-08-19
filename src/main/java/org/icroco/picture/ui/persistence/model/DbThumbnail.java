@@ -34,6 +34,7 @@ public class DbThumbnail {
 
     @NonNull
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private EThumbnailType origin = EThumbnailType.ABSENT;
 
     @NonNull

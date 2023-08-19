@@ -1,6 +1,5 @@
 package org.icroco.picture.ui.gallery;
 
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -45,6 +44,7 @@ import java.util.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static javafx.application.Platform.runLater;
 import static org.fxmisc.wellbehaved.event.EventPattern.keyPressed;
 import static org.fxmisc.wellbehaved.event.InputMap.consume;
 import static org.fxmisc.wellbehaved.event.InputMap.sequence;
@@ -154,7 +154,7 @@ public class GalleryController extends FxInitOnce {
         expand.setUserData(expandCell);
         gridView.addScrollAndKeyhandler();
         expandCell.addListener((observable, oldValue, newValue) -> gridView.refreshItems());
-        Platform.runLater(() -> gridView.requestFocus());
+        runLater(() -> gridView.requestFocus());
     }
 
     private void onPhotoClick(MouseEvent event) {
@@ -184,57 +184,64 @@ public class GalleryController extends FxInitOnce {
 //                              : Math.max(0D, Math.floor(zoomThumbnails.getValue() * event.getTotalZoomFactor()));
 //        log.info("type: {}, factor: {}, totalFactor: {}, ratio: {}, zoomValue: {}",
 //                 event.getEventType(), event.getZoomFactor(), event.getTotalZoomFactor(), ratio, (int) zoomValue);
-        Platform.runLater(() -> zoomThumbnails.setValue(zoomLevel));
+        runLater(() -> zoomThumbnails.setValue(zoomLevel));
 
         event.consume();
     }
 
     @EventListener(CollectionEvent.class)
     public void updateImages(CollectionEvent event) {
-        // FIXME: Confilt with dir scanning.
-        MediaCollection mediaCollection = event.getMediaCollection();
-        log.info("CollectionEvent type {}, Collection: {}, mediaFiles size: {}", event.getType(), mediaCollection.id(), mediaCollection.medias().size());
+        runLater(() -> {
+            // FIXME: Confilt with dir scanning.
+            MediaCollection mediaCollection = event.getMediaCollection();
+            log.info("CollectionEvent type {}, Collection: {}, mediaFiles size: {}", event.getType(), mediaCollection.id(), mediaCollection.medias().size());
 
-        switch (event.getType()) {
-            case DELETED -> {
-                breadCrumbBar.setSelectedCrumb(null);
-                currentCatalog.set(null);
-                filteredImages.setPredicate(null);
-                images.clear();
-                // TODO: clear thumbnail cache ?
-            }
-            case SELECTED -> {
-                images.clear();
-                resetBcbModel(mediaCollection.path(), null);
-                filteredImages.setPredicate(null);
-                images.addAll(mediaCollection.medias());
+            switch (event.getType()) {
+                case DELETED -> {
+                    breadCrumbBar.setSelectedCrumb(null);
+                    currentCatalog.set(null);
+                    filteredImages.setPredicate(null);
+                    images.clear();
+                    // TODO: clear thumbnail cache ?
+                }
+                case SELECTED -> {
+                    images.clear();
+                    resetBcbModel(mediaCollection.path(), null);
+                    filteredImages.setPredicate(null);
+                    images.addAll(mediaCollection.medias());
 
-                currentCatalog.set(mediaCollection);
-                // TODO: Warm thumbnail cache ?
+                    currentCatalog.set(mediaCollection);
+                    // TODO: Warm thumbnail cache ?
+                }
+                case READY -> {
+                }
             }
-            case READY -> {
-            }
-        }
+        });
     }
 
     @EventListener(CollectionUpdatedEvent.class)
     public void updateImages(CollectionUpdatedEvent event) {
-        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}'",
-                 event.getMediaCollectionId(),
-                 event.getNewItems().size(),
-                 event.getDeletedItems().size());
-        images.addAll(event.getNewItems());
-        images.removeAll(event.getDeletedItems());
+        runLater(() -> {
+            log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}'",
+                     event.getMediaCollectionId(),
+                     event.getNewItems().size(),
+                     event.getDeletedItems().size());
+            images.addAll(event.getNewItems());
+            images.removeAll(event.getDeletedItems());
+
+        });
     }
 
     @EventListener(CollectionSubPathSelectedEvent.class)
     public void updateImages(CollectionSubPathSelectedEvent event) {
-        log.info("MediaCollection subpath selected: root: {}, entry: {}", event.getRoot(), event.getEntry());
-        resetBcbModel(event.getRoot(), event.getEntry());
-        final var path = event.getRoot().resolve(event.getEntry());
-        filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
+        runLater(() -> {
+            log.info("MediaCollection subpath selected: root: {}, entry: {}", event.getRoot(), event.getEntry());
+            resetBcbModel(event.getRoot(), event.getEntry());
+            final var path = event.getRoot().resolve(event.getEntry());
+            filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);
-        taskService.sendFxEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
+            taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
+        });
     }
 
     private MediaCollection getCurrentCatalog() {
@@ -243,25 +250,28 @@ public class GalleryController extends FxInitOnce {
 
     @EventListener(PhotoSelectedEvent.class)
     public void updatePhotoSelected(PhotoSelectedEvent event) {
-        final var source = Optional.ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
-        final var mf     = event.getMf();
-        log.atDebug().log(() -> {
-            Optional<Thumbnail> cache = persistenceService.getThumbnailFromCache(mf);
-            Optional<Thumbnail> db    = persistenceService.findByPathOrId(mf);
-            return "Photo selected: root: '%s', '%s', from: '%s'. Thumbhnail DB id: '%s', type: '%s'. Tumbhnail Cache, id: '%s'"
-                    .formatted(mf.getId(),
-                               mf.getFileName(),
-                               source.getSimpleName(),
-                               db.map(Thumbnail::getMfId).orElse(-1L),
-                               mf.getThumbnailType(),
-                               cache.map(Thumbnail::getMfId).orElse(-1L));
+        runLater(() -> {
+
+            final var source = Optional.ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
+            final var mf     = event.getMf();
+            log.atDebug().log(() -> {
+                Optional<Thumbnail> cache = persistenceService.getThumbnailFromCache(mf);
+                Optional<Thumbnail> db    = persistenceService.findByPathOrId(mf);
+                return "Photo selected: root: '%s', '%s', from: '%s'. Thumbhnail DB id: '%s', type: '%s'. Tumbhnail Cache, id: '%s'"
+                        .formatted(mf.getId(),
+                                   mf.getFileName(),
+                                   source.getSimpleName(),
+                                   db.map(Thumbnail::getMfId).orElse(-1L),
+                                   mf.getThumbnailType(),
+                                   cache.map(Thumbnail::getMfId).orElse(-1L));
+            });
+
+            // TODO: it works with only one item selected.
+
+            TreeItem<Path> root    = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
+            Path           subPath = root.getValue().relativize(mf.getFullPath());
+            resetBcbModel(root.getValue(), subPath);
         });
-
-        // TODO: it works with only one item selected.
-
-        TreeItem<Path> root    = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
-        Path           subPath = root.getValue().relativize(mf.getFullPath());
-        resetBcbModel(root.getValue(), subPath);
     }
 
     Task<List<MediaFile>> fillGallery(final List<MediaFile> files) {
@@ -346,7 +356,7 @@ public class GalleryController extends FxInitOnce {
     }
 
     private void escapePressed(KeyEvent event) {
-        taskService.sendFxEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
+        taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
     }
 
     public void expandGridCell(MouseEvent mouseEvent) {
@@ -396,9 +406,11 @@ public class GalleryController extends FxInitOnce {
 
     @EventListener(GalleryRefreshEvent.class)
     public void refreshGrid(GalleryRefreshEvent event) {
-        if (event.getMediaCollectionId() == Optional.ofNullable(currentCatalog.get()).map(MediaCollection::id).orElse(event.getMediaCollectionId())) {
-            log.info("Refresh collection id: '{}'", event.getMediaCollectionId());
-            gridView.refreshItems();
-        }
+        runLater(() -> {
+            if (event.getMediaCollectionId() == Optional.ofNullable(currentCatalog.get()).map(MediaCollection::id).orElse(event.getMediaCollectionId())) {
+                log.info("Refresh collection id: '{}'", event.getMediaCollectionId());
+                gridView.refreshItems();
+            }
+        });
     }
 }

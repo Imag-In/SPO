@@ -178,7 +178,7 @@ public class MediaLoader {
         var catalog = event.getMediaCollection();
         log.info("warmThumbnailCache for '{}', size: {}", event.getMediaCollection().path(), event.getMediaCollection().medias().size());
 //        var mediaFiles = List.copyOf(catalog.medias());
-        taskService.sendFxEvent(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this));
+        taskService.sendEvent(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this));
 
 //        var mediaFiles = List.copyOf(catalog.medias().stream().sorted(Comparator.comparing(MediaFile::getOriginalDate)).limit(500).toList());
 //
@@ -244,7 +244,7 @@ public class MediaLoader {
 
     Void mayRegenerateThubmnail(MediaCollection mediaCollection) {
         if (catalogToReGenerate.contains(mediaCollection.id())) {
-            taskService.sendFxEvent(new GenerateThumbnailEvent(mediaCollection, this));
+            taskService.sendEvent(new GenerateThumbnailEvent(mediaCollection, this));
             catalogToReGenerate.remove(mediaCollection.id());
         }
         return null;
@@ -279,21 +279,17 @@ public class MediaLoader {
                              .toArray(new CompletableFuture[0]);
 
         CompletableFuture.allOf(futures)
-                         .thenAcceptAsync(unused -> log.info("Thumbnail extraction finished for '{}', '{}', files, it took: '{}'",
+                         .thenAccept(unused -> log.info("Thumbnail extraction finished for '{}', '{}', files, it took: '{}'",
                                                              mediaCollection.path(),
                                                              mediaFiles.size(),
                                                              AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())
                          ))
-                         .thenAcceptAsync(u -> catalogToReGenerate.add(mediaCollection.id()))
-                         .thenAcceptAsync(u -> taskService.sendFxEvent(new GalleryRefreshEvent(mediaCollection.id(), this)))
-                         .thenAcceptAsync(u -> {
-//                             if (sendReadyEvent) {
-                             taskService.sendFxEvent(new CollectionEvent(persistenceService.getMediaCollection(mediaCollection.id()),
-                                                                         CollectionEvent.EventType.READY,
-                                                                         this));
-//                             }
-                         })
-                         .thenAcceptAsync(u -> taskService.sendEvent(new GenerateThumbnailEvent(mediaCollection, this)))
+                         .thenAccept(u -> catalogToReGenerate.add(mediaCollection.id()))
+                         .thenAccept(u -> taskService.sendEvent(new GalleryRefreshEvent(mediaCollection.id(), this)))
+                         .thenAccept(u -> taskService.sendEvent(new CollectionEvent(persistenceService.getMediaCollection(mediaCollection.id()),
+                                                                                    CollectionEvent.EventType.READY,
+                                                                                    this)))
+                         .thenAccept(u -> taskService.sendEvent(new GenerateThumbnailEvent(mediaCollection, this)))
         ;
     }
 
@@ -380,8 +376,8 @@ public class MediaLoader {
                              .toArray(new CompletableFuture[0]);
 
         CompletableFuture.allOf(futures)
-                         .thenAcceptAsync(u -> taskService.sendFxEvent(new GalleryRefreshEvent(mediaCollection.id(), this)))
-                         .thenAcceptAsync(u -> log.info("Thumbnail generation finished for '{}', '{}', files, it took: '{}'",
+                         .thenAccept(u -> taskService.sendEvent(new GalleryRefreshEvent(mediaCollection.id(), this)))
+                         .thenAccept(u -> log.info("Thumbnail generation finished for '{}', '{}', files, it took: '{}'",
                                                         mediaCollection.path(),
                                                         mediaFiles.size(),
                                                         AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())
