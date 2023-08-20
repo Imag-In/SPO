@@ -23,13 +23,9 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.event.EventListener;
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.threeten.extra.AmountFormats;
 
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -42,12 +38,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 
 @Component
 @Slf4j
 public class MediaLoader {
-    public static Image               LOADING              = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
     public static double              PRIMARY_SCREEN_WIDTH = Screen.getPrimary().getVisualBounds().getWidth();
     private final IThumbnailGenerator thumbnailGenerator;
     private final ImageLoader         imageLoader;
@@ -149,15 +145,6 @@ public class MediaLoader {
         return thumbnail;
     }
 
-    private static Image loadImage(URL url) {
-        try {
-            return new Image(url.toURI().toString(), 64, 64, true, true);
-        }
-        catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     @Cacheable(cacheNames = ImageInConfiguration.FULL_SIZE, unless = "#result == null")
     public Image loadImage(MediaFile mediaFile) {
         if (mediaFile == null) {
@@ -210,7 +197,7 @@ public class MediaLoader {
                                           }
                                           updateProgress(entry.getKey(), files.size());
                                       }
-                                      return new ThumbnailRes(entry.getValue(), thumbnail, false);
+                                      return new ThumbnailRes(entry.getValue(), thumbnail);
                                   })
                                   .filter(tr -> tr.thumbnail() != null)
                                   .toList();
@@ -256,7 +243,7 @@ public class MediaLoader {
         }
     }
 
-    record ThumbnailRes(MediaFile mf, Thumbnail thumbnail, boolean requirePersistance) {
+    record ThumbnailRes(MediaFile mf, Thumbnail thumbnail) {
     }
 
     @EventListener(ExtractThumbnailEvent.class)
@@ -280,9 +267,9 @@ public class MediaLoader {
 
         CompletableFuture.allOf(futures)
                          .thenAccept(unused -> log.info("Thumbnail extraction finished for '{}', '{}', files, it took: '{}'",
-                                                             mediaCollection.path(),
-                                                             mediaFiles.size(),
-                                                             AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())
+                                                        mediaCollection.path(),
+                                                        mediaFiles.size(),
+                                                        AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())
                          ))
                          .thenAccept(u -> catalogToReGenerate.add(mediaCollection.id()))
                          .thenAccept(u -> taskService.sendEvent(new GalleryRefreshEvent(mediaCollection.id(), this)))
@@ -305,43 +292,46 @@ public class MediaLoader {
                 log.debug("thumbnailBatchExtraction a batch of '{}' thumbnails for: {}", size, mediaCollection.path());
                 updateTitle("Thumbnail fast extraction for '%s' image, batch: %d/%d".formatted(size, e.getKey(), nbBatches));
                 updateProgress(0, size);
-                return StreamEx.ofSubLists(EntryStream.of(files).toList(), 20)
-                               .map(ts -> ts.stream()
-                                            .map(entry -> {
-                                                // First Memory Cache
-                                                var mf = entry.getValue();
-                                                updateProgress(entry.getKey(), size);
-                                                updateMessage("Extract thumbnail from: " + mf.getFullPath().getFileName());
-                                                log.debug("Extract thumbnail from: '{}'", mf.getFullPath().getFileName());
-                                                var thumbnail = thCache.get(mf, Thumbnail.class);
-                                                if (thumbnail == null) {
-                                                    // Second Database Cache
-                                                    thumbnail = persistenceService.findByPathOrId(mf).orElse(null);
-                                                    if (thumbnail == null) {
-                                                        thumbnail = extractThumbnail(mf);
-                                                        return new ThumbnailRes(entry.getValue(), thumbnail, true);
-                                                    } else {
-                                                        // TODO: set type
-                                                        return new ThumbnailRes(entry.getValue(), thumbnail, false);
+                var updatedFiles = StreamEx.ofSubLists(EntryStream.of(files).toList(), 20)
+                                           .map(ts -> ts.stream()
+                                                        .map(entry -> {
+                                                            // First Memory Cache
+                                                            var mf = entry.getValue();
+                                                            updateProgress(entry.getKey(), size);
+                                                            updateMessage("Extract thumbnail from: " + mf.getFullPath().getFileName());
+                                                            log.debug("Extract thumbnail from: '{}'", mf.getFullPath().getFileName());
+                                                            var thumbnail = thCache.get(mf, Thumbnail.class);
+                                                            if (thumbnail == null) {
+                                                                // Second Database Cache
+                                                                thumbnail = persistenceService.findByPathOrId(mf).orElse(null);
+                                                                if (thumbnail == null) {
+                                                                    thumbnail = extractThumbnail(mf);
+                                                                    return new ThumbnailRes(entry.getValue(), thumbnail);
+                                                                } else {
+                                                                    // TODO: set type
+                                                                    return new ThumbnailRes(entry.getValue(), thumbnail);
+                                                                }
+                                                            } else {
+                                                                // TODO: set type
+                                                                return new ThumbnailRes(entry.getValue(), thumbnail);
+                                                            }
+                                                        })
+                                                        .toList())
+                                           .flatMap(trs -> {
+                                                        var thumbToBePersisted = trs.stream()
+                                                                                    .map(ThumbnailRes::thumbnail)
+                                                                                    .toList();
+                                                        persistenceService.saveAll(thumbToBePersisted);
+
+                                                        return trs.stream()
+                                                                  .peek(tu -> tu.mf.setThumbnailType(tu.thumbnail.getOrigin()))
+                                                                  .map(ThumbnailRes::mf);
                                                     }
-                                                } else {
-                                                    // TODO: set type
-                                                    return new ThumbnailRes(entry.getValue(), thumbnail, false);
-                                                }
-                                            })
-                                            .toList())
-                               .flatMap(trs -> {
-                                            var toBePersisted = trs.stream()
-//                                                                   .filter(tr -> tr.thumbnail != null)
-//                                                                   .filter(tr -> tr.thumbnail.getImage() != null)
-                                                                   .filter(tr -> tr.requirePersistance)
-                                                                   .map(ThumbnailRes::thumbnail)
-                                                                   .toList();
-                                            persistenceService.saveAll(toBePersisted);
-                                            return trs.stream().map(tr -> tr.mf);
-                                        }
-                               )
-                               .toList();
+                                           )
+                                           .toList();
+                persistenceService.updateCollection(mediaCollection.id(), updatedFiles, emptyList(), false);
+                mediaCollection.replaceMedias(updatedFiles);
+                return updatedFiles;
             }
         };
     }
@@ -352,18 +342,12 @@ public class MediaLoader {
     @EventListener(GenerateThumbnailEvent.class)
     public void generateThumbnails(GenerateThumbnailEvent event) {
         var catalog = event.getMediaCollection();
-        try {
-            Thread.sleep(1000);
-        }
-        catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        generateThumbnails(catalog.medias(), catalog);
+        generateThumbnails(catalog, catalog.medias());
     }
 
-    private void generateThumbnails(Collection<MediaFile> mediaFiles, @Nullable MediaCollection mediaCollection) {
+    private void generateThumbnails(final MediaCollection mediaCollection, final Collection<MediaFile> mediaFiles) {
         final var start      = System.currentTimeMillis();
-        final var mfFiltered = List.copyOf(mediaFiles.stream().filter(mf -> mf.getThumbnailType() == EThumbnailType.ABSENT).toList());
+        final var mfFiltered = mediaFiles.stream().filter(mf -> mf.getThumbnailType() == EThumbnailType.ABSENT).toList();
 
         log.info("Generate high quality thumbnail, nbEntries: {}", mfFiltered.size());
         if (mfFiltered.isEmpty()) {
@@ -372,57 +356,61 @@ public class MediaLoader {
 
         final var batches = Collections.splitByCoreWithIdx(mfFiltered);
         var futures = batches.values()
-                             .map(e -> taskService.supply(thumbnailBatchGeneration(ofNullable(mediaCollection), e, batches.splitCount())))
+                             .map(e -> taskService.supply(thumbnailBatchGeneration(mediaCollection, e, batches.splitCount())))
                              .toArray(new CompletableFuture[0]);
 
         CompletableFuture.allOf(futures)
                          .thenAccept(u -> taskService.sendEvent(new GalleryRefreshEvent(mediaCollection.id(), this)))
                          .thenAccept(u -> log.info("Thumbnail generation finished for '{}', '{}', files, it took: '{}'",
-                                                        mediaCollection.path(),
-                                                        mediaFiles.size(),
-                                                        AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())
+                                                   mediaCollection.path(),
+                                                   mediaFiles.size(),
+                                                   AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())
                          ));
     }
 
-    Task<List<MediaFile>> thumbnailBatchGeneration(Optional<MediaCollection> mediaCollection,
+    Task<List<MediaFile>> thumbnailBatchGeneration(final MediaCollection mediaCollection,
                                                    final Map.Entry<Integer, List<MediaFile>> files,
                                                    int nbBatches) {
         return new AbstractTask<>() {
             @Override
             protected List<MediaFile> call() throws Exception {
                 var size = files.getValue().size();
-                log.debug("thumbnailBatchGeneration a batch of '{}' thumbnails for: {}",
-                          size,
-                          mediaCollection.map(MediaCollection::path).map(Path::toString).orElse("Updates Auto-Detection"));
+                log.debug("thumbnailBatchGeneration a batch of '{}' thumbnails for: {}", size, mediaCollection.path());
                 updateTitle("Thumbnail high quality generation for '%s' images, batch %d/%d".formatted(size, files.getKey(), nbBatches));
                 updateProgress(0, size);
-                return StreamEx.ofSubLists(EntryStream.of(files.getValue()).toList(), 20)
-                               .map(ts -> ts.stream()
-                                            .map(entry -> {
-                                                var mf = entry.getValue();
-                                                updateProgress(entry.getKey(), size);
-                                                return ofNullable(thCache.get(mf, Thumbnail.class))
-                                                        .or(() -> persistenceService.findByPathOrId(mf))
-                                                        .filter(t -> mf.getThumbnailType() != EThumbnailType.GENERATED)
-                                                        .map(t -> new ThumbnailUpdate(mf, t, thumbnailGenerator.generate(t)))
-                                                        .orElse(null);
-                                            })
-                                            .filter(Objects::nonNull)
-                                            .filter(tu -> tu.thumbnail() != null)
-                                            .peek(tu -> tu.thumbnail.setImage(tu.update))
-                                            .peek(tu -> tu.mf.setThumbnailType(EThumbnailType.GENERATED))
-                                            .toList())
-                               .flatMap(tu -> {
-                                            log.debug("Update '{}' high res thumbnails", tu.size());
-                                            persistenceService.saveAll(tu.stream()
-                                                                         .map(ThumbnailUpdate::thumbnail)
-                                                                         .toList());
-                                            return tu.stream()
-                                                     .peek(tr -> thCache.evict(tr.mf)) // to make sure grid reload last version.
-                                                     .map(tr -> tr.mf);
-                                        }
-                               )
-                               .toList();
+                var updatedFiles = StreamEx.ofSubLists(EntryStream.of(files.getValue()).toList(), 20)
+                                           .map(ts -> ts.stream()
+                                                        .map(entry -> {
+                                                            var mf = entry.getValue();
+                                                            updateProgress(entry.getKey(), size);
+                                                            var tu = ofNullable(thCache.get(mf, Thumbnail.class))
+                                                                    .or(() -> persistenceService.findByPathOrId(mf))
+                                                                    .filter(t -> mf.getThumbnailType() != EThumbnailType.GENERATED)
+                                                                    .map(t -> new ThumbnailUpdate(mf, t, thumbnailGenerator.generate(t)))
+                                                                    .orElse(null);
+                                                            return tu;
+                                                        })
+                                                        .filter(Objects::nonNull)
+                                                        .filter(tu -> tu.update() != null)
+                                                        .peek(tu -> tu.thumbnail.setOrigin(EThumbnailType.GENERATED))
+                                                        .peek(tu -> tu.thumbnail.setImage(tu.update))
+                                                        .toList())
+                                           .flatMap(tus -> {
+                                                        log.debug("Update '{}' high res thumbnails", tus.size());
+                                                        persistenceService.saveAll(tus.stream()
+                                                                                      .map(ThumbnailUpdate::thumbnail)
+                                                                                      .toList());
+
+                                                        return tus.stream()
+                                                                  .peek(tu -> tu.mf.setThumbnailType(tu.thumbnail.getOrigin()))
+                                                                  .peek(tr -> thCache.evict(tr.mf)) // to make sure grid reload latest version.
+                                                                  .map(tr -> tr.mf);
+                                                    }
+                                           ).toList();
+                persistenceService.updateCollection(mediaCollection.id(), updatedFiles, emptyList(), false);
+                mediaCollection.replaceMedias(updatedFiles);
+
+                return updatedFiles;
             }
 //
 //            @Override

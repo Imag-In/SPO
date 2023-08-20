@@ -131,11 +131,13 @@ public class PersistenceService {
     }
 
     public Thumbnail saveOrUpdate(Thumbnail thumbnail) {
-        var dbThumbnail = thMapper.map(thumbnail);
+        synchronized (thumbRepo) {
+            var dbThumbnail = thMapper.map(thumbnail);
 
-        thumbRepo.save(dbThumbnail);
+            thumbRepo.save(dbThumbnail);
 
-        return thumbnail;
+            return thumbnail;
+        }
     }
 
     public List<Thumbnail> saveAll(Collection<Thumbnail> thumbnails) {
@@ -145,6 +147,15 @@ public class PersistenceService {
                         .stream()
                         .map(thMapper::map)
                         .toList();
+    }
+
+    public List<MediaFile> saveAllMediaFiles(Collection<MediaFile> mediaFiles) {
+        return mfRepo.saveAllAndFlush(mediaFiles.stream()
+                                                .map(mfMapper::map)
+                                                .toList())
+                     .stream()
+                     .map(mfMapper::map)
+                     .toList();
     }
 
 //    public Optional<MediaFile> findByPath(Path p) {
@@ -164,23 +175,23 @@ public class PersistenceService {
     }
 
     @Transactional
-    public synchronized void updateCollection(int id, Collection<MediaFile> toBeAdded, Collection<MediaFile> toBeDeleted) {
-        synchronized (collectionRepo) {
-            var mc         = getMediaCollection(id);
-            var mediaFiles = mc.medias();
+    public synchronized void updateCollection(int id, Collection<MediaFile> toBeAdded, Collection<MediaFile> toBeDeleted, boolean sendRefreshEvent) {
+        var mc         = getMediaCollection(id);
+        var mediaFiles = mc.medias();
 
-            mediaFiles.removeIf(toBeDeleted::contains);
-            var newRaws = toBeAdded.stream()
-                                   .map(mfMapper::map)
-                                   .peek(dbMf -> dbMf.setMediaCollection(collectionRepo.getReferenceById(id)))
-                                   .toList();
+        mediaFiles.removeIf(toBeDeleted::contains);
+        var newRaws = toBeAdded.stream()
+                               .map(mfMapper::map)
+                               .peek(dbMf -> dbMf.setMediaCollection(collectionRepo.getReferenceById(id)))
+                               .toList();
 
-            newRaws = mfRepo.saveAll(newRaws);
-            List<MediaFile> toBeAddedSaved = newRaws.stream().map(mfMapper::map).toList();
-            mediaFiles.addAll(toBeAddedSaved);
-            // just to delete values
-            mc = saveCollection(mc);
-            mcCache.put(mc.id(), mc);
+        newRaws = mfRepo.saveAllAndFlush(newRaws);
+        List<MediaFile> toBeAddedSaved = newRaws.stream().map(mfMapper::map).toList();
+        mediaFiles.removeAll(toBeAdded);
+        mediaFiles.addAll(toBeAddedSaved);
+        // just to delete values
+        mc = saveCollection(mc);
+        mcCache.put(mc.id(), mc);
 
 //            var newUpdated = mc.medias().stream()
 //                               .filter(toBeAdded::contains)
@@ -188,8 +199,10 @@ public class PersistenceService {
 //            var delUpdated = mc.medias().stream()
 //                               .filter(toBeDeleted::contains)
 //                               .toList();
+        if (sendRefreshEvent) {
             taskService.sendEvent(new CollectionUpdatedEvent(mc.id(), toBeAddedSaved, toBeDeleted, this));
         }
+
     }
 
 //    public List<Thumbnail> saveAll(List<Thumbnail> values) {

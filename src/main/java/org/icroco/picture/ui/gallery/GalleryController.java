@@ -100,7 +100,7 @@ public class GalleryController extends FxInitOnce {
                  gridView.getCellHeight(),
                  gridView.getHorizontalCellSpacing(),
                  gridView.getVerticalCellSpacing());
-//        sortedImages.setComparator(Comparator.comparing(MediaFile::getOriginalDate));
+        sortedImages.setComparator(Comparator.comparing(MediaFile::getOriginalDate));
         gridView.setItems(sortedImages);
 //        gridCellWidth = Optional.ofNullable(pref.getUserPreference().getGrid().getCellWidth()).orElse((int)gridView.getCellWidth());
 //        gridCellHeight = Optional.ofNullable(pref.getUserPreference().getGrid().getCellHeight()).orElse((int)gridView.getCellHeight());
@@ -257,13 +257,16 @@ public class GalleryController extends FxInitOnce {
             log.atDebug().log(() -> {
                 Optional<Thumbnail> cache = persistenceService.getThumbnailFromCache(mf);
                 Optional<Thumbnail> db    = persistenceService.findByPathOrId(mf);
-                return "Photo selected: root: '%s', '%s', from: '%s'. Thumbhnail DB id: '%s', type: '%s'. Tumbhnail Cache, id: '%s'"
+                return "Photo selected: root: '%s', '%s', '%s', from: '%s'. Thumbhnail DB id: '%s', type: '%s'. Tumbhnail Cache, id: '%s', type: '%s'"
                         .formatted(mf.getId(),
                                    mf.getFileName(),
+                                   mf.getThumbnailType(),
                                    source.getSimpleName(),
                                    db.map(Thumbnail::getMfId).orElse(-1L),
-                                   mf.getThumbnailType(),
-                                   cache.map(Thumbnail::getMfId).orElse(-1L));
+                                   db.map(Thumbnail::getOrigin).orElse(null),
+                                   cache.map(Thumbnail::getMfId).orElse(-1L),
+                                   cache.map(Thumbnail::getOrigin).orElse(null)
+                        );
             });
 
             // TODO: it works with only one item selected.
@@ -409,7 +412,11 @@ public class GalleryController extends FxInitOnce {
         runLater(() -> {
             if (event.getMediaCollectionId() == Optional.ofNullable(currentCatalog.get()).map(MediaCollection::id).orElse(event.getMediaCollectionId())) {
                 log.info("Refresh collection id: '{}'", event.getMediaCollectionId());
-                gridView.refreshItems();
+                MediaCollection mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
+                images.clear();
+                images.addAll(mc.medias());
+                currentCatalog.set(mc);
+//                gridView.refreshItems();
             }
         });
     }

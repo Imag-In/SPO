@@ -90,7 +90,8 @@ public class CollectionManager {
         var now = LocalDate.now();
         persistenceService.updateCollection(collectionId,
                                             toBeAdded.stream().map(p -> create(now, p)).toList(),
-                                            toBeDeleted.stream().map(p -> MediaFile.builder().fullPath(p).build()).toList());
+                                            toBeDeleted.stream().map(p -> MediaFile.builder().fullPath(p).build()).toList(),
+                                            true);
         // TODO: Process hasBeenModified.
     }
 

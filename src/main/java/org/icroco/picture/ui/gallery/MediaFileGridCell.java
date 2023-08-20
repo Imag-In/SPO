@@ -12,6 +12,7 @@ import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.util.CustomGridView;
 import org.icroco.picture.ui.util.GridCellSelectionModel;
+import org.icroco.picture.ui.util.ImageUtils;
 import org.icroco.picture.ui.util.MediaLoader;
 
 @Slf4j
@@ -34,7 +35,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         this.isExpandCell = isExpandCell;
         this.selectionModel = selectionModel;
         getStyleClass().add("image-grid-cell");
-        loadingView = new ImageView(MediaLoader.LOADING);
+        loadingView = new ImageView(ImageUtils.LOADING);
         loadingView.maxHeight(128);
         loadingView.maxWidth(128);
         imageView = new ImageView();
@@ -60,9 +61,9 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
             if (item.isLoadedInCache() || MediaFileGridCellFactory.isCellVisible(grid, this)) {
                 setImage(mediaLoader.getCachedValue(item)
                                     .map(Thumbnail::getImage)
-                                    .orElse(MediaLoader.LOADING));
+                                    .orElse(ImageUtils.getNoThumbnailImage()));
             } else {
-                setImage(MediaLoader.LOADING);
+                setImage(ImageUtils.getNoThumbnailImage());
             }
             setGraphic(root);
 //            if (MediaFileGridCellFactory.isCellVisible(grid, this)) {

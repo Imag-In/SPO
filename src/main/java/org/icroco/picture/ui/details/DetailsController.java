@@ -9,6 +9,7 @@ import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.CollectionEvent;
 import org.icroco.picture.ui.event.PhotoSelectedEvent;
+import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.Tag;
 import org.icroco.picture.ui.util.MediaLoader;
 import org.springframework.context.event.EventListener;
@@ -56,6 +57,8 @@ public class DetailsController extends FxInitOnce {
         runLater(() -> {
 
             var mf = event.getMf();
+            thumbnailType.setText(EThumbnailType.ABSENT.toString());
+            thumbnailSize.setText("");
             mediaLoader.getCachedValue(mf).ifPresent(t -> {
                 thumbnailType.setText(mf.getThumbnailType().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
                 if (t.getImage() != null) {

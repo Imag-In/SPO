@@ -9,17 +9,11 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
+import org.icroco.picture.ui.util.ImageUtils;
 import org.icroco.picture.ui.util.MediaLoader;
 
 @Slf4j
 public class MediaFileListCell extends ListCell<MediaFile> {
-    private final static ImageView loadingView = new ImageView(MediaLoader.LOADING);
-
-    static {
-        loadingView.maxWidth(128);
-        loadingView.maxHeight(128);
-    }
-
     @Getter
     private final ImageView   imageView;
     private final MediaLoader mediaLoader;
@@ -28,7 +22,7 @@ public class MediaFileListCell extends ListCell<MediaFile> {
     public MediaFileListCell(MediaLoader mediaLoader) {
         this.mediaLoader = mediaLoader;
         getStyleClass().add("image-grid-cell");
-        imageView = new ImageView(MediaLoader.LOADING);
+        imageView = new ImageView(ImageUtils.LOADING);
         imageView.fitHeightProperty().bind(this.heightProperty().subtract(3));
         imageView.fitWidthProperty().bind(this.widthProperty().subtract(3));
         imageView.setPreserveRatio(true);
@@ -36,7 +30,6 @@ public class MediaFileListCell extends ListCell<MediaFile> {
 //        root = Borders.wrap(this.imageView).lineBorder().innerPadding(5, 5, 5,5).color(Color.WHITE).build().build();
         root = new StackPane(imageView);
 //        imageView.setVisible(false);
-
     }
 
     @Override
@@ -50,7 +43,7 @@ public class MediaFileListCell extends ListCell<MediaFile> {
 //            if (item.isLoaded()) {
             setImage(mediaLoader.getCachedValue(item)
                                 .map(Thumbnail::getImage)
-                                .orElse(MediaLoader.LOADING));
+                                .orElse(ImageUtils.LOADING));
 //            } else {
 //                setImage(MediaLoader.LOADING);
 //            }

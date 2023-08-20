@@ -82,13 +82,4 @@ public class TaskService {
             eventBus.multicastEvent(event);
         });
     }
-
-    public static void fxRun(Runnable runnable) {
-        if (Platform.isFxApplicationThread()) {
-            runnable.run();
-        } else {
-            Platform.runLater(runnable);
-        }
-    }
-
 }

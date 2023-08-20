@@ -10,4 +10,12 @@ public class FxPlatformExecutor implements Executor {
     public void execute(@NonNull Runnable command) {
         Platform.runLater(command);
     }
+
+    public static void fxRun(Runnable runnable) {
+        if (Platform.isFxApplicationThread()) {
+            runnable.run();
+        } else {
+            Platform.runLater(runnable);
+        }
+    }
 }

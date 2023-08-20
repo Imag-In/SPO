@@ -1,10 +1,16 @@
 package org.icroco.picture.ui.util;
 
+import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelFormat;
+import javafx.scene.text.Font;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.lambda.Unchecked;
 
 import javax.imageio.*;
 import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
@@ -16,15 +22,62 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static javafx.embed.swing.SwingFXUtils.fromFXImage;
 import static javafx.embed.swing.SwingFXUtils.toFXImage;
+import static org.icroco.picture.ui.util.thumbnail.IThumbnailGenerator.DEFAULT_THUMB_SIZE;
 
 @Slf4j
 @UtilityClass
 public class ImageUtils {
+    public static volatile Image                  LOADING      = loadImage(MediaLoader.class.getResource("/images/loading-icon-png-9.jpg"));
+    public static          AtomicReference<Image> NO_THUMBNAIL = new AtomicReference<>(null);
+
+    private static Image loadImage(URL url) {
+        return Unchecked.function((URL u) -> new Image(u.toURI().toString(), 64, 64, true, true),
+                                  t -> log.error("Cannot load image at url: '{}'", url, t))
+                        .apply(url);
+    }
+
+    public static Image getNoThumbnailImage() {
+        if (Platform.isFxApplicationThread()) {
+            var image = NO_THUMBNAIL.get();
+            if (NO_THUMBNAIL.get() == null) {
+                image = createImage("No thumbail\navailable\ninside image.");
+                NO_THUMBNAIL.set(image);
+            }
+            return image;
+        } else {
+            return LOADING;
+        }
+    }
+
+    static Image createImage(String text) {
+        int             width  = DEFAULT_THUMB_SIZE.width();
+        int             height = DEFAULT_THUMB_SIZE.height();
+        Canvas          canvas = new javafx.scene.canvas.Canvas(width, height);
+        GraphicsContext gc     = canvas.getGraphicsContext2D();
+
+        gc.setFill(javafx.scene.paint.Color.GRAY);
+        gc.setStroke(javafx.scene.paint.Color.BLACK);
+        gc.setFont(Font.font("Arial", 24));
+        gc.fillText(text, 20, (height / 2D) - 24 * 1.5);
+        gc.strokeLine(0, 0, width, height);
+        gc.strokeLine(0, height, width, 0);
+
+        gc.strokeLine(0, 0, width, 0);
+        gc.strokeLine(width, 0, width, height);
+        gc.strokeLine(width, height, 0, height);
+        gc.strokeLine(0, height, 0, 0);
+
+        final SnapshotParameters params = new SnapshotParameters();
+        params.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        return canvas.snapshot(params, null);
+    }
 
 //    public static Image fromByte(byte[] rawPixels) {
 //        javafx.embed.swing.SwingFXUtils.toFXImage(bufferedImage, null)
@@ -82,7 +135,7 @@ public class ImageUtils {
     }
 
     public static byte[] mapAsJpg(Image image) {
-        var           bi     = SwingFXUtils.fromFXImage(image, null);
+        var bi = SwingFXUtils.fromFXImage(image, null);
 
         BufferedImage result = new BufferedImage((int) image.getWidth(), (int) image.getHeight(), BufferedImage.TYPE_INT_RGB);
         result.createGraphics().drawImage(bi, 0, 0, Color.WHITE, null);
