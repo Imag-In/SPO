@@ -2,6 +2,7 @@ package org.icroco.picture.ui.collections;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
@@ -64,29 +65,41 @@ public class CollectionController extends FxInitOnce {
     private final IMetadataExtractor    metadataExtractor;
     private final IHashGenerator        hashGenerator;
     private final BooleanProperty       disablePathActions = new SimpleBooleanProperty(false);
+    private final SimpleIntegerProperty catalogSizeProp    = new SimpleIntegerProperty(0);
+
     @FXML
-    private       Accordion             mediaCollections;
+    public  Label     catalogSize;
     @FXML
-    private       VBox                  layout;
+    private Accordion mediaCollections;
     @FXML
-    private       Label                 header;
+    private VBox      layout;
     @FXML
-    private       Label                 addCollection;
+    private Label     header;
     @FXML
-    private       HBox                  collectionHeader;
+    private Label     addCollection;
+    @FXML
+    private HBox      collectionHeader;
+
 
     protected void initializedOnce() {
         addCollection.prefHeightProperty().bind(header.heightProperty());
-        addCollection.setVisible(false);
+        addCollection.setVisible(true);
         addCollection.disableProperty().bind(disablePathActions);
-        layout.setOnMouseEntered(event -> {
-            addCollection.setVisible(true);
-        });
+        layout.setOnMouseEntered(event -> addCollection.setVisible(true));
         layout.setOnMouseExited(event -> {
-//            Nodes.hideNodeAfterTime(addCollection, 2, true);
-            addCollection.setVisible(false);
+            if (!mediaCollections.getPanes().isEmpty()) {
+                addCollection.setVisible(false);
+            }
         });
         mediaCollections.expandedPaneProperty().addListener(this::titlePaneChanged);
+        catalogSizeProp.addListener((observable, oldValue, newValue) -> {
+            if (newValue.intValue() <= 0) {
+                catalogSize.setText("");
+            } else {
+                catalogSize.setText(newValue.toString());
+            }
+        });
+        catalogSize.prefHeightProperty().bind(header.heightProperty());
     }
 
     private void titlePaneChanged(ObservableValue<? extends TitledPane> observableValue, TitledPane oldValue, TitledPane newValue) {
@@ -125,6 +138,7 @@ public class CollectionController extends FxInitOnce {
         rootItem.setExpanded(true);
         treeView.setCellFactory(param -> new TextFieldTreeCell<>(new PathConverter()));
         log.info("Add collection: {}", mediaCollection.path());
+        catalogSizeProp.set(catalogSizeProp.get() + mediaCollection.medias().size());
 
         mediaCollection.subPaths().forEach(c -> {
             var p = mediaCollection.path().relativize(c.name());
@@ -196,6 +210,7 @@ public class CollectionController extends FxInitOnce {
                      dlg.resultProperty()
                         .addListener(o -> {
                             if (dlg.getResult() == ButtonType.OK) {
+                                catalogSizeProp.set(catalogSizeProp.get() - mediaCollection.medias().size());
                                 deleteCollection(tpe);
                             }
                         });

@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.dialog.ExceptionDialog;
 import org.icroco.javafx.AbstractJavaFxApplication;
 import org.icroco.javafx.SceneReadyEvent;
@@ -23,6 +24,7 @@ import java.awt.*;
 @SpringBootApplication
 //@EnableAsync(proxyTargetClass = true)
 @ImportAutoConfiguration(classes = ViewAutoConfiguration.class)
+@Slf4j
 public class ImagInApp extends AbstractJavaFxApplication {
     public static final String IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG = "/images/128px-GNOME_Photos_logo_2019.svg.png";
     // Application startup analysis: https://www.amitph.com/spring-boot-startup-monitoring/#applicationstartup_metrics_with_java_flight_recorder
@@ -56,12 +58,20 @@ public class ImagInApp extends AbstractJavaFxApplication {
                                  userPref.getUserPreference().getMainWindow().getHeight());
     }
 
-    @EventListener
+    @EventListener(SceneReadyEvent.class)
     public void sceneReady(SceneReadyEvent event) {
-        if (Boolean.getBoolean("SCENIC")) {
-//            ScenicView.show(event.getScene());
+        log.info("READY, source: {}", event.getSource());
+        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
+            log.info("call: {}", element);
         }
     }
+
+//    @Override
+//    protected void postStart(Stage primaryStage) {
+//        if (Boolean.getBoolean("SCENIC")) {
+//            ScenicView.show(primaryStage.getScene());
+//        }
+//    }
 
     @Override
     protected void showErrorToUser(final Throwable throwable) {

@@ -9,13 +9,19 @@
 <VBox fx:id="layout" maxWidth="200.0" minWidth="200.0" prefWidth="200.0" stylesheets="/css/dark.css" xmlns="http://javafx.com/javafx/17.0.2-ea"
       xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.icroco.picture.ui.collections.CollectionController">
     <HBox fx:id="collectionHeader">
-        <Label fx:id="header" text="Collections" AnchorPane.leftAnchor="5.0" HBox.hgrow="ALWAYS">
+        <Label fx:id="header" text="Collections" alignment="BOTTOM_LEFT" AnchorPane.leftAnchor="5.0" HBox.hgrow="ALWAYS">
             <font>
                 <Font size="24.0"/>
             </font>
         </Label>
+        <Label fx:id="catalogSize" alignment="BOTTOM_LEFT" text="123" AnchorPane.leftAnchor="5.0" HBox.hgrow="ALWAYS">
+            <font>
+                <Font size="12.0"/>
+            </font>
+        </Label>
         <Region HBox.hgrow="ALWAYS"/>
-        <Label fx:id="addCollection" alignment="CENTER" contentDisplay="CENTER" onMouseClicked="#newCollection" prefHeight="24.0">
+
+        <Label fx:id="addCollection" alignment="CENTER" contentDisplay="CENTER" onMouseClicked="#newCollection" HBox.hgrow="ALWAYS">
             <graphic>
                 <FontIcon id="plusCollection"/>
             </graphic>
