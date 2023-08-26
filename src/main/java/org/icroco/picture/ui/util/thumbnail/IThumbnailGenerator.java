@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 public interface IThumbnailGenerator {
 
     //    Dimension DEFAULT_THUMB_SIZE = new Dimension(600, 600);
-    Dimension DEFAULT_THUMB_SIZE = new Dimension(240, 240);
+    Dimension DEFAULT_THUMB_SIZE = new Dimension(320, 320);
 
     record ThumbnailOutput(Path p, byte[] data, Throwable error) {}
 

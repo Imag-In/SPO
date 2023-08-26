@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: MIT
+
+.navigation-page {
+
+  -fx-background-color: -color-bg-default;
+  -fx-alignment: TOP_CENTER;
+
+  >.tabs {
+    -fx-alignment: CENTER_LEFT;
+    -fx-background-insets: 0, 0 0 1 0;
+    -fx-background-color: -color-border-default, -color-bg-default;
+
+    >.label {
+      -fx-padding: 8 12 8 12;
+      -fx-background-insets: 0, 0 0 1 0;
+      -fx-background-color: -color-border-default, -color-bg-default;
+      -fx-text-fill: -color-fg-muted;
+
+      &:selected {
+        -fx-background-insets: 0, 0 0 3 0;
+        -fx-background-color: -color-accent-emphasis, -color-bg-default;
+        -fx-text-fill: -color-fg-default;
+      }
+
+      &:hover,
+      &:hover:selected {
+        -fx-text-fill: -color-fg-default;
+      }
+    }
+  }
+}

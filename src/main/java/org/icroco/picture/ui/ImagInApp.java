@@ -1,5 +1,6 @@
 package org.icroco.picture.ui;
 
+import atlantafx.base.theme.NordDark;
 import javafx.application.Application;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
@@ -7,7 +8,6 @@ import javafx.stage.WindowEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.dialog.ExceptionDialog;
 import org.icroco.javafx.AbstractJavaFxApplication;
-import org.icroco.javafx.SceneReadyEvent;
 import org.icroco.javafx.ViewAutoConfiguration;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.util.Error;
@@ -16,13 +16,14 @@ import org.icroco.picture.ui.util.Nodes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.awt.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
-@SpringBootApplication
-//@EnableAsync(proxyTargetClass = true)
+@SpringBootApplication()
+@EnableAsync
 @ImportAutoConfiguration(classes = ViewAutoConfiguration.class)
 @Slf4j
 public class ImagInApp extends AbstractJavaFxApplication {
@@ -32,6 +33,8 @@ public class ImagInApp extends AbstractJavaFxApplication {
 
     @Autowired
     UserPreferenceService userPref;
+
+    AtomicBoolean scenicOnce = new AtomicBoolean(true);
 
     @Override
     protected void preStart(final Stage primaryStage) {
@@ -58,20 +61,12 @@ public class ImagInApp extends AbstractJavaFxApplication {
                                  userPref.getUserPreference().getMainWindow().getHeight());
     }
 
-    @EventListener(SceneReadyEvent.class)
-    public void sceneReady(SceneReadyEvent event) {
-        log.info("READY, source: {}", event.getSource());
-        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
-            log.info("call: {}", element);
-        }
+    @Override
+    protected void postStart(Stage primaryStage) {
+//        Application.setUserAgentStylesheet(new NordLight().getUserAgentStylesheet());
+        Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
     }
 
-//    @Override
-//    protected void postStart(Stage primaryStage) {
-//        if (Boolean.getBoolean("SCENIC")) {
-//            ScenicView.show(primaryStage.getScene());
-//        }
-//    }
 
     @Override
     protected void showErrorToUser(final Throwable throwable) {

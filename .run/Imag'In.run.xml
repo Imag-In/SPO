@@ -2,7 +2,7 @@
     <configuration default="false" name="Imag'In" type="Application" factoryName="Application">
         <option name="MAIN_CLASS_NAME" value="org.icroco.picture.ui.ImagInApp"/>
         <module name="imag-in"/>
-        <option name="VM_PARAMETERS" value="-Djava.library.path=/opt/libjpeg-turbo/lib -DSCENIC=true"/>
+        <option name="VM_PARAMETERS" value="-Djava.library.path=/opt/libjpeg-turbo/lib -DSCENIC=false"/>
         <extension name="coverage">
             <pattern>
                 <option name="PATTERN" value="org.icroco.picture.ui.*"/>

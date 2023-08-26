@@ -7,6 +7,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldTreeCell;
@@ -29,13 +30,12 @@ import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.task.AbstractTask;
 import org.icroco.picture.ui.task.TaskService;
-import org.icroco.picture.ui.util.Constant;
-import org.icroco.picture.ui.util.FileUtil;
-import org.icroco.picture.ui.util.Nodes;
-import org.icroco.picture.ui.util.PathConverter;
+import org.icroco.picture.ui.util.*;
 import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.icroco.picture.ui.util.metadata.MetadataHeader;
+import org.icroco.picture.ui.util.widget.FxUtil;
+import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -76,13 +76,17 @@ public class CollectionController extends FxInitOnce {
     @FXML
     private Label     header;
     @FXML
-    private Label     addCollection;
+    private Button addCollection;
     @FXML
     private HBox      collectionHeader;
 
 
     protected void initializedOnce() {
-        addCollection.prefHeightProperty().bind(header.heightProperty());
+        layout.getStyleClass().add("header");
+        collectionHeader.setAlignment(Pos.BASELINE_LEFT);
+        header.getStyleClass().add(Styles.TITLE_3);
+        catalogSize.getStyleClass().add(Styles.TEXT_SMALL);
+        FxUtil.styleCircleButton(addCollection);
         addCollection.setVisible(true);
         addCollection.disableProperty().bind(disablePathActions);
         layout.setOnMouseEntered(event -> addCollection.setVisible(true));
@@ -99,7 +103,7 @@ public class CollectionController extends FxInitOnce {
                 catalogSize.setText(newValue.toString());
             }
         });
-        catalogSize.prefHeightProperty().bind(header.heightProperty());
+//        catalogSize.prefHeightProperty().bind(header.heightProperty());
     }
 
     private void titlePaneChanged(ObservableValue<? extends TitledPane> observableValue, TitledPane oldValue, TitledPane newValue) {
@@ -150,9 +154,11 @@ public class CollectionController extends FxInitOnce {
         title.setUserData(mediaCollection.id());
         title.setTooltip(new Tooltip(mediaCollection.path() + " (id: " + mediaCollection.id() + ")"));
 
-        FontIcon delete = new FontIcon();
-        delete.setId("deleteCollection");
-        Label label = new Label("", delete);
+
+        FontIcon graphic = new FontIcon(FontAwesomeRegular.TRASH_ALT);
+        graphic.setIconSize(12);
+        graphic.setId("deleteCollection");
+        Label label = new Label("", graphic);
         Nodes.addRightGraphic(title, label);
         label.setOnMouseClicked(this::onDeleteCollection);
 

@@ -38,6 +38,10 @@
         <virtualizedfx.version>11.9.3</virtualizedfx.version>
         <wellbehavedfx.version>0.3.3</wellbehavedfx.version>
         <metadata-extractor.version>2.18.0</metadata-extractor.version>
+        <atlantafx-base.version>2.0.1</atlantafx-base.version>
+        <sass-cli-maven-plugin.version>1.0.3</sass-cli-maven-plugin.version>
+        <scenicview.version>17.0.2</scenicview.version>
+        <jsr305.version>3.0.2</jsr305.version>
     </properties>
 
     <dependencyManagement>
@@ -61,6 +65,11 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>io.github.mkpaz</groupId>
+            <artifactId>atlantafx-base</artifactId>
+            <version>${atlantafx-base.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.openpnp</groupId>
             <artifactId>opencv</artifactId>
@@ -182,7 +191,16 @@
         </dependency>
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-material2-pack</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-javafx</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>${jsr305.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -203,6 +221,11 @@
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-media</artifactId>
             <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.palexdev</groupId>
+            <artifactId>scenicview</artifactId>
+            <version>${scenicview.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -352,6 +375,29 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+            <!-- compile SCSS -->
+            <plugin>
+                <groupId>us.hebi.sass</groupId>
+                <artifactId>sass-cli-maven-plugin</artifactId>
+                <version>${sass-cli-maven-plugin.version}</version>
+                <configuration>
+                    <args>
+                        <arg>
+                            ${project.basedir}/src/main/resources/styles/scss/index.scss:${project.build.directory}/classes/styles/index.css
+                        </arg>
+                        <arg>--no-source-map</arg>
+                    </args>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>run-sass</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>com.github.ekryd.sortpom</groupId>

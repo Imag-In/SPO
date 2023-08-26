@@ -1,5 +1,6 @@
 package org.icroco.picture.ui.util;
 
+import atlantafx.base.controls.Spacer;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -9,7 +10,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -157,23 +157,23 @@ public class Nodes {
 
         // Set padding on the left side to avoid overlapping the TitlePane's expand arrow
         // We will also pad the right side
-        contentPane.setPadding(new Insets(0, 10, 0, 5));
+        contentPane.setPadding(new Insets(0, 2, 0, 5));
 
         // Now, since the TitlePane's graphic node generally has a fixed size, we need to bind our
         // content pane's width to match the width of the TitledPane. This will account for resizing as well
-        contentPane.minWidthProperty().bind(tp.widthProperty().subtract(labels.length * 25));
+        contentPane.minWidthProperty().bind(tp.widthProperty().subtract(labels.length * 40));
         tp.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         // Create a Region to act as a separator for the title and button
-        HBox region = new HBox();
-        region.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(region, Priority.ALWAYS);
+//        HBox region = new HBox();
+//        region.setMaxWidth(Double.MAX_VALUE);
+//        HBox.setHgrow(region, Priority.ALWAYS);
 
         for (Label l : labels) {
-            l.prefHeightProperty().bind(tp.prefHeightProperty());
+//            l.prefHeightProperty().bind(tp.prefHeightProperty());
             l.setVisible(false);
         }
         // Add our nodes to the contentPane
-        contentPane.getChildren().addAll(new Label(tp.getText()), region);
+        contentPane.getChildren().addAll(new Label(tp.getText()), new Spacer());
 
         contentPane.setOnMouseEntered(event -> {
             for (Label l : labels) {

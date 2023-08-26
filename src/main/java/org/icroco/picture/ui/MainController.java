@@ -7,12 +7,15 @@ import javafx.stage.Screen;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.javafx.FxInitOnce;
 import org.icroco.javafx.FxViewBinding;
+import org.icroco.javafx.SceneReadyEvent;
 import org.icroco.picture.ui.collections.CollectionView;
 import org.icroco.picture.ui.details.DetailsView;
 import org.icroco.picture.ui.gallery.GalleryView;
 import org.icroco.picture.ui.navigation.NavigationView;
 import org.icroco.picture.ui.status.StatusBarView;
+import org.scenicview.ScenicView;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 
 @FxViewBinding(id = "main", fxmlLocation = "main.fxml", isPrimary = true)
 @Slf4j
@@ -27,7 +30,6 @@ public class MainController extends FxInitOnce {
     CollectionView collectionView;
     @Autowired
     DetailsView    detailsView;
-
 
     @FXML
     BorderPane main;
@@ -60,5 +62,16 @@ public class MainController extends FxInitOnce {
 //            }
 //            event.consume();
 //        });
+    }
+
+    @EventListener(SceneReadyEvent.class)
+    public void sceneReady(SceneReadyEvent event) {
+        log.info("READY, source: {}", event.getSource());
+        if (Boolean.getBoolean("SCENIC")) {
+            ScenicView.show(event.getScene());
+        }
+//        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
+//            log.info("call: {}", element);
+//        }
     }
 }
