@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.HBox?>
 <HBox fx:id="container" alignment="CENTER" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.icroco.picture.ui.navigation.NavigationController">
    <children>
        <Label fx:id="importLbl" text="Import"/>
-       <Label fx:id="organizeLbl" text="Collections"/>
+       <Label fx:id="organizeLbl" text="Organize"/>
        <Label fx:id="peopleLbl" text="People"/>
        <Label fx:id="exportLbl" text="Export"/>
    </children>
+    <opaqueInsets>
+        <Insets/>
+    </opaqueInsets>
+    <padding>
+        <Insets bottom="10.0"/>
+    </padding>
 </HBox>

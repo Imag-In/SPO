@@ -1,41 +1,47 @@
 package org.icroco.picture.ui.navigation;
 
+import atlantafx.base.controls.Spacer;
 import atlantafx.base.theme.Styles;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.PseudoClass;
-import javafx.fxml.FXML;
+import javafx.event.ActionEvent;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.javafx.FxInitOnce;
+import org.icroco.picture.ui.util.widget.FxUtil;
+import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.material2.Material2OutlinedMZ;
+import org.springframework.stereotype.Component;
 
 
 @Slf4j
-//@FxViewBinding(id = "navigation", fxmlLocation = "nav.fxml")
-@RequiredArgsConstructor
-@Deprecated
-public class NavigationController extends FxInitOnce {
+@Component
+public class NavigationView extends HBox {
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
 
-    @FXML
-    HBox container;
-    public        Label                 importLbl;
-    public        Label                 organizeLbl;
-    public        Label                 peopleLbl;
-    public        Label                 exportLbl;
+    Label importLbl   = new Label();
+    Label organizeLbl = new Label();
+    Label peopleLbl   = new Label();
+    Label exportLbl   = new Label();
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
 
-    @Override
-    protected void initializedOnce() {
-        container.getStyleClass().remove("root");
-        container.getStyleClass().add("tabs");
-        container.setAlignment(Pos.CENTER);
+    public NavigationView() {
+        getStyleClass().add("tabs");
+        setAlignment(Pos.CENTER);
+        setPadding(new Insets(0, 0, 10, 0));
 
+        organizeLbl.setText("Organize");
+        importLbl.setDisable(false);
+        importLbl.setText("Import");
         importLbl.setDisable(true);
+        peopleLbl.setText("People");
         peopleLbl.setDisable(true);
+        exportLbl.setText("Export");
         exportLbl.setDisable(true);
 
         organizeLbl.pseudoClassStateChanged(SELECTED, false);
@@ -45,7 +51,6 @@ public class NavigationController extends FxInitOnce {
         initTabLabel(peopleLbl);
         initTabLabel(exportLbl);
 
-        container.setAlignment(Pos.CENTER);
         selectedTab.addListener((obs, old, val) -> {
 //            if (val == codeTab) {
 //                stateToggle.setDisable(true);
@@ -64,7 +69,16 @@ public class NavigationController extends FxInitOnce {
         });
 
         selectedTab.set(organizeLbl);
+        var settings = new Button(null, new FontIcon(Material2OutlinedMZ.SETTINGS));
+        settings.setTooltip(new Tooltip("Settings"));
+        FxUtil.styleCircleButton(settings).setOnAction(this::openSettings);
 
+        getChildren().addAll(new Spacer(), importLbl, organizeLbl, peopleLbl, exportLbl, new Spacer(), settings);
+
+    }
+
+    private void openSettings(ActionEvent e) {
+        log.info("Open Settings");
     }
 
     private Label initTabLabel(Label label) {
@@ -72,7 +86,7 @@ public class NavigationController extends FxInitOnce {
 //        label.setPrefWidth(120);
         label.setAlignment(Pos.CENTER);
         label.getStyleClass().addAll(Styles.TITLE_2);
-
+        label.setPadding(new Insets(0, 10, 0, 10));
 
         return label;
     }
