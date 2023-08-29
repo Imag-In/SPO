@@ -116,7 +116,7 @@ public class CollectionController extends FxInitOnce {
         }
     }
 
-    //    @Async(ImageInConfiguration.FX_EXECUTOR)
+    //        @Async(ImageInConfiguration.FX_EXECUTOR)
     @EventListener(CollectionsLoadedEvent.class)
     private void initCollections(CollectionsLoadedEvent event) {
         runLater(() -> {

@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 
 @SpringBootApplication()
-@EnableAsync
+@EnableAsync(proxyTargetClass = true)
 @ImportAutoConfiguration(classes = ViewAutoConfiguration.class)
 @Slf4j
 public class ImagInApp extends AbstractJavaFxApplication {
@@ -52,7 +52,7 @@ public class ImagInApp extends AbstractJavaFxApplication {
                 taskbar.setIconImage(dockIcon);
             }
         }
-        primaryStage.setTitle("Image'In");
+        primaryStage.setTitle("Imag'In");
 //        primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/images/240px-GNOME_Photos_logo_2019.svg.png")));
         Nodes.setStageSizeAndPos(primaryStage,
                                  userPref.getUserPreference().getMainWindow().getPosX(),
@@ -65,6 +65,7 @@ public class ImagInApp extends AbstractJavaFxApplication {
     protected void postStart(Stage primaryStage) {
 //        Application.setUserAgentStylesheet(new NordLight().getUserAgentStylesheet());
         Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
+
     }
 
 

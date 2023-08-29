@@ -13,9 +13,12 @@ import org.icroco.picture.ui.details.DetailsView;
 import org.icroco.picture.ui.gallery.GalleryView;
 import org.icroco.picture.ui.navigation.NavigationView;
 import org.icroco.picture.ui.status.StatusBarView;
+import org.icroco.picture.ui.util.Resources;
 import org.scenicview.ScenicView;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
+
+import java.util.prefs.BackingStoreException;
 
 @FxViewBinding(id = "main", fxmlLocation = "main.fxml", isPrimary = true)
 @Slf4j
@@ -48,8 +51,12 @@ public class MainController extends FxInitOnce {
             log.info("Screen: {}", screen);
         });
         //main.setLeft(viewManager.loadView());
-        main.setTop(navView.scene().getRoot());
+        main.getStyleClass().remove("root");
+        main.getStyleClass().add("navigation-page");
+
+        main.setTop(navView);
         main.setBottom(statusView.scene().getRoot());
+
         selectContainer.setLeft(collectionView.scene().getRoot());
         selectContainer.setCenter(galleryView.scene().getRoot());
         selectContainer.setRight(detailsView.scene().getRoot());
@@ -65,8 +72,13 @@ public class MainController extends FxInitOnce {
     }
 
     @EventListener(SceneReadyEvent.class)
-    public void sceneReady(SceneReadyEvent event) {
+    public void sceneReady(SceneReadyEvent event) throws BackingStoreException {
         log.info("READY, source: {}", event.getSource());
+        event.getScene().getStylesheets().addAll(Resources.resolve("/styles/index.css"));
+
+        Resources.getPreferences().put("FOO", "BAR");
+        Resources.getPreferences().flush();
+        Resources.printPreferences(Resources.getPreferences(), "");
         if (Boolean.getBoolean("SCENIC")) {
             ScenicView.show(event.getScene());
         }

@@ -5,14 +5,14 @@
   -fx-background-color: -color-bg-default;
   -fx-alignment: TOP_CENTER;
 
-  >.tabs {
-    -fx-alignment: CENTER_LEFT;
-    -fx-background-insets: 0, 0 0 1 0;
+  .tabs {
+    -fx-alignment: CENTER;
+    -fx-background-insets: 0, 0 0 0 0;
     -fx-background-color: -color-border-default, -color-bg-default;
 
     >.label {
       -fx-padding: 8 12 8 12;
-      -fx-background-insets: 0, 0 0 1 0;
+      -fx-background-insets: 0, 0 0 0 0;
       -fx-background-color: -color-border-default, -color-bg-default;
       -fx-text-fill: -color-fg-muted;
 
