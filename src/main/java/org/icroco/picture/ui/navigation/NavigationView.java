@@ -69,7 +69,10 @@ public class NavigationView extends HBox {
         });
 
         selectedTab.set(organizeLbl);
-        var settings = new Button(null, new FontIcon(Material2OutlinedMZ.SETTINGS));
+        FontIcon settingsIcon = new FontIcon(Material2OutlinedMZ.SETTINGS);
+        settingsIcon.setIconSize(24);
+
+        var settings = new Button(null, settingsIcon);
         settings.setTooltip(new Tooltip("Settings"));
         FxUtil.styleCircleButton(settings).setOnAction(this::openSettings);
 
@@ -85,7 +88,7 @@ public class NavigationView extends HBox {
         label.setOnMouseClicked(e -> selectedTab.set(label));
 //        label.setPrefWidth(120);
         label.setAlignment(Pos.CENTER);
-        label.getStyleClass().addAll(Styles.TITLE_2);
+        label.getStyleClass().add(Styles.TITLE_2);
         label.setPadding(new Insets(0, 10, 0, 10));
 
         return label;

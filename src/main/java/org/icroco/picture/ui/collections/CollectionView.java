@@ -1,25 +1,26 @@
 package org.icroco.picture.ui.collections;
 
+import atlantafx.base.controls.Spacer;
+import jakarta.annotation.PostConstruct;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
-import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldTreeCell;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.util.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
-import org.icroco.javafx.FxInitOnce;
 import org.icroco.picture.ui.event.*;
 import org.icroco.picture.ui.event.CollectionEvent.EventType;
 import org.icroco.picture.ui.model.MediaCollection;
@@ -35,8 +36,10 @@ import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.icroco.picture.ui.util.metadata.MetadataHeader;
 import org.icroco.picture.ui.util.widget.FxUtil;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
+import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -53,11 +56,10 @@ import java.util.stream.Collectors;
 import static javafx.application.Platform.runLater;
 
 @Slf4j
-//@Component
+@Component
 //@FxViewBinding(id = "mediaCollection", fxmlLocation = "collection.fxml")
 @RequiredArgsConstructor
-@Deprecated
-public class CollectionController extends FxInitOnce {
+public class CollectionView extends VBox {
     private final TaskService           taskService;
     private final PersistenceService    persistenceService;
     private final UserPreferenceService pref;
@@ -66,35 +68,33 @@ public class CollectionController extends FxInitOnce {
     private final BooleanProperty       disablePathActions = new SimpleBooleanProperty(false);
     private final SimpleIntegerProperty catalogSizeProp    = new SimpleIntegerProperty(0);
 
-    @FXML
-    public  Label     catalogSize;
-    @FXML
-    private Accordion mediaCollections;
-    @FXML
-    private VBox      layout;
-    @FXML
-    private Label     header;
-    @FXML
-    private Button addCollection;
-    @FXML
-    private HBox      collectionHeader;
+    public        Label     catalogSize      = new Label();
+    private final Accordion mediaCollections = new Accordion();
+    private final Button    addCollection    = new Button();
+    private final HBox      collectionHeader = new HBox();
 
 
+    @PostConstruct
     protected void initializedOnce() {
-        layout.getStyleClass().add("header");
+        getStyleClass().add("header");
+        VBox.setVgrow(mediaCollections, Priority.ALWAYS);
+
         collectionHeader.setAlignment(Pos.BASELINE_LEFT);
-        header.getStyleClass().add(Styles.TITLE_3);
-        catalogSize.getStyleClass().add(Styles.TEXT_SMALL);
+
+
         FxUtil.styleCircleButton(addCollection);
+        addCollection.setGraphic(new FontIcon(FontAwesomeSolid.PLUS));
         addCollection.setVisible(true);
         addCollection.disableProperty().bind(disablePathActions);
-        layout.setOnMouseEntered(event -> addCollection.setVisible(true));
-        layout.setOnMouseExited(event -> {
+        setOnMouseEntered(event -> addCollection.setVisible(true));
+        setOnMouseExited(event -> {
             if (!mediaCollections.getPanes().isEmpty()) {
                 addCollection.setVisible(false);
             }
         });
         mediaCollections.expandedPaneProperty().addListener(this::titlePaneChanged);
+
+        catalogSize.getStyleClass().add(Styles.TEXT_SMALL);
         catalogSizeProp.addListener((observable, oldValue, newValue) -> {
             if (newValue.intValue() <= 0) {
                 catalogSize.setText("");
@@ -103,6 +103,11 @@ public class CollectionController extends FxInitOnce {
             }
         });
 //        catalogSize.prefHeightProperty().bind(header.heightProperty());
+        Label header = new Label("Collections");
+        header.getStyleClass().add(Styles.TITLE_3);
+        collectionHeader.getChildren().addAll(header, catalogSize, new Spacer(), addCollection);
+
+        getChildren().addAll(collectionHeader, mediaCollections);
     }
 
     private void titlePaneChanged(ObservableValue<? extends TitledPane> observableValue, TitledPane oldValue, TitledPane newValue) {
@@ -167,7 +172,7 @@ public class CollectionController extends FxInitOnce {
         treeView.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
             if (newValue != null) {
                 log.debug("Tree view selected: {} ", newValue.getValue());
-                taskService.sendEvent(new CollectionSubPathSelectedEvent(mediaCollection.path(), newValue.getValue(), CollectionController.this));
+                taskService.sendEvent(new CollectionSubPathSelectedEvent(mediaCollection.path(), newValue.getValue(), CollectionView.this));
             }
         });
 
@@ -231,10 +236,10 @@ public class CollectionController extends FxInitOnce {
         // TODO: Clean Thumbnail Cache and DB.
     }
 
-    @FXML
+    //    @FXML
     private void newCollection(MouseEvent event) {
         final DirectoryChooser directoryChooser  = new DirectoryChooser();
-        final File             selectedDirectory = directoryChooser.showDialog(header.getScene().getWindow());
+        final File             selectedDirectory = directoryChooser.showDialog(getScene().getWindow());
 
         if (selectedDirectory != null) {
             var rootPath = selectedDirectory.toPath().normalize();

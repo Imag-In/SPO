@@ -57,7 +57,7 @@ public class MainController extends FxInitOnce {
         main.setTop(navView);
         main.setBottom(statusView.scene().getRoot());
 
-        selectContainer.setLeft(collectionView.scene().getRoot());
+        selectContainer.setLeft(collectionView);
         selectContainer.setCenter(galleryView.scene().getRoot());
         selectContainer.setRight(detailsView.scene().getRoot());
 //        main.setRight(taskView.scene().getRoot());
