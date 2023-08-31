@@ -1,5 +1,7 @@
 package org.icroco.picture.ui.gallery;
 
+import atlantafx.base.controls.ProgressSliderSkin;
+import jakarta.annotation.PostConstruct;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -10,7 +12,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.concurrent.Task;
-import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.CacheHint;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
@@ -18,10 +20,11 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ZoomEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import lombok.RequiredArgsConstructor;
 import org.controlsfx.control.BreadCrumbBar;
-import org.icroco.javafx.FxInitOnce;
 import org.icroco.picture.ui.event.*;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
@@ -34,9 +37,11 @@ import org.icroco.picture.ui.util.MediaLoader;
 import org.icroco.picture.ui.util.Nodes;
 import org.icroco.picture.ui.util.widget.Zoom;
 import org.icroco.picture.ui.util.widget.ZoomDragPane;
+import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.springframework.context.event.EventListener;
 import org.springframework.lang.Nullable;
+import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -48,40 +53,28 @@ import static org.fxmisc.wellbehaved.event.EventPattern.keyPressed;
 import static org.fxmisc.wellbehaved.event.InputMap.consume;
 import static org.fxmisc.wellbehaved.event.InputMap.sequence;
 
-//@FxViewBinding(id = "gallery", fxmlLocation = "gallery.fxml")
+@Component
 @RequiredArgsConstructor
-@Deprecated
-public class GalleryController extends FxInitOnce {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(GalleryController.class);
+public class GalleryView extends StackPane {
+    private static final Logger log = org.slf4j.LoggerFactory.getLogger(GalleryView.class);
 
     private final MediaLoader           mediaLoader;
     private final UserPreferenceService pref;
     private final TaskService           taskService;
     private final PersistenceService    persistenceService;
 
-    @FXML
-    private Label                     nbImages;
-    @FXML
-    private Label                     expand;
-    @FXML
-    private Slider                    zoomThumbnails;
-    @FXML
-    private StackPane                 layout;
-    @FXML
-    private BorderPane                gallery;
-    @FXML
-    private BorderPane                carousel;
-    @FXML
-    private BreadCrumbBar<Path>       breadCrumbBar;
-    @FXML
-    private CustomGridView<MediaFile> gridView;
+    private final BorderPane gallery  = new BorderPane();
+    private final BorderPane carousel = new BorderPane();
+
+    private final Slider zoomThumbnails = createTickSlider();
+
+    private BreadCrumbBar<Path>       breadCrumbBar  = new BreadCrumbBar<>();
+    private CustomGridView<MediaFile> gridView       = new CustomGridView<>();
     private ZoomDragPane              photo;
     //    @FXML
 //    private ImageView              photo;
-    @FXML
-    private StackPane                 photoContainer;
-    @FXML
-    private ListView<MediaFile>       carouselIcons;
+    private StackPane                 photoContainer = new StackPane();
+    private ListView<MediaFile>       carouselIcons  = new ListView<>();
 
     private final BooleanProperty                       expandCell     = new SimpleBooleanProperty(true);
     private final ObservableList<MediaFile>             images         = FXCollections.observableArrayList(MediaFile.extractor());
@@ -92,7 +85,7 @@ public class GalleryController extends FxInitOnce {
     private       double                                zoomLevel      = 0;
     private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
 
-    @Override
+    @PostConstruct
     protected void initializedOnce() {
 
         log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
@@ -110,6 +103,8 @@ public class GalleryController extends FxInitOnce {
         gridView.setCacheHint(CacheHint.SPEED);
         gridView.setCellWidth(gridCellWidth);
         gridView.setCellHeight(gridCellHeight);
+        gridView.setHorizontalCellSpacing(0D);
+        gridView.setVerticalCellSpacing(0D);
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService, expandCell));
         gridView.setOnZoom(this::zoomOnGrid);
 
@@ -125,6 +120,10 @@ public class GalleryController extends FxInitOnce {
         photo.setOnMouseClicked(this::onPhotoClick);
         photo.setFocusTraversable(true);
         photoContainer.getChildren().add(photo);
+
+        carousel.setCenter(photoContainer);
+        carousel.setBottom(carouselIcons);
+
         org.fxmisc.wellbehaved.event.Nodes.addInputMap(photo,
                                                        sequence(consume(keyPressed(KeyCode.ESCAPE), this::escapePressed)
                                                        ));
@@ -139,22 +138,63 @@ public class GalleryController extends FxInitOnce {
 //        photo.fitHeightProperty().bind(photoContainer.heightProperty().subtract(10));
 //        photo.fitWidthProperty().bind(photoContainer.widthProperty().subtract(10));
 
-        zoomThumbnails.setSnapToTicks(true);
-        zoomThumbnails.valueProperty().addListener((ObservableValue<? extends Number> ov, Number oldValue, Number newValue) -> {
-            zoomLevel = newValue.doubleValue() / 10;
-            gridView.setCellWidth(gridCellWidth + 10 * zoomLevel);
-            gridView.setCellHeight(gridCellHeight + 10 * zoomLevel);
-            carouselIcons.setFixedCellSize(gridView.getCellWidth());
-        });
-        nbImages.textProperty().bind(Bindings.size(images).map(String::valueOf));
+
         breadCrumbBar.setCrumbFactory(item -> new BreadCrumbBar.BreadCrumbButton(item.getValue() != null ? item.getValue().getFileName().toString() : ""));
         breadCrumbBar.setAutoNavigationEnabled(false);
 //        breadCrumbBar.setOnCrumbAction(bae -> log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!"));
 
-        expand.setUserData(expandCell);
         gridView.addScrollAndKeyhandler();
         expandCell.addListener((observable, oldValue, newValue) -> gridView.refreshItems());
+
+        gallery.setCenter(gridView);
+        gallery.setBottom(createBottomBar());
+        carousel.setVisible(false);
+        getChildren().addAll(gallery, carousel);
+
         runLater(() -> gridView.requestFocus());
+    }
+
+
+    HBox createBottomBar() {
+        HBox bar = new HBox();
+        bar.setAlignment(Pos.CENTER);
+        bar.getStyleClass().setAll("tool-bar");
+
+
+        Label expand = new Label();
+        expand.setPrefHeight(10D);
+        FontIcon icon = new FontIcon();
+        icon.setIconSize(32);
+        icon.setId("fitGridCell");
+        expand.setGraphic(icon);
+        expand.setOnMouseClicked(this::expandGridCell);
+
+//        zoomThumbnails.getStyleClass().add(Styles.SMALL);
+        zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
+        zoomThumbnails.valueProperty().addListener((ObservableValue<? extends Number> ov, Number oldValue, Number newValue) -> {
+            zoomLevel = newValue.doubleValue();
+            gridView.setCellWidth(gridCellWidth + 10 * zoomLevel);
+            gridView.setCellHeight(gridCellHeight + 10 * zoomLevel);
+            carouselIcons.setFixedCellSize(gridView.getCellWidth());
+        });
+        HBox.setHgrow(breadCrumbBar, Priority.ALWAYS);
+        Label nbImages = new Label();
+        nbImages.textProperty().bind(Bindings.size(images).map(number -> number + " files"));
+
+        bar.getChildren().addAll(expand, zoomThumbnails, breadCrumbBar, nbImages);
+
+        return bar;
+    }
+
+    private Slider createTickSlider() {
+        var slider = new Slider(0, 10, 0);
+//        slider.setShowTickLabels(true);
+//        slider.setShowTickMarks(true);
+        slider.setMajorTickUnit(1);
+        slider.setBlockIncrement(1);
+        slider.setMinorTickCount(5);
+        slider.setSnapToTicks(true);
+        return slider;
     }
 
     private void onPhotoClick(MouseEvent event) {
@@ -364,13 +404,13 @@ public class GalleryController extends FxInitOnce {
 
     public void expandGridCell(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 1) {
-            var b = (BooleanProperty) expand.getUserData();
-            if (b.getValue()) {
-                expand.getGraphic().setId("fitGridCell");
+            Label l = (Label) mouseEvent.getSource();
+            if (expandCell.getValue()) {
+                l.getGraphic().setId("fitGridCell");
             } else {
-                expand.getGraphic().setId("fas-expand-alt");
+                l.getGraphic().setId("fas-expand-alt");
             }
-            b.set(!b.getValue());
+            expandCell.set(!expandCell.getValue());
 //            log.info("expand");
 //            FontIcon fi = new FontIcon("fas-expand-alt");
 //            fi.setId("fas-expand-alt");
