@@ -7,12 +7,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.TaskProgressView;
 import org.icroco.javafx.FxInitOnce;
-import org.icroco.javafx.FxViewBinding;
 
 
 @Slf4j
-@FxViewBinding(id = TaskController.TASK, fxmlLocation = "task.fxml")
+//@FxViewBinding(id = TaskController.TASK, fxmlLocation = "task.fxml")
 @RequiredArgsConstructor
+@Deprecated
 public class TaskController extends FxInitOnce {
     public static final String TASK = "task";
 

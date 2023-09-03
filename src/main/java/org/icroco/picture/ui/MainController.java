@@ -55,7 +55,7 @@ public class MainController extends FxInitOnce {
         main.getStyleClass().add("navigation-page");
 
         main.setTop(navView);
-        main.setBottom(statusView.scene().getRoot());
+        main.setBottom(statusView);
 
         selectContainer.setLeft(collectionView);
         selectContainer.setCenter(galleryView);

@@ -1,28 +1,28 @@
 package org.icroco.picture.ui.status;
 
+import atlantafx.base.controls.Spacer;
+import atlantafx.base.theme.Styles;
+import jakarta.annotation.PostConstruct;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleListProperty;
 import javafx.collections.ListChangeListener;
 import javafx.concurrent.Task;
-import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.util.Duration;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.PopOver;
-import org.controlsfx.control.StatusBar;
-import org.icroco.javafx.FxInitOnce;
 import org.icroco.picture.ui.persistence.MediaFileRepository;
 import org.icroco.picture.ui.task.TaskView;
-import org.icroco.picture.ui.util.Nodes;
-import org.icroco.picture.ui.util.widget.ProgressIndicatorBar;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,37 +30,35 @@ import java.time.temporal.ChronoUnit;
 
 
 @Slf4j
-//@FxViewBinding(id = "status_bar", fxmlLocation = "status.fxml")
 @RequiredArgsConstructor
-@Deprecated
-public class StatusBarController extends FxInitOnce {
+@Component
+public class StatusBarView extends HBox {
     private final MediaFileRepository mediaFileRepository;
     private final TaskView            taskController;
     private final TaskScheduler       scheduler;
 
-    @FXML
-    @Getter
-    private StatusBar container;
-    private PopOver   popOver;
+    private PopOver popOver;
 
-    private       ProgressBar          memoryStatus;
-    private       ProgressIndicatorBar indicator = new ProgressIndicatorBar("");
-    private final Tooltip              tooltip   = new Tooltip("");
+    private       ProgressBar memoryStatus;
+    private final Tooltip     tooltip       = new Tooltip("");
+    private final Label       progressLabel = new Label();
+    private final ProgressBar smallBar      = new ProgressBar(0.5);
 
-    @Override
+    @PostConstruct
     protected void initializedOnce() {
-        container.textProperty().set("");
+        setAlignment(Pos.CENTER);
         memoryStatus = new ProgressBar(0);
         memoryStatus.setPrefWidth(100);
-        container.setSkin(new CustomStatusBarSkin(container));
+
+        smallBar.setPrefWidth(250);
+        smallBar.getStyleClass().add(Styles.SMALL);
+        progressLabel.setPrefWidth(100);
         SimpleListProperty<Task<?>> list = new SimpleListProperty<>(taskController.getTasks());
-        container.progressProperty().bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
+        smallBar.progressProperty().bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
         taskController.getTasks().addListener(getTaskListChangeListener());
-        initPopOver(taskController);
+        initPopOver(smallBar);
         Label memory = new Label("Memory ");
         memory.setTooltip(tooltip);
-        container.getLeftItems().add(memory);
-        container.getLeftItems().add(memoryStatus);
         memoryStatus.setOnMouseClicked(event -> {
             if (event.getClickCount() >= 2) {
                 Runtime.getRuntime().gc();
@@ -71,6 +69,7 @@ public class StatusBarController extends FxInitOnce {
         tooltip.setShowDelay(Duration.seconds(4));
 
         memoryStatus.setTooltip(tooltip);
+        getChildren().addAll(memory, memoryStatus, new Spacer(), progressLabel, smallBar);
         scheduler.scheduleAtFixedRate(this::updateMemory, java.time.Duration.of(5, ChronoUnit.SECONDS));
     }
 
@@ -97,7 +96,7 @@ public class StatusBarController extends FxInitOnce {
     private ListChangeListener<Task<?>> getTaskListChangeListener() {
         return c -> {
             c.next();
-            final var textProperty = container.textProperty();
+            final var textProperty = progressLabel.textProperty();
             if (c.getList().isEmpty()) {
                 textProperty.unbind();
                 textProperty.set("");
@@ -118,10 +117,8 @@ public class StatusBarController extends FxInitOnce {
 
     public void initPopOver(Node node) {
         popOver = createPopOver(node);
-        Nodes.getFirstChild(((CustomStatusBarSkin) container.getSkin()).getChildren().get(0), ProgressBar.class)
-             .ifPresent(p -> p.setOnMouseClicked(this::showPopup));
-        Nodes.getFirstChild(((CustomStatusBarSkin) container.getSkin()).getChildren().get(0), Label.class)
-             .ifPresent(p -> p.setOnMouseClicked(this::showPopup));
+        progressLabel.setOnMouseClicked(this::showPopup);
+        smallBar.setOnMouseClicked(this::showPopup);
     }
 
     private void showPopup(MouseEvent event) {
@@ -130,7 +127,7 @@ public class StatusBarController extends FxInitOnce {
         } else if (event.getClickCount() >= 1) {
             var targetX = event.getScreenX();
             var targetY = event.getScreenY();
-            popOver.show(container, targetX, targetY);
+            popOver.show(smallBar, targetX, targetY);
         }
     }
 

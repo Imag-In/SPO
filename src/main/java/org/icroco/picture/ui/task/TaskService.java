@@ -20,7 +20,7 @@ import java.util.function.Supplier;
 @Slf4j
 public class TaskService {
     private final ApplicationEventMulticaster eventBus;
-    private final TaskController              taskController;
+    private final TaskView                    taskView;
     private final TaskExecutor                executor;
 
     /**
@@ -47,7 +47,7 @@ public class TaskService {
         log.debug("Start new task: {}, visualEffect: {}", task, visualFeedback);
         if (visualFeedback) {
             // TODO: Use event to decouple from controller.
-            Platform.runLater(() -> taskController.addTask(task));
+            Platform.runLater(() -> taskView.addTask(task));
         }
         return CompletableFuture.supplyAsync(() -> {
             task.run();

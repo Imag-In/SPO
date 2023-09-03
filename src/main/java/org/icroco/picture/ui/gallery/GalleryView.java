@@ -87,7 +87,8 @@ public class GalleryView extends StackPane {
 
     @PostConstruct
     protected void initializedOnce() {
-
+        setMinWidth(350);
+        setMinHeight(300);
         log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
                  gridView.getCellWidth(),
                  gridView.getCellHeight(),
@@ -164,7 +165,7 @@ public class GalleryView extends StackPane {
         Label expand = new Label();
         expand.setPrefHeight(10D);
         FontIcon icon = new FontIcon();
-        icon.setIconSize(32);
+//        icon.setIconSize(32);
         icon.setId("fitGridCell");
         expand.setGraphic(icon);
         expand.setOnMouseClicked(this::expandGridCell);
@@ -175,7 +176,7 @@ public class GalleryView extends StackPane {
             zoomLevel = newValue.doubleValue();
             gridView.setCellWidth(gridCellWidth + 10 * zoomLevel);
             gridView.setCellHeight(gridCellHeight + 10 * zoomLevel);
-            carouselIcons.setFixedCellSize(gridView.getCellWidth());
+//            carouselIcons.setFixedCellSize(gridView.getCellWidth());
         });
         HBox.setHgrow(breadCrumbBar, Priority.ALWAYS);
         Label nbImages = new Label();
