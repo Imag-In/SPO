@@ -18,14 +18,16 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor
 public class MediaFile implements IMediaFile {
-    private long           id;
-    private Path           fullPath;
-    private String         fileName;
-    private LocalDateTime  originalDate;
-    private Set<Tag>       tags;
-    private String         gps;
-    private String         hash;
-    private LocalDate      hashDate;
+    private long          id;
+    private Path          fullPath;
+    private String        fileName;
+    private LocalDateTime originalDate;
+    private Set<Tag>      tags;
+    private GeoLocation   geoLocation;
+    private String        hash;
+    private LocalDate     hashDate;
+    private Dimension     dimension;
+
     @NonNull
     @Builder.Default
     private EThumbnailType thumbnailType = EThumbnailType.ABSENT;
@@ -70,6 +72,16 @@ public class MediaFile implements IMediaFile {
     @Override
     public Set<Tag> tags() {
         return getTags();
+    }
+
+    @Override
+    public GeoLocation geoLocation() {
+        return getGeoLocation();
+    }
+
+    @Override
+    public Dimension dimension() {
+        return getDimension();
     }
 
     public Set<Tag> getTags() {

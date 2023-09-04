@@ -6,22 +6,21 @@ import javafx.scene.layout.VBox;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.javafx.FxInitOnce;
-import org.icroco.javafx.FxViewBinding;
 import org.icroco.picture.ui.event.CollectionEvent;
 import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.Tag;
 import org.icroco.picture.ui.util.MediaLoader;
 import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
 
 import static javafx.application.Platform.runLater;
 
 @Slf4j
-@Component
-@FxViewBinding(id = "details", fxmlLocation = "details.fxml")
+//@Component
+//@FxViewBinding(id = "details", fxmlLocation = "details.fxml")
+@Deprecated
 @RequiredArgsConstructor
 public class DetailsController extends FxInitOnce {
     public static final String FILE_NOT_FOUND = "File Not Found";

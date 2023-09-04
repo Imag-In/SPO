@@ -14,4 +14,8 @@ public interface IMediaFile {
     LocalDateTime originalDate();
 
     Set<Tag> tags();
+
+    GeoLocation geoLocation();
+
+    Dimension dimension();
 }

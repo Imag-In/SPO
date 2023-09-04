@@ -58,4 +58,12 @@ public class DbMediaFile {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private EThumbnailType thumbnailType = EThumbnailType.ABSENT;
+
+    @NotNull
+    @Builder.Default
+    private DbDimension dimension = DbDimension.EMPTY_DIM;
+
+    @NotNull
+    @Builder.Default
+    private DbGeoLocation geoLocation = DbGeoLocation.EMPTY_GEO_LOC;
 }

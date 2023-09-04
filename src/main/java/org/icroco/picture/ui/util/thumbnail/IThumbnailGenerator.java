@@ -2,8 +2,8 @@ package org.icroco.picture.ui.util.thumbnail;
 
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
+import org.icroco.picture.ui.model.Dimension;
 import org.icroco.picture.ui.model.Thumbnail;
-import org.icroco.picture.ui.util.Dimension;
 import org.springframework.lang.NonNull;
 
 import java.awt.image.BufferedImage;

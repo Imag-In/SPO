@@ -1,16 +1,16 @@
 package org.icroco.picture.ui.util.metadata;
 
 import com.drew.imaging.ImageMetadataReader;
-import com.drew.imaging.ImageProcessingException;
+import com.drew.lang.GeoLocation;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
-import com.drew.metadata.MetadataException;
 import com.drew.metadata.exif.ExifDirectoryBase;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
+import com.drew.metadata.exif.GpsDirectory;
+import org.icroco.picture.ui.model.Dimension;
 import org.jooq.lambda.Unchecked;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -18,7 +18,10 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
 import java.util.TimeZone;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class DefaultMetadataExtractor implements IMetadataExtractor {
 
     public static final  LocalDateTime EPOCH_0 = Instant.ofEpochMilli(0).atZone(ZoneId.systemDefault()).toLocalDateTime();
@@ -26,25 +29,41 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 
     @Override
     public Optional<Integer> orientation(InputStream input) {
-        try {
-            return orientation(null, ImageMetadataReader.readMetadata(input));
-        }
-        catch (ImageProcessingException | IOException e) {
-            throw new RuntimeException(e);
-        }
+        return header(Path.of(""), input).map(MetadataHeader::orientation);
     }
 
     @Override
     public Optional<MetadataHeader> header(final Path path, final InputStream input) {
         try {
+
             Metadata metadata = ImageMetadataReader.readMetadata(input, input.available());
-            return Optional.of(new MetadataHeader(originalDateTime(path, metadata).orElse(EPOCH_0),
-                                                  orientation(path, metadata).orElse(1)));
+//            var tags = StreamSupport.stream(metadata.getDirectories().spliterator(), false)
+//                    .flatMap(directory -> directory.getTags().stream())
+//                    .collect(Collectors.toMap(Tag::getTagType, tag -> tag));
+//            for (Directory directory : metadata.getDirectories()) {
+//                System.out.println("Directory: "+directory);
+//                for (Tag tag : directory.getTags()) {
+//                    System.out.printf("   Tag: %s (%d/%s): %s%n", tag.getTagName(), tag.getTagType(),  tag.getTagTypeHex()tag.getDescription());
+//                }
+//            }
+            var edb = Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
+            return Optional.of(MetadataHeader.builder()
+                                       .orginalDate(originalDateTime(path, metadata).orElse(EPOCH_0))
+                                       .orientation(extractOrientation(path, edb))
+                                       .geoLocation(gps(path, metadata).orElse(null))
+                                       .size(extractSize(path, edb))
+                                       .build());
         }
         catch (Throwable ex) {
             log.warn("Cannot read header for Path: {}, message: {}", path, ex.getLocalizedMessage());
             return Optional.empty();
         }
+    }
+
+    private Optional<GeoLocation> gps(Path path, Metadata metadata) {
+        return Optional.ofNullable(metadata.getFirstDirectoryOfType(GpsDirectory.class))
+                       .map(GpsDirectory::getGeoLocation);
+
     }
 
 //
@@ -54,9 +73,22 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 //    }
 
 
-    public Optional<Integer> orientation(Path path, Metadata metadata) {
-        return Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifDirectoryBase.class))
-                       .map(Unchecked.function(this::getOrientation, throwable -> log.warn("'{}' Cannot read orientation", path)));
+    public Dimension extractSize(Path path, Optional<? extends ExifDirectoryBase> metadata) {
+        return metadata.map(edb -> new Dimension(getTagAsInt(metadata,
+                                                             ExifDirectoryBase.TAG_EXIF_IMAGE_WIDTH,
+                                                             () -> 0,
+                                                             t -> log.warn("'{}' Cannot read width", path)),
+                                                 getTagAsInt(metadata,
+                                                             ExifDirectoryBase.TAG_EXIF_IMAGE_HEIGHT,
+                                                             () -> 0,
+                                                             t -> log.warn("'{}' Cannot read height", path))))
+                       .orElse(Dimension.EMPTY_DIM);
+    }
+
+    public Integer extractOrientation(Path path, Optional<? extends ExifDirectoryBase> exif) {
+        return getTagAsInt(exif, ExifDirectoryBase.TAG_ORIENTATION, () -> 1, t -> log.warn("'{}' Cannot read orientation", path));
+
+//        return exif.map(Unchecked.function(this::getOrientation, throwable -> log.warn("'{}' Cannot read orientation", path)));
     }
 
     public Optional<LocalDateTime> originalDateTime(Path path, Metadata metadata) {
@@ -64,12 +96,22 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                        .map(Unchecked.function(this::getDateTime, throwable -> log.warn("'{}' Cannot read original date time", path)));
     }
 
-    Integer getOrientation(Directory directory) throws MetadataException {
+//    Integer getOrientation(Directory directory) {
+//        return getTagAsInt(directory, ExifDirectoryBase.TAG_ORIENTATION, () -> 1, t -> log.warn("'{}' Cannot read orientation", path));
+////
+////        if (directory.containsTag(ExifDirectoryBase.TAG_ORIENTATION)) {
+////            return directory.getInt(ExifDirectoryBase.TAG_ORIENTATION);
+////        }
+////        return 1;
+//    }
 
-        if (directory.containsTag(ExifDirectoryBase.TAG_ORIENTATION)) {
-            return directory.getInt(ExifDirectoryBase.TAG_ORIENTATION);
-        }
-        return 1;
+    static <T extends Directory> int getTagAsInt(Optional<T> directory,
+                                                 int tagId,
+                                                 Supplier<Integer> defaultValueSupplier,
+                                                 Consumer<Throwable> errorConsummer) {
+        return directory.filter(d -> d.containsTag(tagId))
+                        .map(d -> Unchecked.function(d::getInt, errorConsummer).apply(tagId))
+                        .orElseGet(defaultValueSupplier);
     }
 
     LocalDateTime getDateTime(ExifSubIFDDirectory directory) {

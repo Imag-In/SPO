@@ -2,9 +2,9 @@ package org.icroco.picture.ui.util.thumbnail;
 
 import javafx.scene.image.Image;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.ui.model.Dimension;
 import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.model.Thumbnail;
-import org.icroco.picture.ui.util.Dimension;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;

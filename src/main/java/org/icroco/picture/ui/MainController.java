@@ -59,7 +59,7 @@ public class MainController extends FxInitOnce {
 
         selectContainer.setLeft(collectionView);
         selectContainer.setCenter(galleryView);
-        selectContainer.setRight(detailsView.scene().getRoot());
+        selectContainer.setRight(detailsView);
 //        main.setRight(taskView.scene().getRoot());
 
 //        main.addEventFilter(KeyEvent.KEY_RELEASED, (KeyEvent event) -> {

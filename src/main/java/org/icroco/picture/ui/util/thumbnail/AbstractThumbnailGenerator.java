@@ -1,7 +1,7 @@
 package org.icroco.picture.ui.util.thumbnail;
 
+import org.icroco.picture.ui.model.Dimension;
 import org.icroco.picture.ui.model.Thumbnail;
-import org.icroco.picture.ui.util.Dimension;
 
 import java.nio.file.Path;
 

@@ -1,7 +1,7 @@
 package org.icroco.picture.ui.util.thumbnail;
 
+import org.icroco.picture.ui.model.Dimension;
 import org.icroco.picture.ui.util.Constant;
-import org.icroco.picture.ui.util.Dimension;
 import org.icroco.picture.ui.util.FileUtil;
 import org.icroco.picture.ui.util.hash.JdkHashGenerator;
 import org.icroco.picture.ui.util.metadata.DefaultMetadataExtractor;

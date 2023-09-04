@@ -4,8 +4,8 @@ import javafx.embed.swing.SwingFXUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import net.coobird.thumbnailator.resizers.configurations.Antialiasing;
+import org.icroco.picture.ui.model.Dimension;
 import org.icroco.picture.ui.model.Thumbnail;
-import org.icroco.picture.ui.util.Dimension;
 import org.icroco.picture.ui.util.ImageUtils;
 import org.springframework.stereotype.Component;
 

@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
 import org.icroco.picture.ui.event.*;
 import org.icroco.picture.ui.event.CollectionEvent.EventType;
+import org.icroco.picture.ui.model.GeoLocation;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaCollectionEntry;
 import org.icroco.picture.ui.model.MediaFile;
@@ -33,7 +34,6 @@ import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.*;
 import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
-import org.icroco.picture.ui.util.metadata.MetadataHeader;
 import org.icroco.picture.ui.util.widget.FxUtil;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
@@ -81,11 +81,11 @@ public class CollectionView extends VBox {
 
         collectionHeader.setAlignment(Pos.BASELINE_LEFT);
 
-
         FxUtil.styleCircleButton(addCollection);
         addCollection.setGraphic(new FontIcon(FontAwesomeSolid.PLUS));
         addCollection.setVisible(true);
         addCollection.disableProperty().bind(disablePathActions);
+        addCollection.setOnMouseClicked(this::newCollection);
         setOnMouseEntered(event -> addCollection.setVisible(true));
         setOnMouseExited(event -> {
             if (!mediaCollections.getPanes().isEmpty()) {
@@ -370,13 +370,18 @@ public class CollectionView extends VBox {
     private MediaFile create(LocalDate now, Path p) {
         final var h = metadataExtractor.header(p);
 
-        return MediaFile.builder()
+        var builder = MediaFile.builder()
                 .fullPath(p)
                 .fileName(p.getFileName().toString())
-                .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN))
-                .hashDate(now)
-                .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))
-                .build();
+                .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN));
+
+        h.ifPresent(header -> {
+            builder.dimension(header.size())
+                   .geoLocation(new GeoLocation(header.geoLocation().getLatitude(), header.geoLocation().getLongitude()))
+                   .originalDate(header.orginalDate());
+        });
+
+        return builder.build();
     }
 
     @EventListener(CollectionEvent.class)
