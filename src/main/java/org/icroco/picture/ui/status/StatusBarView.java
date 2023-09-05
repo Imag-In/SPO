@@ -19,6 +19,7 @@ import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.PopOver;
+import org.icroco.picture.ui.FxView;
 import org.icroco.picture.ui.persistence.MediaFileRepository;
 import org.icroco.picture.ui.task.TaskView;
 import org.springframework.scheduling.TaskScheduler;
@@ -32,13 +33,14 @@ import java.time.temporal.ChronoUnit;
 @Slf4j
 @RequiredArgsConstructor
 @Component
-public class StatusBarView extends HBox {
+public class StatusBarView implements FxView<HBox> {
     private final MediaFileRepository mediaFileRepository;
-    private final TaskView            taskController;
+    private final TaskView            taskView;
     private final TaskScheduler       scheduler;
 
     private PopOver popOver;
 
+    private final HBox root = new HBox();
     private       ProgressBar memoryStatus;
     private final Tooltip     tooltip       = new Tooltip("");
     private final Label       progressLabel = new Label();
@@ -46,16 +48,16 @@ public class StatusBarView extends HBox {
 
     @PostConstruct
     protected void initializedOnce() {
-        setAlignment(Pos.CENTER);
+        root.setAlignment(Pos.CENTER);
         memoryStatus = new ProgressBar(0);
         memoryStatus.setPrefWidth(100);
 
         smallBar.setPrefWidth(250);
         smallBar.getStyleClass().add(Styles.SMALL);
         progressLabel.setPrefWidth(100);
-        SimpleListProperty<Task<?>> list = new SimpleListProperty<>(taskController.getTasks());
+        SimpleListProperty<Task<?>> list = new SimpleListProperty<>(taskView.getTasks());
         smallBar.progressProperty().bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
-        taskController.getTasks().addListener(getTaskListChangeListener());
+        taskView.getTasks().addListener(getTaskListChangeListener());
         initPopOver(smallBar);
         Label memory = new Label("Memory ");
         memory.setTooltip(tooltip);
@@ -69,7 +71,7 @@ public class StatusBarView extends HBox {
         tooltip.setShowDelay(Duration.seconds(4));
 
         memoryStatus.setTooltip(tooltip);
-        getChildren().addAll(memory, memoryStatus, new Spacer(), progressLabel, smallBar);
+        root.getChildren().addAll(memory, memoryStatus, new Spacer(), progressLabel, smallBar);
         scheduler.scheduleAtFixedRate(this::updateMemory, java.time.Duration.of(5, ChronoUnit.SECONDS));
     }
 
@@ -149,5 +151,10 @@ public class StatusBarView extends HBox {
         popOver.setCloseButtonEnabled(true);
 //        popOver.closeButtonEnabledProperty().bind(closeButtonEnabled.selectedProperty());
         return popOver;
+    }
+
+    @Override
+    public HBox getRootContent() {
+        return root;
     }
 }

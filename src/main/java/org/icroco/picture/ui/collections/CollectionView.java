@@ -21,6 +21,7 @@ import javafx.util.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
+import org.icroco.picture.ui.FxView;
 import org.icroco.picture.ui.event.*;
 import org.icroco.picture.ui.event.CollectionEvent.EventType;
 import org.icroco.picture.ui.model.GeoLocation;
@@ -57,9 +58,8 @@ import static javafx.application.Platform.runLater;
 
 @Slf4j
 @Component
-//@FxViewBinding(id = "mediaCollection", fxmlLocation = "collection.fxml")
 @RequiredArgsConstructor
-public class CollectionView extends VBox {
+public class CollectionView implements FxView<VBox> {
     private final TaskService           taskService;
     private final PersistenceService    persistenceService;
     private final UserPreferenceService pref;
@@ -68,7 +68,8 @@ public class CollectionView extends VBox {
     private final BooleanProperty       disablePathActions = new SimpleBooleanProperty(false);
     private final SimpleIntegerProperty catalogSizeProp    = new SimpleIntegerProperty(0);
 
-    public        Label     catalogSize      = new Label();
+    private final VBox  root        = new VBox();
+    private final Label catalogSize = new Label();
     private final Accordion mediaCollections = new Accordion();
     private final Button    addCollection    = new Button();
     private final HBox      collectionHeader = new HBox();
@@ -76,7 +77,7 @@ public class CollectionView extends VBox {
 
     @PostConstruct
     protected void initializedOnce() {
-        getStyleClass().add("header");
+        root.getStyleClass().add("header");
         VBox.setVgrow(mediaCollections, Priority.ALWAYS);
 
         collectionHeader.setAlignment(Pos.BASELINE_LEFT);
@@ -86,8 +87,8 @@ public class CollectionView extends VBox {
         addCollection.setVisible(true);
         addCollection.disableProperty().bind(disablePathActions);
         addCollection.setOnMouseClicked(this::newCollection);
-        setOnMouseEntered(event -> addCollection.setVisible(true));
-        setOnMouseExited(event -> {
+        root.setOnMouseEntered(event -> addCollection.setVisible(true));
+        root.setOnMouseExited(event -> {
             if (!mediaCollections.getPanes().isEmpty()) {
                 addCollection.setVisible(false);
             }
@@ -107,7 +108,7 @@ public class CollectionView extends VBox {
         header.getStyleClass().add(Styles.TITLE_3);
         collectionHeader.getChildren().addAll(header, catalogSize, new Spacer(), addCollection);
 
-        getChildren().addAll(collectionHeader, mediaCollections);
+        root.getChildren().addAll(collectionHeader, mediaCollections);
     }
 
     private void titlePaneChanged(ObservableValue<? extends TitledPane> observableValue, TitledPane oldValue, TitledPane newValue) {
@@ -202,6 +203,11 @@ public class CollectionView extends VBox {
         }
     }
 
+    @Override
+    public VBox getRootContent() {
+        return root;
+    }
+
     record TitlePaneEntry(TitledPane titledPane, int mediaCollectionId) {}
 
     private void onDeleteCollection(MouseEvent mouseEvent) {
@@ -239,7 +245,7 @@ public class CollectionView extends VBox {
     //    @FXML
     private void newCollection(MouseEvent event) {
         final DirectoryChooser directoryChooser  = new DirectoryChooser();
-        final File             selectedDirectory = directoryChooser.showDialog(getScene().getWindow());
+        final File             selectedDirectory = directoryChooser.showDialog(root.getScene().getWindow());
 
         if (selectedDirectory != null) {
             var rootPath = selectedDirectory.toPath().normalize();

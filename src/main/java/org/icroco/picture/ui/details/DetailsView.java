@@ -7,7 +7,8 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.ui.config.ImageInConfiguration;
+import org.icroco.picture.ui.FxEventListener;
+import org.icroco.picture.ui.FxView;
 import org.icroco.picture.ui.event.CollectionEvent;
 import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.EThumbnailType;
@@ -16,20 +17,16 @@ import org.icroco.picture.ui.util.Styles;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Objects;
 
-import static javafx.application.Platform.runLater;
-
 @Slf4j
 @RequiredArgsConstructor
 @Component
-public class DetailsView extends GridPane {
+public class DetailsView implements FxView<GridPane> {
     public static final String FILE_NOT_FOUND = "File Not Found";
     //    private final PersistenceService    persistenceService;
 //    private final TaskService           taskService;
@@ -38,6 +35,8 @@ public class DetailsView extends GridPane {
 //    private final IMetadataExtractor    metadataExtractor;
 
     private final MediaLoader mediaLoader;
+
+    GridPane root = new GridPane();
 
     private final Label name          = createLabel();
     private final Label txtDbId       = new Label("Id: ");
@@ -52,9 +51,7 @@ public class DetailsView extends GridPane {
 
     @PostConstruct
     private void postConstruct() {
-
-        GridPane root = this;
-        this.setVisible(false);
+        root.setVisible(false);
         root.setPadding(new Insets(0, 10, 0, 10));
         root.add(FontIcon.of(FontAwesomeRegular.FILE), 0, 0);
         root.add(name, 1, 0);
@@ -90,37 +87,37 @@ public class DetailsView extends GridPane {
         return l;
     }
 
-    @EventListener(PhotoSelectedEvent.class)
+    @FxEventListener
     public void updatePhotoSelected(PhotoSelectedEvent event) {
-        runLater(() -> {
-
-            var mf = event.getMf();
-            thumbnailType.setText(EThumbnailType.ABSENT.toString());
-            thumbnailSize.setText("");
-            size.setText("");
-            gps.setText("");
-            mediaLoader.getCachedValue(mf).ifPresent(t -> {
-                thumbnailType.setText(mf.getThumbnailType().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
-                if (t.getImage() != null) {
-                    thumbnailSize.setText("%d x %d".formatted((int) t.getImage().getWidth(), (int) t.getImage().getHeight()));
-                }
-            });
-            dbId.setText(Long.toString(mf.getId()));
-            name.setText(mf.getFileName());
-            creationDate.setText(dateTimeFormatter.format(mf.originalDate()));
-            gps.setText(mf.getGeoLocation().toDMSString());
-            size.setText(Objects.toString(mf.getDimension()));
+        root.setVisible(true);
+        var mf = event.getMf();
+        thumbnailType.setText(EThumbnailType.ABSENT.toString());
+        thumbnailSize.setText("");
+        size.setText("");
+        gps.setText("");
+        mediaLoader.getCachedValue(mf).ifPresent(t -> {
+            thumbnailType.setText(mf.getThumbnailType().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
+            if (t.getImage() != null) {
+                thumbnailSize.setText("%d x %d".formatted((int) t.getImage().getWidth(), (int) t.getImage().getHeight()));
+            }
         });
+        dbId.setText(Long.toString(mf.getId()));
+        name.setText(mf.getFileName());
+        creationDate.setText(dateTimeFormatter.format(mf.originalDate()));
+        gps.setText(mf.getGeoLocation().toDMSString());
+        size.setText(Objects.toString(mf.getDimension()));
     }
 
-    @Async(ImageInConfiguration.FX_EXECUTOR)
-//    @EventListener(CollectionEvent.class)
+    @FxEventListener
     public void catalogEvent(CollectionEvent event) {
         log.info("Recieve Collection event: {}", event);
-        runLater(() -> {
-            boolean visible = event.getType() != CollectionEvent.EventType.DELETED;
-            setVisible(visible);
-            txtDbId.setVisible(visible);
-        });
+        boolean visible = event.getType() != CollectionEvent.EventType.DELETED;
+        root.setVisible(visible);
+        txtDbId.setVisible(visible);
+    }
+
+    @Override
+    public GridPane getRootContent() {
+        return root;
     }
 }

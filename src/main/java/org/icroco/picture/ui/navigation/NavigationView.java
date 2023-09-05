@@ -13,6 +13,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.ui.FxView;
 import org.icroco.picture.ui.util.widget.FxUtil;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2OutlinedMZ;
@@ -21,19 +22,20 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class NavigationView extends HBox {
+public class NavigationView implements FxView<HBox> {
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
 
-    Label importLbl   = new Label();
-    Label organizeLbl = new Label();
-    Label peopleLbl   = new Label();
-    Label exportLbl   = new Label();
+    private final HBox  root        = new HBox();
+    private final Label importLbl   = new Label();
+    private final Label organizeLbl = new Label();
+    private final Label peopleLbl   = new Label();
+    private final Label exportLbl   = new Label();
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
 
     public NavigationView() {
-        getStyleClass().add("tabs");
-        setAlignment(Pos.CENTER);
-        setPadding(new Insets(0, 0, 10, 0));
+        root.getStyleClass().add("tabs");
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(0, 0, 10, 0));
 
         organizeLbl.setText("Organize");
         importLbl.setDisable(false);
@@ -76,7 +78,7 @@ public class NavigationView extends HBox {
         settings.setTooltip(new Tooltip("Settings"));
         FxUtil.styleCircleButton(settings).setOnAction(this::openSettings);
 
-        getChildren().addAll(new Spacer(), importLbl, organizeLbl, peopleLbl, exportLbl, new Spacer(), settings);
+        root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, peopleLbl, exportLbl, new Spacer(), settings);
 
     }
 
@@ -94,4 +96,8 @@ public class NavigationView extends HBox {
         return label;
     }
 
+    @Override
+    public HBox getRootContent() {
+        return root;
+    }
 }

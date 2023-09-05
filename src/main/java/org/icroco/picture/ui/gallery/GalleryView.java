@@ -25,6 +25,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import lombok.RequiredArgsConstructor;
 import org.controlsfx.control.BreadCrumbBar;
+import org.icroco.picture.ui.FxView;
 import org.icroco.picture.ui.event.*;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaFile;
@@ -55,7 +56,7 @@ import static org.fxmisc.wellbehaved.event.InputMap.sequence;
 
 @Component
 @RequiredArgsConstructor
-public class GalleryView extends StackPane {
+public class GalleryView implements FxView<StackPane> {
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(GalleryView.class);
 
     private final MediaLoader           mediaLoader;
@@ -63,6 +64,7 @@ public class GalleryView extends StackPane {
     private final TaskService           taskService;
     private final PersistenceService    persistenceService;
 
+    private final StackPane root = new StackPane();
     private final BorderPane gallery  = new BorderPane();
     private final BorderPane carousel = new BorderPane();
 
@@ -87,8 +89,8 @@ public class GalleryView extends StackPane {
 
     @PostConstruct
     protected void initializedOnce() {
-        setMinWidth(350);
-        setMinHeight(300);
+        root.setPrefWidth(350);
+        root.setPrefHeight(300);
         log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
                  gridView.getCellWidth(),
                  gridView.getCellHeight(),
@@ -150,7 +152,7 @@ public class GalleryView extends StackPane {
         gallery.setCenter(gridView);
         gallery.setBottom(createBottomBar());
         carousel.setVisible(false);
-        getChildren().addAll(gallery, carousel);
+        root.getChildren().addAll(gallery, carousel);
 
         runLater(() -> gridView.requestFocus());
     }
@@ -460,5 +462,10 @@ public class GalleryView extends StackPane {
 //                gridView.refreshItems();
             }
         });
+    }
+
+    @Override
+    public StackPane getRootContent() {
+        return root;
     }
 }

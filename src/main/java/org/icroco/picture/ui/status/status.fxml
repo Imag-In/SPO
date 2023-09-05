@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
-<?import org.controlsfx.control.StatusBar?>
-<StatusBar xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="org.icroco.picture.ui.status.StatusBarController"
-           fx:id="container">
-
-</StatusBar>

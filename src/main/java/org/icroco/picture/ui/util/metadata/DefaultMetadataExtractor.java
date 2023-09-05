@@ -26,6 +26,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 
     public static final  LocalDateTime EPOCH_0 = Instant.ofEpochMilli(0).atZone(ZoneId.systemDefault()).toLocalDateTime();
     private static final Logger        log     = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
+    public static final  GeoLocation   NO_WHERE = new GeoLocation(0, 0);
 
     @Override
     public Optional<Integer> orientation(InputStream input) {
@@ -50,7 +51,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             return Optional.of(MetadataHeader.builder()
                                        .orginalDate(originalDateTime(path, metadata).orElse(EPOCH_0))
                                        .orientation(extractOrientation(path, edb))
-                                       .geoLocation(gps(path, metadata).orElse(null))
+                                       .geoLocation(gps(path, metadata).orElse(NO_WHERE))
                                        .size(extractSize(path, edb))
                                        .build());
         }

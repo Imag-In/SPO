@@ -1,12 +1,10 @@
 package org.icroco.picture.ui;
 
-import javafx.fxml.FXML;
-import javafx.scene.layout.AnchorPane;
+import jakarta.annotation.PostConstruct;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Screen;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.javafx.FxInitOnce;
-import org.icroco.javafx.FxViewBinding;
 import org.icroco.javafx.SceneReadyEvent;
 import org.icroco.picture.ui.collections.CollectionView;
 import org.icroco.picture.ui.details.DetailsView;
@@ -15,51 +13,52 @@ import org.icroco.picture.ui.navigation.NavigationView;
 import org.icroco.picture.ui.status.StatusBarView;
 import org.icroco.picture.ui.util.Resources;
 import org.scenicview.ScenicView;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 
 import java.util.prefs.BackingStoreException;
 
-@FxViewBinding(id = "main", fxmlLocation = "main.fxml", isPrimary = true)
+//@FxViewBinding(id = "main", fxmlLocation = "main.fxml", isPrimary = true)
 @Slf4j
-public class MainController extends FxInitOnce {
-    @Autowired
-    GalleryView    galleryView;
-    @Autowired
-    NavigationView navView;
-    @Autowired
-    StatusBarView  statusView;
-    @Autowired
-    CollectionView collectionView;
-    @Autowired
-    DetailsView    detailsView;
+@RequiredArgsConstructor
+@Component
+public class MainView implements FxView<BorderPane> {
 
-    @FXML
-    BorderPane main;
-    @FXML
-    AnchorPane importContainer;
-    @FXML
-    BorderPane selectContainer;
+    private final BorderPane     root = new BorderPane();
+    private final GalleryView    galleryView;
+    private final NavigationView navView;
+    private final StatusBarView  statusView;
+    private final CollectionView collectionView;
+    private final DetailsView    detailsView;
+
+//    @FXML
+//    AnchorPane importContainer;
+//    @FXML
+//    BorderPane selectContainer;
 
 //    @Autowired
 //    TaskView taskView;
 
-    @Override
+    @PostConstruct
     protected void initializedOnce() {
         log.info("Primary screen: {}", Screen.getPrimary());
         Screen.getScreens().forEach(screen -> {
             log.info("Screen: {}", screen);
         });
         //main.setLeft(viewManager.loadView());
-        main.getStyleClass().remove("root");
-        main.getStyleClass().add("navigation-page");
+        root.getStyleClass().remove("root");
+        root.getStyleClass().add("navigation-page");
 
-        main.setTop(navView);
-        main.setBottom(statusView);
+        root.setTop(navView.getRootContent());
+        root.setBottom(statusView.getRootContent());
 
-        selectContainer.setLeft(collectionView);
-        selectContainer.setCenter(galleryView);
-        selectContainer.setRight(detailsView);
+        BorderPane selectContainer = new BorderPane();
+
+        selectContainer.setLeft(collectionView.getRootContent());
+        selectContainer.setCenter(galleryView.getRootContent());
+        selectContainer.setRight(detailsView.getRootContent());
+
+        root.setCenter(selectContainer);
 //        main.setRight(taskView.scene().getRoot());
 
 //        main.addEventFilter(KeyEvent.KEY_RELEASED, (KeyEvent event) -> {
@@ -85,5 +84,10 @@ public class MainController extends FxInitOnce {
 //        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
 //            log.info("call: {}", element);
 //        }
+    }
+
+    @Override
+    public BorderPane getRootContent() {
+        return root;
     }
 }
