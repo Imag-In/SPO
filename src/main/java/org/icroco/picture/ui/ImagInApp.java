@@ -161,12 +161,12 @@ public class ImagInApp extends Application {
         var antialiasing = Platform.isSupported(ConditionalFeature.SCENE3D)
                            ? SceneAntialiasing.BALANCED
                            : SceneAntialiasing.DISABLED;
-        var scene = new Scene(mainView.getRootContent());
-//        Nodes.setStageSizeAndPos(primaryStage,
-//                                 userPref.getUserPreference().getMainWindow().getPosX(),
-//                                 userPref.getUserPreference().getMainWindow().getPosY(),
-//                                 userPref.getUserPreference().getMainWindow().getWidth(),
-//                                 userPref.getUserPreference().getMainWindow().getHeight());
+        var scene = new Scene(mainView.getRootContent(), 1200, 800, false, antialiasing);
+        Nodes.setStageSizeAndPos(primaryStage,
+                                 userPref.getUserPreference().getMainWindow().getPosX(),
+                                 userPref.getUserPreference().getMainWindow().getPosY(),
+                                 userPref.getUserPreference().getMainWindow().getWidth(),
+                                 userPref.getUserPreference().getMainWindow().getHeight());
         primaryStage.setScene(scene);
         scene.getStylesheets().addAll(Resources.resolve("/styles/index.css"));
         if (Boolean.getBoolean("SCENIC")) {

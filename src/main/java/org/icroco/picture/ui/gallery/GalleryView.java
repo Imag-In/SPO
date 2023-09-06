@@ -90,7 +90,7 @@ public class GalleryView implements FxView<StackPane> {
     @PostConstruct
     protected void initializedOnce() {
 //        root.setPrefSize(600, 300);
-//        root.setPrefWidth(350);
+        root.setMinSize(350, 250);
 //        root.setPrefHeight(300);
         log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
                  gridView.getCellWidth(),
