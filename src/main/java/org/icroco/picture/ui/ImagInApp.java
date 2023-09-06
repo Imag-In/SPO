@@ -161,18 +161,19 @@ public class ImagInApp extends Application {
         var antialiasing = Platform.isSupported(ConditionalFeature.SCENE3D)
                            ? SceneAntialiasing.BALANCED
                            : SceneAntialiasing.DISABLED;
-        var scene = new Scene(mainView.getRootContent(), 1200, 768, false, antialiasing);
+        var scene = new Scene(mainView.getRootContent());
+//        Nodes.setStageSizeAndPos(primaryStage,
+//                                 userPref.getUserPreference().getMainWindow().getPosX(),
+//                                 userPref.getUserPreference().getMainWindow().getPosY(),
+//                                 userPref.getUserPreference().getMainWindow().getWidth(),
+//                                 userPref.getUserPreference().getMainWindow().getHeight());
         primaryStage.setScene(scene);
         scene.getStylesheets().addAll(Resources.resolve("/styles/index.css"));
         if (Boolean.getBoolean("SCENIC")) {
             ScenicView.show(scene);
         }
 //        primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/images/240px-GNOME_Photos_logo_2019.svg.png")));
-        Nodes.setStageSizeAndPos(primaryStage,
-                                 userPref.getUserPreference().getMainWindow().getPosX(),
-                                 userPref.getUserPreference().getMainWindow().getPosY(),
-                                 userPref.getUserPreference().getMainWindow().getWidth(),
-                                 userPref.getUserPreference().getMainWindow().getHeight());
+
     }
 
 

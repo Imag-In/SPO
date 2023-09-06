@@ -5,6 +5,7 @@ import com.drew.lang.GeoLocation;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifDirectoryBase;
+import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
 import org.icroco.picture.ui.model.Dimension;
@@ -19,7 +20,9 @@ import java.time.ZoneId;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class DefaultMetadataExtractor implements IMetadataExtractor {
@@ -30,7 +33,18 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 
     @Override
     public Optional<Integer> orientation(InputStream input) {
-        return header(Path.of(""), input).map(MetadataHeader::orientation);
+        try {
+            Metadata metadata = ImageMetadataReader.readMetadata(input, input.available());
+            return extractTag(metadata,
+                              ExifIFD0Directory.class,
+                              ExifIFD0Directory.TAG_ORIENTATION,
+                              d -> getTagAsInt(Optional.of(d), ExifDirectoryBase.TAG_ORIENTATION, () -> 1, t -> log.warn("Cannot read orientation")));
+        }
+        catch (Throwable ex) {
+            log.warn("Cannot read orientation, message: {}", ex.getLocalizedMessage());
+        }
+        return Optional.empty();
+//        return header(Path.of(""), input).map(MetadataHeader::orientation);
     }
 
     @Override
@@ -42,15 +56,15 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 //                    .flatMap(directory -> directory.getTags().stream())
 //                    .collect(Collectors.toMap(Tag::getTagType, tag -> tag));
 //            for (Directory directory : metadata.getDirectories()) {
-//                System.out.println("Directory: "+directory);
+//                System.out.println("Directory: " + directory);
 //                for (Tag tag : directory.getTags()) {
-//                    System.out.printf("   Tag: %s (%d/%s): %s%n", tag.getTagName(), tag.getTagType(),  tag.getTagTypeHex()tag.getDescription());
+//                    System.out.printf("   Tag: %s (%d/%s): %s%n", tag.getTagName(), tag.getTagType(), tag.getTagTypeHex(), tag.getDescription());
 //                }
 //            }
             var edb = Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
             return Optional.of(MetadataHeader.builder()
                                        .orginalDate(originalDateTime(path, metadata).orElse(EPOCH_0))
-                                       .orientation(extractOrientation(path, edb))
+                                       .orientation(extractOrientation(path, Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class))))
                                        .geoLocation(gps(path, metadata).orElse(NO_WHERE))
                                        .size(extractSize(path, edb))
                                        .build());
@@ -59,6 +73,14 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             log.warn("Cannot read header for Path: {}, message: {}", path, ex.getLocalizedMessage());
             return Optional.empty();
         }
+    }
+
+    private static <T extends Directory, R> Optional<R> extractTag(Metadata metadata, Class<T> type, int tagId, Function<T, R> extrator) {
+        return StreamSupport.stream(metadata.getDirectories().spliterator(), false)
+                            .filter(type::isInstance)
+                            .map(type::cast)
+                            .findFirst()
+                            .map(extrator);
     }
 
     private Optional<GeoLocation> gps(Path path, Metadata metadata) {

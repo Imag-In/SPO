@@ -8,6 +8,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleListProperty;
 import javafx.collections.ListChangeListener;
 import javafx.concurrent.Task;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -49,12 +50,13 @@ public class StatusBarView implements FxView<HBox> {
     @PostConstruct
     protected void initializedOnce() {
         root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(10, 10, 10, 10));
         memoryStatus = new ProgressBar(0);
         memoryStatus.setPrefWidth(100);
 
-        smallBar.setPrefWidth(250);
+        smallBar.setMinWidth(200);
         smallBar.getStyleClass().add(Styles.SMALL);
-        progressLabel.setPrefWidth(100);
+        progressLabel.setMinWidth(250);
         SimpleListProperty<Task<?>> list = new SimpleListProperty<>(taskView.getTasks());
         smallBar.progressProperty().bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
         taskView.getTasks().addListener(getTaskListChangeListener());

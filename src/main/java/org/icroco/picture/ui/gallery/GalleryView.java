@@ -70,13 +70,13 @@ public class GalleryView implements FxView<StackPane> {
 
     private final Slider zoomThumbnails = createTickSlider();
 
-    private BreadCrumbBar<Path>       breadCrumbBar  = new BreadCrumbBar<>();
-    private CustomGridView<MediaFile> gridView       = new CustomGridView<>();
-    private ZoomDragPane              photo;
+    private final BreadCrumbBar<Path>       breadCrumbBar  = new BreadCrumbBar<>();
+    private final CustomGridView<MediaFile> gridView       = new CustomGridView<>();
+    private       ZoomDragPane              photo;
     //    @FXML
 //    private ImageView              photo;
-    private StackPane                 photoContainer = new StackPane();
-    private ListView<MediaFile>       carouselIcons  = new ListView<>();
+    private final StackPane                 photoContainer = new StackPane();
+    private final ListView<MediaFile>       carouselIcons  = new ListView<>();
 
     private final BooleanProperty                       expandCell     = new SimpleBooleanProperty(true);
     private final ObservableList<MediaFile>             images         = FXCollections.observableArrayList(MediaFile.extractor());
@@ -89,8 +89,9 @@ public class GalleryView implements FxView<StackPane> {
 
     @PostConstruct
     protected void initializedOnce() {
-        root.setPrefWidth(350);
-        root.setPrefHeight(300);
+//        root.setPrefSize(600, 300);
+//        root.setPrefWidth(350);
+//        root.setPrefHeight(300);
         log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
                  gridView.getCellWidth(),
                  gridView.getCellHeight(),

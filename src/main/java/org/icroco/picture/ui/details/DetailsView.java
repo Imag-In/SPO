@@ -46,12 +46,14 @@ public class DetailsView implements FxView<GridPane> {
     private final Label size          = createLabel();
     private final Label thumbnailType = createLabel();
     private final Label thumbnailSize = createLabel();
+    private final Label orientation   = createLabel();
 
     DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);
 
     @PostConstruct
     private void postConstruct() {
         root.setVisible(false);
+        root.setMinWidth(200);
         root.setPadding(new Insets(0, 10, 0, 10));
         root.add(FontIcon.of(FontAwesomeRegular.FILE), 0, 0);
         root.add(name, 1, 0);
@@ -69,6 +71,10 @@ public class DetailsView implements FxView<GridPane> {
 
         root.add(FontIcon.of(FontAwesomeSolid.LOCATION_ARROW), 0, 2);
         root.add(gps, 1, 2);
+
+        root.add(FontIcon.of(FontAwesomeRegular.THUMBS_UP), 0, 4);
+        root.add(orientation, 1, 4);
+
 
         root.setAlignment(Pos.TOP_RIGHT);
     }
@@ -95,6 +101,7 @@ public class DetailsView implements FxView<GridPane> {
         thumbnailSize.setText("");
         size.setText("");
         gps.setText("");
+        orientation.setText("");
         mediaLoader.getCachedValue(mf).ifPresent(t -> {
             thumbnailType.setText(mf.getThumbnailType().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
             if (t.getImage() != null) {
@@ -106,6 +113,7 @@ public class DetailsView implements FxView<GridPane> {
         creationDate.setText(dateTimeFormatter.format(mf.originalDate()));
         gps.setText(mf.getGeoLocation().toDMSString());
         size.setText(Objects.toString(mf.getDimension()));
+//        orientation.setText;
     }
 
     @FxEventListener

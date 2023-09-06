@@ -1,9 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-    <configuration default="false" name="Imag'In" type="Application" factoryName="Application">
+    <configuration default="false" name="Imag'In - ScenicView" type="Application" factoryName="Application">
         <option name="MAIN_CLASS_NAME" value="org.icroco.picture.ui.ImagInApp"/>
         <module name="imag-in"/>
         <option name="VM_PARAMETERS"
-                value="-Djava.library.path=/opt/libjpeg-turbo/lib -DSCENIC=false -Djava.util.prefs.PreferencesFactory2=java.util.prefs.FileSystemPreferencesFactory"/>
+                value="-Djava.library.path=/opt/libjpeg-turbo/lib -DSCENIC=true -Djava.util.prefs.PreferencesFactory2=java.util.prefs.FileSystemPreferencesFactory"/>
         <extension name="coverage">
             <pattern>
                 <option name="PATTERN" value="org.icroco.picture.ui.*"/>
