@@ -76,13 +76,12 @@ public class GalleryView implements FxView<StackPane> {
     //    private final BreadCrumbBar<Path>       breadCrumbBar  = new BreadCrumbBar<>();
     private final Breadcrumbs<Path> breadCrumbBar = new Breadcrumbs<>();
 
-    private CustomGridView<MediaFile> gridView;
+    private       CustomGridView<MediaFile> gridView;
     private       ZoomDragPane              photo;
     //    @FXML
 //    private ImageView              photo;
     private final StackPane                 photoContainer = new StackPane();
     private final ListView<MediaFile>       carouselIcons  = new ListView<>();
-
     private final BooleanProperty                       expandCell     = new SimpleBooleanProperty(true);
     private final ObservableList<MediaFile>             images         = FXCollections.observableArrayList(MediaFile.extractor());
     private final FilteredList<MediaFile>               filteredImages = new FilteredList<>(images);
@@ -95,9 +94,7 @@ public class GalleryView implements FxView<StackPane> {
     @PostConstruct
     protected void postConstruct() {
         gridView = new CustomGridView<>(taskService, FXCollections.emptyObservableList());
-//        root.setPrefSize(600, 300);
         root.setMinSize(350, 250);
-//        root.setPrefHeight(300);
         log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
                  gridView.getCellWidth(),
                  gridView.getCellHeight(),
@@ -117,6 +114,7 @@ public class GalleryView implements FxView<StackPane> {
         gridView.setVerticalCellSpacing(0D);
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService, expandCell));
         gridView.setOnZoom(this::zoomOnGrid);
+        currentCatalog.addListener(this::collectionChanged);
 
         carouselIcons.setCellFactory(new MediaFileListCellFactory(mediaLoader, taskService));
         carouselIcons.setItems(sortedImages);
@@ -225,6 +223,21 @@ public class GalleryView implements FxView<StackPane> {
         return slider;
     }
 
+    void collectionChanged(ObservableValue<? extends MediaCollection> observable, MediaCollection oldValue, MediaCollection newValue) {
+        if (newValue != null) {
+            images.clear();
+            gridView.getSelectionModel().clear();
+            resetBcbModel(null);
+            filteredImages.setPredicate(null);
+            images.addAll(newValue.medias());
+        } else {
+            breadCrumbBar.setSelectedCrumb(null);
+            images.clear();
+            filteredImages.setPredicate(null);
+        }
+    }
+
+
     private void onPhotoClick(MouseEvent event) {
         if (event.getClickCount() == 2) {
             if (carousel.getChildren().contains(carouselIcons)) {
@@ -258,7 +271,7 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     @FxEventListener
-    public void stageREady(StageReadyEvent event) {
+    public void stageReady(StageReadyEvent event) {
         var width = Math.max((int) gridView.getCellWidth(), (int) root.getWidth() / gridView.getItemsInRow());
         log.info("Parent width: {}, nbColumn: {}, currentWidth: {}, newWidth: {}",
                  gridView.getWidth(),
@@ -269,7 +282,6 @@ public class GalleryView implements FxView<StackPane> {
         gridCellWidth = width;
         gridView.setCellHeight(width);
         gridView.setCellWidth(width);
-        gridView.requestLayout();
         gridView.requestFocus();
     }
 
@@ -281,22 +293,15 @@ public class GalleryView implements FxView<StackPane> {
 
         switch (event.getType()) {
             case DELETED -> {
-                breadCrumbBar.setSelectedCrumb(null);
                 currentCatalog.set(null);
-                filteredImages.setPredicate(null);
-                images.clear();
                 // TODO: clear thumbnail cache ?
             }
             case SELECTED -> {
-                images.clear();
-                gridView.getSelectionModel().clear();
-                resetBcbModel(mediaCollection.path(), null);
-                filteredImages.setPredicate(null);
-                images.addAll(mediaCollection.medias());
                 currentCatalog.set(mediaCollection);
                 // TODO: Warm thumbnail cache ?
             }
             case READY -> {
+                // Ingore right now.
             }
         }
     }
@@ -313,13 +318,14 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void updateImages(CollectionSubPathSelectedEvent event) {
-        log.info("MediaCollection subpath selected: root: {}, entry: {}", event.getRoot(), event.getEntry());
-        resetBcbModel(event.getRoot(), event.getEntry());
-        final var path = event.getRoot().resolve(event.getEntry());
+        log.info("MediaCollection subpath selected: root: {}, entry: {}", event.getCollectionId(), event.getEntry());
+        currentCatalog.setValue(persistenceService.getMediaCollection(event.getCollectionId()));
+        resetBcbModel(event.getEntry());
+        final var path = getCurrentCatalog().path().resolve(event.getEntry());
         filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);
         gridView.getSelectionModel().clear();
-        taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
+//        taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
     }
 
     private MediaCollection getCurrentCatalog() {
@@ -348,10 +354,10 @@ public class GalleryView implements FxView<StackPane> {
             });
             TreeItem<Path> root    = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
             Path           subPath = root.getValue().relativize(mf.getFullPath());
-            resetBcbModel(root.getValue(), subPath);
+            resetBcbModel(subPath);
         } else {
-            TreeItem<Path> root = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
-            resetBcbModel(root.getValue(), null);
+//            TreeItem<Path> root = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
+//            resetBcbModel(null);
         }
     }
 
@@ -424,8 +430,8 @@ public class GalleryView implements FxView<StackPane> {
         };
     }
 
-    private void resetBcbModel(final Path root, @Nullable final Path entry) {
-        var paths = Stream.concat(Stream.of(root),
+    private void resetBcbModel(@Nullable final Path entry) {
+        var paths = Stream.concat(Stream.of(getCurrentCatalog().path()),
                                   entry == null
                                   ? Stream.empty()
                                   : StreamSupport.stream(Spliterators.spliteratorUnknownSize(entry.iterator(),

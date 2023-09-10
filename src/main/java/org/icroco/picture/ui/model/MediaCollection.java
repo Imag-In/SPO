@@ -21,4 +21,12 @@ public record MediaCollection(int id, Path path, Set<MediaFile> medias, Set<Medi
         subPaths.removeAll(sb);
         subPaths.addAll(sb);
     }
+
+    @Override
+    public String toString() {
+        return "MediaCollection{" +
+               "id:" + id +
+               ", path:" + path +
+               '}';
+    }
 }

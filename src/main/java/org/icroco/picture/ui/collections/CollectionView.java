@@ -1,6 +1,7 @@
 package org.icroco.picture.ui.collections;
 
 import atlantafx.base.controls.Spacer;
+import atlantafx.base.theme.Tweaks;
 import jakarta.annotation.PostConstruct;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -18,6 +19,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.util.Pair;
+import javafx.util.StringConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
@@ -29,18 +31,21 @@ import org.icroco.picture.ui.model.GeoLocation;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaCollectionEntry;
 import org.icroco.picture.ui.model.MediaFile;
+import org.icroco.picture.ui.persistence.CollectionRepository;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.task.AbstractTask;
 import org.icroco.picture.ui.task.TaskService;
-import org.icroco.picture.ui.util.*;
+import org.icroco.picture.ui.util.Constant;
+import org.icroco.picture.ui.util.FileUtil;
+import org.icroco.picture.ui.util.Nodes;
+import org.icroco.picture.ui.util.Styles;
 import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.icroco.picture.ui.util.widget.FxUtil;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -61,6 +66,7 @@ import static javafx.application.Platform.runLater;
 @Component
 @RequiredArgsConstructor
 public class CollectionView implements FxView<VBox> {
+    private final CollectionRepository collectionRepository;
     private final TaskService           taskService;
     private final PersistenceService    persistenceService;
     private final UserPreferenceService pref;
@@ -69,17 +75,31 @@ public class CollectionView implements FxView<VBox> {
     private final BooleanProperty       disablePathActions = new SimpleBooleanProperty(false);
     private final SimpleIntegerProperty catalogSizeProp    = new SimpleIntegerProperty(0);
 
-    private final VBox  root        = new VBox();
-    private final Label catalogSize = new Label();
-    private final Accordion mediaCollections = new Accordion();
-    private final Button    addCollection    = new Button();
-    private final HBox      collectionHeader = new HBox();
+    private final VBox   root             = new VBox();
+    private final Label  catalogSize      = new Label();
+    //    private final Accordion mediaCollections = new Accordion();
+    private final Button addCollection    = new Button();
+    private final HBox   collectionHeader = new HBox();
 
+    private final TreeItem<CollectionNode> rootTreeItem = new TreeItem<>(new CollectionNode(Path.of("Files"), -1));
+    private final TreeView<CollectionNode> treeView     = new TreeView<>(rootTreeItem);
+
+    record CollectionNode(Path path, int id) {
+        public CollectionNode(Path path) {
+            this(path, -1);
+        }
+    }
 
     @PostConstruct
     protected void initializedOnce() {
         root.getStyleClass().add("header");
-        VBox.setVgrow(mediaCollections, Priority.ALWAYS);
+        rootTreeItem.setExpanded(true);
+        treeView.setMinHeight(250);
+        treeView.setShowRoot(false);
+        treeView.setEditable(false);
+        treeView.setCellFactory(param -> new TextFieldTreeCell<>(getStringConverter()));
+        treeView.getSelectionModel().selectedItemProperty().addListener(this::treeItemSelectionChanged);
+        atlantafx.base.theme.Styles.toggleStyleClass(treeView, Tweaks.EDGE_TO_EDGE);
 
         collectionHeader.setAlignment(Pos.BASELINE_LEFT);
 
@@ -90,11 +110,10 @@ public class CollectionView implements FxView<VBox> {
         addCollection.setOnMouseClicked(this::newCollection);
         root.setOnMouseEntered(event -> addCollection.setVisible(true));
         root.setOnMouseExited(event -> {
-            if (!mediaCollections.getPanes().isEmpty()) {
+            if (!rootTreeItem.getChildren().isEmpty()) {
                 addCollection.setVisible(false);
             }
         });
-        mediaCollections.expandedPaneProperty().addListener(this::titlePaneChanged);
 
         catalogSize.getStyleClass().add(Styles.TEXT_SMALL);
         catalogSizeProp.addListener((observable, oldValue, newValue) -> {
@@ -109,57 +128,65 @@ public class CollectionView implements FxView<VBox> {
         header.getStyleClass().add(Styles.TITLE_3);
         collectionHeader.getChildren().addAll(header, catalogSize, new Spacer(), addCollection);
 
-        root.getChildren().addAll(collectionHeader, mediaCollections);
+        var box = new HBox(treeView);
+        VBox.setVgrow(box, Priority.ALWAYS);
+
+        root.getChildren().addAll(collectionHeader, box);
     }
 
-    private void titlePaneChanged(ObservableValue<? extends TitledPane> observableValue, TitledPane oldValue, TitledPane newValue) {
+
+    private TreeItem<CollectionNode> findMainCollectionNode(TreeItem<CollectionNode> child) {
+        if (child.getParent() == null || child.equals(rootTreeItem)) {
+            return child;
+        }
+        if (child.getParent().equals(rootTreeItem)) {
+            return child;
+        }
+
+        return findMainCollectionNode(child.getParent());
+    }
+
+    private static StringConverter<CollectionNode> getStringConverter() {
+        return new StringConverter<>() {
+            @Override
+            public String toString(CollectionNode object) {
+                return object.path.getFileName().toString();
+            }
+
+            @Override
+            public CollectionNode fromString(String string) {
+                return new CollectionNode(Path.of(string), -1);
+            }
+        };
+    }
+
+    private void treeItemSelectionChanged(ObservableValue<? extends TreeItem<CollectionNode>> v,
+                                          TreeItem<CollectionNode> oldValue,
+                                          TreeItem<CollectionNode> newValue) {
         if (newValue != null) {
-            int id = (int) newValue.getUserData();
-            pref.getUserPreference().getCollection().setLastViewed(id);
-            var catalogById = persistenceService.getMediaCollection(id);
-            taskService.sendEvent(new CollectionEvent(catalogById, EventType.SELECTED, this));
-//            taskService.sendFxEvent(new WarmThumbnailCacheEvent(catalogById, this));
+            log.trace("Tree view selected: {} ", newValue.getValue());
+            pref.getUserPreference().getCollection().setLastViewed(newValue.getValue().id);
+
+            taskService.sendEvent(new CollectionSubPathSelectedEvent(findMainCollectionNode(newValue).getValue().id(),
+                                                                     newValue.getValue().path,
+                                                                     CollectionView.this));
         }
     }
 
-    //        @Async(ImageInConfiguration.FX_EXECUTOR)
-    @EventListener(CollectionsLoadedEvent.class)
-    public void initCollections(CollectionsLoadedEvent event) {
-        runLater(() -> {
-            var id = pref.getUserPreference().getCollection().getLastViewed();
-            event.getMediaCollections()
-                 .stream()
-                 .map(this::createTreeView)
-                 .toList()
-                 .stream()
-                 .filter(p -> p.getKey().id() == id)
-                 .findFirst()
-                 .ifPresent(p -> {
-                     mediaCollections.setExpandedPane(p.getValue().tp());
-                 });
-        });
-    }
-
-    private Pair<MediaCollection, PaneTreeView> createTreeView(final MediaCollection mediaCollection) {
-        var rootItem = new TreeItem<>(mediaCollection.path());
-        var treeView = new TreeView<>(rootItem);
-        treeView.setShowRoot(false);
-        treeView.setEditable(false);
-        rootItem.setExpanded(true);
-        treeView.setCellFactory(param -> new TextFieldTreeCell<>(new PathConverter()));
+    private Pair<MediaCollection, TreeItem<CollectionNode>> createTreeView(final MediaCollection mediaCollection) {
+        var pathTreeItem = new TreeItem<>(new CollectionNode(mediaCollection.path(), mediaCollection.id()));
         log.info("Add collection: {}", mediaCollection.path());
         catalogSizeProp.set(catalogSizeProp.get() + mediaCollection.medias().size());
-
+        rootTreeItem.getChildren().add(pathTreeItem);
         mediaCollection.subPaths().forEach(c -> {
             var p = mediaCollection.path().relativize(c.name());
-            addSubDir(rootItem, p);
+            addSubDir(pathTreeItem, p);
             log.debug("Path: {}", p);
         });
 
         final TitledPane title = new TitledPane(mediaCollection.path().getFileName().toString(), treeView);
         title.setUserData(mediaCollection.id());
         title.setTooltip(new Tooltip(mediaCollection.path() + " (id: " + mediaCollection.id() + ")"));
-
 
         FontIcon graphic = new FontIcon(FontAwesomeRegular.TRASH_ALT);
         graphic.setIconSize(12);
@@ -168,35 +195,26 @@ public class CollectionView implements FxView<VBox> {
         Nodes.addRightGraphic(title, label);
         label.setOnMouseClicked(this::onDeleteCollection);
 
-        mediaCollections.getPanes().add(title);
-        mediaCollections.getPanes().sort(Comparator.comparing(TitledPane::getText));
+//        mediaCollections.getPanes().add(title);
+//        mediaCollections.getPanes().sort(Comparator.comparing(TitledPane::getText));
 
-        treeView.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
-            if (newValue != null) {
-                log.debug("Tree view selected: {} ", newValue.getValue());
-                taskService.sendEvent(new CollectionSubPathSelectedEvent(mediaCollection.path(), newValue.getValue(), CollectionView.this));
-            }
-        });
 
-        return new Pair<>(mediaCollection, new PaneTreeView(title, treeView));
+        return new Pair<>(mediaCollection, pathTreeItem);
     }
 
     @SuppressWarnings("unchecked")
-    private void updateTreeView(final TitledPane titledPane, final MediaCollection mediaCollection) {
-        var treeView = (TreeView<Path>) titledPane.getContent();
-        var rootItem = treeView.getRoot();
-
+    private void updateTreeView(final TreeItem<CollectionNode> treeItem, final MediaCollection mediaCollection) {
         mediaCollection.subPaths().forEach(c -> {
             var p = mediaCollection.path().relativize(c.name());
-            addSubDir(rootItem, p);
+            addSubDir(treeItem, p);
             log.debug("Path: {}", p);
         });
     }
 
-    private void addSubDir(TreeItem<Path> current, Path path) {
-        current.getChildren().sort(Comparator.comparing(ti -> ti.getValue().getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
+    private void addSubDir(TreeItem<CollectionNode> current, Path path) {
+        current.getChildren().sort(Comparator.comparing(ti -> ti.getValue().path.getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
         for (int i = 0; i < path.getNameCount(); i++) {
-            var child = new TreeItem<>(path.subpath(0, i + 1));
+            var child = new TreeItem<>(new CollectionNode(path.subpath(0, i + 1)));
             if (current.getChildren().stream().noneMatch(pathTreeItem -> pathTreeItem.getValue().equals(child.getValue()))) {
                 current.getChildren().add(child);
             }
@@ -228,18 +246,17 @@ public class CollectionView implements FxView<VBox> {
                         .addListener(o -> {
                             if (dlg.getResult() == ButtonType.OK) {
                                 catalogSizeProp.set(catalogSizeProp.get() - mediaCollection.medias().size());
-                                deleteCollection(tpe);
+                                deleteCollection(mediaCollection);
                             }
                         });
                  });
         }
     }
 
-    private void deleteCollection(TitlePaneEntry entry) {
-        var mc = persistenceService.getMediaCollection(entry.mediaCollectionId);
-        persistenceService.deleteMediaCollection(entry.mediaCollectionId);
-        mediaCollections.getPanes().remove(entry.titledPane);
-        taskService.sendEvent(new CollectionEvent(mc, EventType.DELETED, this));
+    private void deleteCollection(MediaCollection entry) {
+        persistenceService.deleteMediaCollection(entry.id());
+        rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path.equals(entry.path()));
+        taskService.sendEvent(new CollectionEvent(entry, EventType.DELETED, this));
         // TODO: Clean Thumbnail Cache and DB.
     }
 
@@ -250,21 +267,20 @@ public class CollectionView implements FxView<VBox> {
 
         if (selectedDirectory != null) {
             var rootPath = selectedDirectory.toPath().normalize();
-            mediaCollections.getPanes()
-                            .stream()
-                            .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
-                            .filter(tpe -> rootPath.startsWith(persistenceService.getMediaCollection(tpe.mediaCollectionId).path()))
-                            .findFirst()
-                            .ifPresent(p -> {
-                                // TODO: Rather than getting an error, jump to that dir into the proper collection.
-                                throw new CollectionException("Path: '%s' is already included into collection item: '%s'".formatted(rootPath, p));
-                            });
-            mediaCollections.getPanes()
-                            .stream()
-                            .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
-                            .filter(tpe -> rootPath.startsWith(persistenceService.getMediaCollection(tpe.mediaCollectionId).path()))
-                            .findFirst()
-                            .ifPresent(this::deleteCollection); // TODO: Ask user confirmation.
+            rootTreeItem.getChildren()
+                        .stream()
+                        .filter(treeItem -> rootPath.startsWith(persistenceService.getMediaCollection(treeItem.getValue().id()).path()))
+                        .findFirst()
+                        .ifPresent(p -> {
+                            // TODO: Rather than getting an error, jump to that dir into the proper collection.
+                            throw new CollectionException("Path: '%s' is already included into collection item: '%s'".formatted(rootPath, p));
+                        });
+            rootTreeItem.getChildren()
+                        .stream()
+                        .filter(treeItem -> rootPath.startsWith(persistenceService.getMediaCollection(treeItem.getValue().id()).path()))
+                        .findFirst()
+                        .map(treeItem -> persistenceService.getMediaCollection(treeItem.getValue().id()))
+                        .ifPresent(this::deleteCollection); // TODO: Ask user confirmation.
 
             disablePathActions.set(true);
 
@@ -391,20 +407,44 @@ public class CollectionView implements FxView<VBox> {
         return builder.build();
     }
 
+
+    //        @Async(ImageInConfiguration.FX_EXECUTOR)
+    @FxEventListener
+    public void initCollections(CollectionsLoadedEvent event) {
+        var id = pref.getUserPreference().getCollection().getLastViewed();
+        log.info("Collection Loaded: {}, prefId: {}", event, id);
+        event.getMediaCollections()
+             .stream()
+             .map(this::createTreeView)
+             .toList()
+             .stream()
+             .filter(p -> p.getKey().id() == id)
+             .findFirst()
+             .ifPresent(p -> {
+                 log.info("Expand: {}", p.getKey().path());
+                 p.getValue().setExpanded(true);
+                 var catalogById = persistenceService.getMediaCollection(id);
+                 taskService.sendEvent(new CollectionEvent(catalogById, EventType.SELECTED, this));
+                 treeView.getSelectionModel().select(p.getValue());
+             });
+    }
+
     @FxEventListener
     public void catalogEvent(final CollectionEvent event) {
+        log.info("Catalog Event: {}", event);
         if (Objects.requireNonNull(event.getType()) == EventType.READY) {
-            runLater(() -> {
-                mediaCollections.getPanes()
-                                .stream()
-                                .filter(tp -> ((int) tp.getUserData()) == event.getMediaCollection().id())
-                                .findFirst()
-                                .filter(tp -> mediaCollections.getExpandedPane() != tp)
-                                .ifPresent(tp -> mediaCollections.setExpandedPane(tp));
-            });
-        } else if (EventType.SELECTED == event.getType()) {
-            ((TreeView<?>) mediaCollections.getExpandedPane().getContent()).getSelectionModel().clearSelection();
+            rootTreeItem.getChildren()
+                        .stream()
+                        .filter(treeItem -> treeItem.getValue().id() == event.getMediaCollection().id())
+                        .findFirst()
+                        .ifPresent(treeItem -> {
+                            treeItem.setExpanded(true);
+                            treeView.getSelectionModel().select(treeItem);
+                        });
         }
+//        else if (EventType.SELECTED == event.getType()) {
+//            treeView.getSelectionModel().clearSelection();
+//        }
     }
 
     @FxEventListener
@@ -425,11 +465,12 @@ public class CollectionView implements FxView<VBox> {
         mc.subPaths().addAll(directories);
 
         var mcSaved = persistenceService.saveCollection(mc);
-        mediaCollections.getPanes()
-                        .stream()
-                        .filter(n -> ((int) n.getUserData() == event.getMediaCollectionId()))
-                        .findFirst()
-                        .ifPresent(titledPane -> updateTreeView(titledPane, mcSaved));
+
+        rootTreeItem.getChildren()
+                    .stream()
+                    .filter(treeItem -> treeItem.getValue().id() == event.getMediaCollectionId())
+                    .findFirst()
+                    .ifPresent(treeItem -> updateTreeView(treeItem, mcSaved));
     }
 
     record PaneTreeView(TitledPane tp, TreeView<Path> treeView) {

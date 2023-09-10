@@ -16,6 +16,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * classes programmatically.
  */
 @SuppressWarnings("unused")
+// TODO: Remove
 public final class Styles {
 
     public static final String DATA_URI_PREFIX = "data:base64,";

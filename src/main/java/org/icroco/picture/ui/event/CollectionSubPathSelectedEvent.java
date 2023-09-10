@@ -9,18 +9,18 @@ import java.time.Clock;
 @Getter
 @ToString
 public class CollectionSubPathSelectedEvent extends IiEvent {
-    private final Path root;
+    private final int collectionId;
     private final Path entry;
 
-    public CollectionSubPathSelectedEvent(Path root, Path entry, Object source) {
+    public CollectionSubPathSelectedEvent(int collectionId, Path entry, Object source) {
         super(source);
-        this.root = root;
+        this.collectionId = collectionId;
         this.entry = entry;
     }
 
-    public CollectionSubPathSelectedEvent(Path root, Path entry, Object source, Clock clock) {
+    public CollectionSubPathSelectedEvent(int collectionId, Path entry, Object source, Clock clock) {
         super(source, clock);
-        this.root = root;
+        this.collectionId = collectionId;
         this.entry = entry;
     }
 }

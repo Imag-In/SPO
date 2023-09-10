@@ -7,7 +7,7 @@ import org.icroco.picture.ui.model.MediaCollection;
 import java.util.Collection;
 
 @Getter
-@ToString(exclude = "mediaCollections")
+@ToString
 public class CollectionsLoadedEvent extends IiEvent {
     private final Collection<MediaCollection> mediaCollections;
 
