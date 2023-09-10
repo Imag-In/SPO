@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.ui.FxEventListener;
 import org.icroco.picture.ui.FxView;
-import org.icroco.picture.ui.event.CollectionEvent;
 import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.util.MediaLoader;
@@ -60,20 +59,27 @@ public class DetailsView implements FxView<GridPane> {
         txtDbId.getStyleClass().add(Styles.TEXT_SMALL);
         txtDbId.setVisible(false);
 
-        root.add(txtDbId, 2, 0);
-        root.add(dbId, 3, 0);
+        int rowIdx = 0;
+        root.add(txtDbId, 2, rowIdx);
+        root.add(dbId, 3, rowIdx);
         root.setHgap(10);
         root.setVgap(10);
         dbId.getStyleClass().add(Styles.TEXT_SMALL);
 
-        root.add(FontIcon.of(FontAwesomeRegular.CALENDAR), 0, 1);
-        root.add(creationDate, 1, 1);
+        rowIdx += 1;
+        root.add(size, 1, rowIdx);
 
-        root.add(FontIcon.of(FontAwesomeSolid.LOCATION_ARROW), 0, 2);
-        root.add(gps, 1, 2);
+        rowIdx += 2;
+        root.add(FontIcon.of(FontAwesomeRegular.CALENDAR), 0, rowIdx);
+        root.add(creationDate, 1, rowIdx);
 
-        root.add(FontIcon.of(FontAwesomeRegular.THUMBS_UP), 0, 4);
-        root.add(orientation, 1, 4);
+        rowIdx += 2;
+        root.add(FontIcon.of(FontAwesomeSolid.LOCATION_ARROW), 0, rowIdx);
+        root.add(gps, 1, rowIdx);
+
+        rowIdx += 2;
+        root.add(FontIcon.of(FontAwesomeRegular.THUMBS_UP), 0, rowIdx);
+        root.add(orientation, 1, rowIdx);
 
 
         root.setAlignment(Pos.TOP_RIGHT);
@@ -95,34 +101,37 @@ public class DetailsView implements FxView<GridPane> {
 
     @FxEventListener
     public void updatePhotoSelected(PhotoSelectedEvent event) {
-        root.setVisible(true);
         var mf = event.getMf();
-        thumbnailType.setText(EThumbnailType.ABSENT.toString());
-        thumbnailSize.setText("");
-        size.setText("");
-        gps.setText("");
-        orientation.setText("");
-        mediaLoader.getCachedValue(mf).ifPresent(t -> {
-            thumbnailType.setText(mf.getThumbnailType().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
-            if (t.getImage() != null) {
-                thumbnailSize.setText("%d x %d".formatted((int) t.getImage().getWidth(), (int) t.getImage().getHeight()));
-            }
-        });
-        dbId.setText(Long.toString(mf.getId()));
-        name.setText(mf.getFileName());
-        creationDate.setText(dateTimeFormatter.format(mf.originalDate()));
-        gps.setText(mf.getGeoLocation().toDMSString());
-        size.setText(Objects.toString(mf.getDimension()));
-//        orientation.setText;
+        if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
+            mediaLoader.getCachedValue(mf).ifPresent(t -> {
+                thumbnailType.setText(mf.getThumbnailType().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
+                if (t.getImage() != null) {
+                    thumbnailSize.setText("%d x %d".formatted((int) t.getImage().getWidth(), (int) t.getImage().getHeight()));
+                }
+            });
+            dbId.setText(Long.toString(mf.getId()));
+            name.setText(mf.getFileName());
+            creationDate.setText(dateTimeFormatter.format(mf.originalDate()));
+            gps.setText(mf.getGeoLocation().toDMSString());
+            size.setText(Objects.toString(mf.getDimension()));
+            root.setVisible(true);
+        } else {
+            root.setVisible(false);
+            thumbnailType.setText(EThumbnailType.ABSENT.toString());
+            thumbnailSize.setText("");
+            size.setText("");
+            gps.setText("");
+            orientation.setText("");
+        }
     }
 
-    @FxEventListener
-    public void catalogEvent(CollectionEvent event) {
-        log.info("Recieve Collection event: {}", event);
-        boolean visible = event.getType() != CollectionEvent.EventType.DELETED;
-        root.setVisible(visible);
-        txtDbId.setVisible(visible);
-    }
+//    @FxEventListener
+//    public void catalogEvent(CollectionEvent event) {
+//        log.info("Recieve Collection event: {}", event);
+//        boolean visible = event.getType() != CollectionEvent.EventType.DELETED;
+//        root.setVisible(visible);
+//        txtDbId.setVisible(visible);
+//    }
 
     @Override
     public GridPane getRootContent() {

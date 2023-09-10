@@ -3,17 +3,30 @@ package org.icroco.picture.ui.event;
 import lombok.Getter;
 import org.icroco.picture.ui.model.MediaFile;
 
+import java.nio.file.Path;
+import java.util.Optional;
+
 @Getter
 public class PhotoSelectedEvent extends IiEvent {
-    private final MediaFile mf;
+    private final MediaFile      mf;
+    private final ESelectionType type;
 
-    public PhotoSelectedEvent(MediaFile file, Object source) {
+    public enum ESelectionType {
+        SELECTED,
+        UNSELECTED
+    }
+
+    public PhotoSelectedEvent(ESelectionType type, MediaFile file, Object source) {
         super(source);
         this.mf = file;
+        this.type = type;
     }
 
     @Override
     public String toString() {
-        return "PhotoSelectedEvent, Id: '%s', file: '%s' ".formatted(mf.getId(), mf.getFullPath());
+        var f = Optional.ofNullable(mf);
+        return "PhotoSelectedEvent, Type: '%s', Id: '%s', file: '%s' ".formatted(type,
+                                                                                 f.map(MediaFile::getId).orElse(-1L),
+                                                                                 f.map(MediaFile::getFullPath).orElse(Path.of("")));
     }
 }

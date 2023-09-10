@@ -39,13 +39,13 @@ public class StatusBarView implements FxView<HBox> {
     private final TaskView            taskView;
     private final TaskScheduler       scheduler;
 
-    private PopOver popOver;
 
-    private final HBox root = new HBox();
-    private       ProgressBar memoryStatus;
+    private final HBox        root          = new HBox();
     private final Tooltip     tooltip       = new Tooltip("");
     private final Label       progressLabel = new Label();
     private final ProgressBar smallBar      = new ProgressBar(0.5);
+    private       ProgressBar memoryStatus;
+    private       PopOver     popOver;
 
     @PostConstruct
     protected void initializedOnce() {
@@ -55,6 +55,7 @@ public class StatusBarView implements FxView<HBox> {
         memoryStatus.setPrefWidth(100);
 
         smallBar.setMinWidth(200);
+        smallBar.setMaxWidth(200);
         smallBar.getStyleClass().add(Styles.SMALL);
         progressLabel.setMinWidth(250);
         SimpleListProperty<Task<?>> list = new SimpleListProperty<>(taskView.getTasks());

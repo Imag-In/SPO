@@ -9,6 +9,7 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.dialog.ExceptionDialog;
+import org.icroco.javafx.StageReadyEvent;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.util.Error;
 import org.icroco.picture.ui.util.ImageUtils;
@@ -114,7 +115,7 @@ public class ImagInApp extends Application {
             Thread.setDefaultUncaughtExceptionHandler(this::showError);
             preStart(primaryStage);
             primaryStage.setOnCloseRequest(this::closeRequest);
-//            Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));
+            Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));
             Platform.runLater(() -> {
                 primaryStage.show();
                 primaryStage.requestFocus();

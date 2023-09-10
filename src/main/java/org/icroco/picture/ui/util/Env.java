@@ -19,7 +19,7 @@ public class Env {
     @PostConstruct
     void init() {
         log.info("Default Profile: {}", Arrays.stream(environment.getDefaultProfiles()).collect(Collectors.joining(", ")));
-        log.info("Default Profile: {}", Arrays.stream(environment.getActiveProfiles()).collect(Collectors.joining(", ")));
+        log.info("Profiles: {}", Arrays.stream(environment.getActiveProfiles()).collect(Collectors.joining(", ")));
     }
 
     public boolean isDev() {

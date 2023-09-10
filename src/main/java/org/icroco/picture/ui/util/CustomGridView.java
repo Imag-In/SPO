@@ -1,7 +1,6 @@
 package org.icroco.picture.ui.util;
 
 import impl.org.controlsfx.skin.GridViewSkin;
-import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.control.skin.VirtualFlow;
@@ -10,19 +9,18 @@ import javafx.scene.input.KeyEvent;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridView;
+import org.icroco.picture.ui.task.TaskService;
 
 @Slf4j
 public class CustomGridView<T> extends GridView<T> {
     int selectedRow = 0; // current "selected" GridView row.
     @Getter
-    private final GridCellSelectionModel selectionModel = new GridCellSelectionModel();
+    private final GridCellSelectionModel selectionModel;
 
-    public CustomGridView() {
-        this(FXCollections.emptyObservableList());
-    }
-
-    public CustomGridView(ObservableList<T> items) {
+    public CustomGridView(TaskService taskService, ObservableList<T> items) {
         super(items);
+        selectionModel = new GridCellSelectionModel(taskService);
+        setCenterShape(true);
     }
 
     public void addScrollAndKeyhandler() {
@@ -92,7 +90,7 @@ public class CustomGridView<T> extends GridView<T> {
         }
     }
 
-    private int getItemsInRow() {
+    public int getItemsInRow() {
         return ((GridViewSkin<?>) getSkin()).computeMaxCellsInRow();
     }
 

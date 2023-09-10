@@ -7,7 +7,7 @@ public record GeoLocation(double latitude, double longitude) {
 
     @NotNull
     public String toDMSString() {
-        return com.drew.lang.GeoLocation.decimalToDegreesMinutesSecondsString(latitude) + ", " +
+        return com.drew.lang.GeoLocation.decimalToDegreesMinutesSecondsString(latitude) + "; " +
                com.drew.lang.GeoLocation.decimalToDegreesMinutesSecondsString(longitude);
     }
 }

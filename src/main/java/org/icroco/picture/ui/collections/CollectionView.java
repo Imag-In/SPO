@@ -21,6 +21,7 @@ import javafx.util.Pair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
+import org.icroco.picture.ui.FxEventListener;
 import org.icroco.picture.ui.FxView;
 import org.icroco.picture.ui.event.*;
 import org.icroco.picture.ui.event.CollectionEvent.EventType;
@@ -123,7 +124,7 @@ public class CollectionView implements FxView<VBox> {
 
     //        @Async(ImageInConfiguration.FX_EXECUTOR)
     @EventListener(CollectionsLoadedEvent.class)
-    private void initCollections(CollectionsLoadedEvent event) {
+    public void initCollections(CollectionsLoadedEvent event) {
         runLater(() -> {
             var id = pref.getUserPreference().getCollection().getLastViewed();
             event.getMediaCollections()
@@ -390,49 +391,45 @@ public class CollectionView implements FxView<VBox> {
         return builder.build();
     }
 
-    @EventListener(CollectionEvent.class)
+    @FxEventListener
     public void catalogEvent(final CollectionEvent event) {
-        runLater(() -> {
-            if (Objects.requireNonNull(event.getType()) == EventType.READY) {
-                runLater(() -> {
-                    mediaCollections.getPanes()
-                                    .stream()
-                                    .filter(tp -> ((int) tp.getUserData()) == event.getMediaCollection().id())
-                                    .findFirst()
-                                    .filter(tp -> mediaCollections.getExpandedPane() != tp)
-                                    .ifPresent(tp -> mediaCollections.setExpandedPane(tp));
-                });
-            } else if (EventType.SELECTED == event.getType()) {
-                ((TreeView<?>) mediaCollections.getExpandedPane().getContent()).getSelectionModel().clearSelection();
-            }
-        });
+        if (Objects.requireNonNull(event.getType()) == EventType.READY) {
+            runLater(() -> {
+                mediaCollections.getPanes()
+                                .stream()
+                                .filter(tp -> ((int) tp.getUserData()) == event.getMediaCollection().id())
+                                .findFirst()
+                                .filter(tp -> mediaCollections.getExpandedPane() != tp)
+                                .ifPresent(tp -> mediaCollections.setExpandedPane(tp));
+            });
+        } else if (EventType.SELECTED == event.getType()) {
+            ((TreeView<?>) mediaCollections.getExpandedPane().getContent()).getSelectionModel().clearSelection();
+        }
     }
 
-    @EventListener(CollectionUpdatedEvent.class)
+    @FxEventListener
     public void updateImages(CollectionUpdatedEvent event) {
-        runLater(() -> {
-            log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}'",
-                     event.getMediaCollectionId(),
-                     event.getNewItems().size(),
-                     event.getDeletedItems().size());
-            var mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
-            var directories = event.getNewItems()
-                                   .stream()
-                                   .map(mediaFile -> mediaFile.getFullPath().normalize().getParent())
-                                   .distinct()
-                                   .filter(FileUtil::isLastDir)
-                                   .filter(p -> !p.equals(mc.path()))
-                                   .map(p -> MediaCollectionEntry.builder().name(p).build())
-                                   .toList();
-            mc.subPaths().addAll(directories);
+        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}'",
+                 event.getMediaCollectionId(),
+                 event.getNewItems().size(),
+                 event.getDeletedItems().size());
+        var mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
+        var directories = event.getNewItems()
+                               .stream()
+                               .map(mediaFile -> mediaFile.getFullPath().normalize().getParent())
+                               .distinct()
+                               .filter(FileUtil::isLastDir)
+                               .filter(p -> !p.equals(mc.path()))
+                               .map(p -> MediaCollectionEntry.builder().name(p).build())
+                               .toList();
+        mc.subPaths().addAll(directories);
 
-            var mcSaved = persistenceService.saveCollection(mc);
-            mediaCollections.getPanes()
-                            .stream()
-                            .filter(n -> ((int) n.getUserData() == event.getMediaCollectionId()))
-                            .findFirst()
-                            .ifPresent(titledPane -> updateTreeView(titledPane, mcSaved));
-        });
+        var mcSaved = persistenceService.saveCollection(mc);
+        mediaCollections.getPanes()
+                        .stream()
+                        .filter(n -> ((int) n.getUserData() == event.getMediaCollectionId()))
+                        .findFirst()
+                        .ifPresent(titledPane -> updateTreeView(titledPane, mcSaved));
     }
 
     record PaneTreeView(TitledPane tp, TreeView<Path> treeView) {

@@ -28,7 +28,7 @@ public class MediaFileListCellFactory implements Callback<ListView<MediaFile>, L
             var mf = ((MediaFileListCell) t.getSource()).getItem();
             if (t.getClickCount() == 1) {
 //                cell.requestLayout();
-                taskService.sendEvent(new PhotoSelectedEvent(mf, this));
+                taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.SELECTED, mf, this));
             } else if (t.getClickCount() == 2) {
                 taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.HIDE).build());
             }

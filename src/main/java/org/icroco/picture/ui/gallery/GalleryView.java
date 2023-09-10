@@ -1,6 +1,8 @@
 package org.icroco.picture.ui.gallery;
 
+import atlantafx.base.controls.Breadcrumbs;
 import atlantafx.base.controls.ProgressSliderSkin;
+import atlantafx.base.controls.Spacer;
 import jakarta.annotation.PostConstruct;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
@@ -24,7 +26,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import lombok.RequiredArgsConstructor;
-import org.controlsfx.control.BreadCrumbBar;
+import org.icroco.javafx.StageReadyEvent;
+import org.icroco.picture.ui.FxEventListener;
 import org.icroco.picture.ui.FxView;
 import org.icroco.picture.ui.event.*;
 import org.icroco.picture.ui.model.MediaCollection;
@@ -39,8 +42,8 @@ import org.icroco.picture.ui.util.Nodes;
 import org.icroco.picture.ui.util.widget.Zoom;
 import org.icroco.picture.ui.util.widget.ZoomDragPane;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.material2.Material2AL;
 import org.slf4j.Logger;
-import org.springframework.context.event.EventListener;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -70,8 +73,10 @@ public class GalleryView implements FxView<StackPane> {
 
     private final Slider zoomThumbnails = createTickSlider();
 
-    private final BreadCrumbBar<Path>       breadCrumbBar  = new BreadCrumbBar<>();
-    private final CustomGridView<MediaFile> gridView       = new CustomGridView<>();
+    //    private final BreadCrumbBar<Path>       breadCrumbBar  = new BreadCrumbBar<>();
+    private final Breadcrumbs<Path> breadCrumbBar = new Breadcrumbs<>();
+
+    private CustomGridView<MediaFile> gridView;
     private       ZoomDragPane              photo;
     //    @FXML
 //    private ImageView              photo;
@@ -88,7 +93,8 @@ public class GalleryView implements FxView<StackPane> {
     private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
 
     @PostConstruct
-    protected void initializedOnce() {
+    protected void postConstruct() {
+        gridView = new CustomGridView<>(taskService, FXCollections.emptyObservableList());
 //        root.setPrefSize(600, 300);
         root.setMinSize(350, 250);
 //        root.setPrefHeight(300);
@@ -101,8 +107,8 @@ public class GalleryView implements FxView<StackPane> {
         gridView.setItems(sortedImages);
 //        gridCellWidth = Optional.ofNullable(pref.getUserPreference().getGrid().getCellWidth()).orElse((int)gridView.getCellWidth());
 //        gridCellHeight = Optional.ofNullable(pref.getUserPreference().getGrid().getCellHeight()).orElse((int)gridView.getCellHeight());
-        gridCellWidth = gridView.getCellWidth() * 2;
-        gridCellHeight = gridView.getCellHeight() * 2;
+        gridCellWidth = 128; //gridView.getCellWidth() * 2;
+        gridCellHeight = 128; //gridView.getCellHeight() * 2;
         gridView.setCache(true);
         gridView.setCacheHint(CacheHint.SPEED);
         gridView.setCellWidth(gridCellWidth);
@@ -143,9 +149,27 @@ public class GalleryView implements FxView<StackPane> {
 //        photo.fitWidthProperty().bind(photoContainer.widthProperty().subtract(10));
 
 
-        breadCrumbBar.setCrumbFactory(item -> new BreadCrumbBar.BreadCrumbButton(item.getValue() != null ? item.getValue().getFileName().toString() : ""));
+//        breadCrumbBar.setCrumbFactory(item -> {
+//            var btn = new Button(item.getValue().getFileName().toString());
+//            btn.getStyleClass().add(Styles.FLAT);
+//            btn.setFocusTraversable(false);
+//            return btn;
+//
+//        });
+        breadCrumbBar.setCrumbFactory(item -> new Hyperlink(item.getValue().getFileName().toString()));
+
+//        breadCrumbBar.setCrumbFactory(item -> new BreadCrumbBar.BreadCrumbButton(item.getValue() != null ? item.getValue().getFileName().toString() : ""));
         breadCrumbBar.setAutoNavigationEnabled(false);
-//        breadCrumbBar.setOnCrumbAction(bae -> log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!"));
+        breadCrumbBar.setOnCrumbAction(bae -> log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!"));
+
+        breadCrumbBar.setDividerFactory(item -> {
+            if (item == null) {
+                return new Label("", new FontIcon(Material2AL.HOME));
+            }
+            return !item.isLast()
+                   ? new Label("", new FontIcon(Material2AL.CHEVRON_RIGHT))
+                   : null;
+        });
 
         gridView.addScrollAndKeyhandler();
         expandCell.addListener((observable, oldValue, newValue) -> gridView.refreshItems());
@@ -155,13 +179,13 @@ public class GalleryView implements FxView<StackPane> {
         carousel.setVisible(false);
         root.getChildren().addAll(gallery, carousel);
 
-        runLater(() -> gridView.requestFocus());
+//        runLater(() -> gridView.requestFocus());
     }
 
 
     HBox createBottomBar() {
         HBox bar = new HBox();
-        bar.setAlignment(Pos.CENTER);
+        bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().setAll("tool-bar");
 
 
@@ -185,7 +209,7 @@ public class GalleryView implements FxView<StackPane> {
         Label nbImages = new Label();
         nbImages.textProperty().bind(Bindings.size(images).map(number -> number + " files"));
 
-        bar.getChildren().addAll(expand, zoomThumbnails, breadCrumbBar, nbImages);
+        bar.getChildren().addAll(expand, zoomThumbnails, breadCrumbBar, new Spacer(), nbImages);
 
         return bar;
     }
@@ -233,69 +257,79 @@ public class GalleryView implements FxView<StackPane> {
         event.consume();
     }
 
-    @EventListener(CollectionEvent.class)
+    @FxEventListener
+    public void stageREady(StageReadyEvent event) {
+        var width = Math.max((int) gridView.getCellWidth(), (int) root.getWidth() / gridView.getItemsInRow());
+        log.info("Parent width: {}, nbColumn: {}, currentWidth: {}, newWidth: {}",
+                 gridView.getWidth(),
+                 gridView.getItemsInRow(),
+                 gridView.getCellWidth(),
+                 width);
+        gridCellHeight = width;
+        gridCellWidth = width;
+        gridView.setCellHeight(width);
+        gridView.setCellWidth(width);
+        gridView.requestLayout();
+        gridView.requestFocus();
+    }
+
+    @FxEventListener
     public void updateImages(CollectionEvent event) {
-        runLater(() -> {
-            // FIXME: Confilt with dir scanning.
-            MediaCollection mediaCollection = event.getMediaCollection();
-            log.info("CollectionEvent type {}, Collection: {}, mediaFiles size: {}", event.getType(), mediaCollection.id(), mediaCollection.medias().size());
+        // FIXME: Confilt with dir scanning.
+        MediaCollection mediaCollection = event.getMediaCollection();
+        log.info("CollectionEvent type {}, Collection: {}, mediaFiles size: {}", event.getType(), mediaCollection.id(), mediaCollection.medias().size());
 
-            switch (event.getType()) {
-                case DELETED -> {
-                    breadCrumbBar.setSelectedCrumb(null);
-                    currentCatalog.set(null);
-                    filteredImages.setPredicate(null);
-                    images.clear();
-                    // TODO: clear thumbnail cache ?
-                }
-                case SELECTED -> {
-                    images.clear();
-                    resetBcbModel(mediaCollection.path(), null);
-                    filteredImages.setPredicate(null);
-                    images.addAll(mediaCollection.medias());
-
-                    currentCatalog.set(mediaCollection);
-                    // TODO: Warm thumbnail cache ?
-                }
-                case READY -> {
-                }
+        switch (event.getType()) {
+            case DELETED -> {
+                breadCrumbBar.setSelectedCrumb(null);
+                currentCatalog.set(null);
+                filteredImages.setPredicate(null);
+                images.clear();
+                // TODO: clear thumbnail cache ?
             }
-        });
+            case SELECTED -> {
+                images.clear();
+                gridView.getSelectionModel().clear();
+                resetBcbModel(mediaCollection.path(), null);
+                filteredImages.setPredicate(null);
+                images.addAll(mediaCollection.medias());
+                currentCatalog.set(mediaCollection);
+                // TODO: Warm thumbnail cache ?
+            }
+            case READY -> {
+            }
+        }
     }
 
-    @EventListener(CollectionUpdatedEvent.class)
+    @FxEventListener
     public void updateImages(CollectionUpdatedEvent event) {
-        runLater(() -> {
-            log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}'",
-                     event.getMediaCollectionId(),
-                     event.getNewItems().size(),
-                     event.getDeletedItems().size());
-            images.addAll(event.getNewItems());
-            images.removeAll(event.getDeletedItems());
-
-        });
+        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}'",
+                 event.getMediaCollectionId(),
+                 event.getNewItems().size(),
+                 event.getDeletedItems().size());
+        images.addAll(event.getNewItems());
+        images.removeAll(event.getDeletedItems());
     }
 
-    @EventListener(CollectionSubPathSelectedEvent.class)
+    @FxEventListener
     public void updateImages(CollectionSubPathSelectedEvent event) {
-        runLater(() -> {
-            log.info("MediaCollection subpath selected: root: {}, entry: {}", event.getRoot(), event.getEntry());
-            resetBcbModel(event.getRoot(), event.getEntry());
-            final var path = event.getRoot().resolve(event.getEntry());
-            filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
+        log.info("MediaCollection subpath selected: root: {}, entry: {}", event.getRoot(), event.getEntry());
+        resetBcbModel(event.getRoot(), event.getEntry());
+        final var path = event.getRoot().resolve(event.getEntry());
+        filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);
-            taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
-        });
+        gridView.getSelectionModel().clear();
+        taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
     }
 
     private MediaCollection getCurrentCatalog() {
         return Optional.ofNullable(currentCatalog.get()).orElseThrow(() -> new IllegalStateException("Technical error, current catalog is not set"));
     }
 
-    @EventListener(PhotoSelectedEvent.class)
+    @FxEventListener
     public void updatePhotoSelected(PhotoSelectedEvent event) {
-        runLater(() -> {
-
+        if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
+            log.info("GridView item in row: {}", gridView.getItemsInRow());
             final var source = Optional.ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
             final var mf     = event.getMf();
             log.atDebug().log(() -> {
@@ -312,13 +346,13 @@ public class GalleryView implements FxView<StackPane> {
                                    cache.map(Thumbnail::getOrigin).orElse(null)
                         );
             });
-
-            // TODO: it works with only one item selected.
-
             TreeItem<Path> root    = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
             Path           subPath = root.getValue().relativize(mf.getFullPath());
             resetBcbModel(root.getValue(), subPath);
-        });
+        } else {
+            TreeItem<Path> root = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
+            resetBcbModel(root.getValue(), null);
+        }
     }
 
     Task<List<MediaFile>> fillGallery(final List<MediaFile> files) {
@@ -398,7 +432,7 @@ public class GalleryView implements FxView<StackPane> {
                                                                                              Spliterator.ORDERED)
                                           , false))
                           .toArray(Path[]::new);
-        TreeItem<Path> model = BreadCrumbBar.buildTreeModel(paths);
+        Breadcrumbs.BreadCrumbItem<Path> model = Breadcrumbs.buildTreeModel(paths);
         breadCrumbBar.setSelectedCrumb(model);
     }
 
@@ -422,7 +456,7 @@ public class GalleryView implements FxView<StackPane> {
         }
     }
 
-    @EventListener(CarouselEvent.class)
+    @FxEventListener
     public void showCarousel(CarouselEvent event) {
         log.debug("Receive Carousel Event: {},", event.getEventType());
         // TODO: Add visual animations;
@@ -451,18 +485,16 @@ public class GalleryView implements FxView<StackPane> {
         photo.setImage(mediaLoader.loadImage(newValue));
     }
 
-    @EventListener(GalleryRefreshEvent.class)
+    //    @FxEventListener
     public void refreshGrid(GalleryRefreshEvent event) {
-        runLater(() -> {
-            if (event.getMediaCollectionId() == Optional.ofNullable(currentCatalog.get()).map(MediaCollection::id).orElse(event.getMediaCollectionId())) {
-                log.info("Refresh collection id: '{}'", event.getMediaCollectionId());
-                MediaCollection mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
-                images.clear();
-                images.addAll(mc.medias());
-                currentCatalog.set(mc);
+        if (event.getMediaCollectionId() == Optional.ofNullable(currentCatalog.get()).map(MediaCollection::id).orElse(event.getMediaCollectionId())) {
+            log.info("Refresh collection id: '{}'", event.getMediaCollectionId());
+            MediaCollection mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
+            images.clear();
+            images.addAll(mc.medias());
+            currentCatalog.set(mc);
 //                gridView.refreshItems();
-            }
-        });
+        }
     }
 
     @Override

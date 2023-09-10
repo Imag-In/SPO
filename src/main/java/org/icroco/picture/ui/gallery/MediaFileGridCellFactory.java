@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridCell;
 import org.controlsfx.control.GridView;
 import org.icroco.picture.ui.event.CarouselEvent;
-import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.CustomGridView;
@@ -34,10 +33,9 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
         cell.setOnMouseClicked((t) -> {
             var mf = ((MediaFileGridCell) t.getSource()).getItem();
             if (mf != null && t.getClickCount() == 1) {
-                ((CustomGridView<MediaFile>) grid).getSelectionModel().clear();
+//                ((CustomGridView<MediaFile>) grid).getSelectionModel().clear();
                 ((CustomGridView<MediaFile>) grid).getSelectionModel().add(mf);
                 cell.requestLayout();
-                taskService.sendEvent(new PhotoSelectedEvent(mf, this));
             } else if (t.getClickCount() == 2) {
                 taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.SHOW).build());
             }
