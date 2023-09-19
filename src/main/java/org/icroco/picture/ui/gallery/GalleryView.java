@@ -36,6 +36,7 @@ import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.persistence.PersistenceService;
 import org.icroco.picture.ui.pref.UserPreferenceService;
 import org.icroco.picture.ui.task.TaskService;
+import org.icroco.picture.ui.util.Collections;
 import org.icroco.picture.ui.util.CustomGridView;
 import org.icroco.picture.ui.util.MediaLoader;
 import org.icroco.picture.ui.util.Nodes;
@@ -50,7 +51,6 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static javafx.application.Platform.runLater;
 import static org.fxmisc.wellbehaved.event.EventPattern.keyPressed;
@@ -320,7 +320,7 @@ public class GalleryView implements FxView<StackPane> {
     public void updateImages(CollectionSubPathSelectedEvent event) {
         log.info("MediaCollection subpath selected: root: {}, entry: {}", event.getCollectionId(), event.getEntry());
         currentCatalog.setValue(persistenceService.getMediaCollection(event.getCollectionId()));
-        resetBcbModel(event.getEntry().getFileName());
+        resetBcbModel(event.getEntry());
         final var path = getCurrentCatalog().path().resolve(event.getEntry());
         filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);
@@ -432,13 +432,17 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void resetBcbModel(@Nullable final Path entry) {
-        var paths = Stream.concat(Stream.of(getCurrentCatalog().path()),
+        log.info("Reset CB: {}", entry);
+        Path[] paths;
+        if (getCurrentCatalog().path().equals(entry)) {
+            paths = new Path[]{ getCurrentCatalog().path() };
+        } else {
+            paths = Stream.concat(Stream.of(getCurrentCatalog().path()),
                                   entry == null
                                   ? Stream.empty()
-                                  : StreamSupport.stream(Spliterators.spliteratorUnknownSize(entry.iterator(),
-                                                                                             Spliterator.ORDERED)
-                                          , false))
+                                  : Collections.toStream(entry.iterator()))
                           .toArray(Path[]::new);
+        }
         Breadcrumbs.BreadCrumbItem<Path> model = Breadcrumbs.buildTreeModel(paths);
         breadCrumbBar.setSelectedCrumb(model);
     }

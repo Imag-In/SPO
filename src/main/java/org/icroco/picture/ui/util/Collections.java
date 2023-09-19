@@ -5,8 +5,9 @@ import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @UtilityClass
 public class Collections {
@@ -27,5 +28,9 @@ public class Collections {
         return new CollectionDiff<>(CollectionUtils.subtract(right, left),
                                     CollectionUtils.subtract(left, right)
         );
+    }
+
+    public static <T> Stream<T> toStream(Iterator<T> iterable) {
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterable, Spliterator.ORDERED), false);
     }
 }
