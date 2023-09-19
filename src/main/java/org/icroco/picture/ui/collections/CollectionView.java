@@ -10,9 +10,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.TextFieldTreeCell;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -27,7 +25,6 @@ import org.icroco.picture.ui.FxEventListener;
 import org.icroco.picture.ui.FxView;
 import org.icroco.picture.ui.event.*;
 import org.icroco.picture.ui.event.CollectionEvent.EventType;
-import org.icroco.picture.ui.model.GeoLocation;
 import org.icroco.picture.ui.model.MediaCollection;
 import org.icroco.picture.ui.model.MediaCollectionEntry;
 import org.icroco.picture.ui.model.MediaFile;
@@ -38,14 +35,12 @@ import org.icroco.picture.ui.task.AbstractTask;
 import org.icroco.picture.ui.task.TaskService;
 import org.icroco.picture.ui.util.Constant;
 import org.icroco.picture.ui.util.FileUtil;
-import org.icroco.picture.ui.util.Nodes;
 import org.icroco.picture.ui.util.Styles;
 import org.icroco.picture.ui.util.hash.IHashGenerator;
 import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.icroco.picture.ui.util.widget.FxUtil;
-import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
-import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -81,12 +76,16 @@ public class CollectionView implements FxView<VBox> {
     private final Button addCollection    = new Button();
     private final HBox   collectionHeader = new HBox();
 
-    private final TreeItem<CollectionNode> rootTreeItem = new TreeItem<>(new CollectionNode(Path.of("Files"), -1));
+    private final CollectionTreeItem rootTreeItem = new CollectionTreeItem(new CollectionNode(Path.of("Files"), -1));
     private final TreeView<CollectionNode> treeView     = new TreeView<>(rootTreeItem);
 
-    record CollectionNode(Path path, int id) {
+    public record CollectionNode(Path path, int id) {
         public CollectionNode(Path path) {
             this(path, -1);
+        }
+
+        boolean isRootCollection() {
+            return id >= 0;
         }
     }
 
@@ -97,30 +96,26 @@ public class CollectionView implements FxView<VBox> {
         treeView.setMinHeight(250);
         treeView.setShowRoot(false);
         treeView.setEditable(false);
-        treeView.setCellFactory(param -> new TextFieldTreeCell<>(getStringConverter()));
+        treeView.setCellFactory(param -> new CollectionTreeCell(taskService));
         treeView.getSelectionModel().selectedItemProperty().addListener(this::treeItemSelectionChanged);
         atlantafx.base.theme.Styles.toggleStyleClass(treeView, Tweaks.EDGE_TO_EDGE);
 
         collectionHeader.setAlignment(Pos.BASELINE_LEFT);
 
         FxUtil.styleCircleButton(addCollection);
-        addCollection.setGraphic(new FontIcon(FontAwesomeSolid.PLUS));
+        addCollection.setGraphic(new FontIcon(MaterialDesignP.PLUS));
         addCollection.setVisible(true);
         addCollection.disableProperty().bind(disablePathActions);
         addCollection.setOnMouseClicked(this::newCollection);
         root.setOnMouseEntered(event -> addCollection.setVisible(true));
-        root.setOnMouseExited(event -> {
-            if (!rootTreeItem.getChildren().isEmpty()) {
-                addCollection.setVisible(false);
-            }
-        });
+        root.setOnMouseExited(event -> addCollection.setVisible(rootTreeItem.getChildren().isEmpty()));
 
         catalogSize.getStyleClass().add(Styles.TEXT_SMALL);
         catalogSizeProp.addListener((observable, oldValue, newValue) -> {
             if (newValue.intValue() <= 0) {
                 catalogSize.setText("");
             } else {
-                catalogSize.setText(newValue.toString());
+                catalogSize.setText(" (" + newValue.toString() + ")");
             }
         });
 //        catalogSize.prefHeightProperty().bind(header.heightProperty());
@@ -188,12 +183,12 @@ public class CollectionView implements FxView<VBox> {
         title.setUserData(mediaCollection.id());
         title.setTooltip(new Tooltip(mediaCollection.path() + " (id: " + mediaCollection.id() + ")"));
 
-        FontIcon graphic = new FontIcon(FontAwesomeRegular.TRASH_ALT);
-        graphic.setIconSize(12);
-        graphic.setId("deleteCollection");
-        Label label = new Label("", graphic);
-        Nodes.addRightGraphic(title, label);
-        label.setOnMouseClicked(this::onDeleteCollection);
+//        FontIcon graphic = new FontIcon(FontAwesomeRegular.TRASH_ALT);
+//        graphic.setIconSize(12);
+//        graphic.setId("deleteCollection");
+//        Label label = new Label("", graphic);
+//        Nodes.addRightGraphic(title, label);
+//        label.setOnMouseClicked(this::onDeleteCollection);
 
 //        mediaCollections.getPanes().add(title);
 //        mediaCollections.getPanes().sort(Comparator.comparing(TitledPane::getText));
@@ -202,7 +197,6 @@ public class CollectionView implements FxView<VBox> {
         return new Pair<>(mediaCollection, pathTreeItem);
     }
 
-    @SuppressWarnings("unchecked")
     private void updateTreeView(final TreeItem<CollectionNode> treeItem, final MediaCollection mediaCollection) {
         mediaCollection.subPaths().forEach(c -> {
             var p = mediaCollection.path().relativize(c.name());
@@ -229,35 +223,44 @@ public class CollectionView implements FxView<VBox> {
 
     record TitlePaneEntry(TitledPane titledPane, int mediaCollectionId) {}
 
-    private void onDeleteCollection(MouseEvent mouseEvent) {
-        if (mouseEvent.getClickCount() == 1) {
-            Node source = (Node) mouseEvent.getSource();
-            Nodes.getFirstParent(source, TitledPane.class)
-                 .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
-                 .ifPresent(tpe -> {
-                     final Alert dlg             = new Alert(Alert.AlertType.CONFIRMATION, "");
-                     final var   mediaCollection = persistenceService.getMediaCollection(tpe.mediaCollectionId);
-                     dlg.setTitle("You do want delete MediaCollection ?");
-                     dlg.getDialogPane()
-                        .setContentText("Do you want to delete MediaCollection: " + mediaCollection.path() + " id: " + mediaCollection.id());
+    @FxEventListener
+    public void onDeleteCollection(DeleteCollectionEvent event) {
+//        if (mouseEvent.getClickCount() == 1) {
+//            Node source = (Node) mouseEvent.getSource();
+//            Nodes.getFirstParent(source, TitledPane.class)
+//                 .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
+        persistenceService.findMediaCollection(event.getMcId())
+                          .ifPresent(mc -> {
+                              final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, "");
+                              dlg.initOwner(root.getScene().getWindow());
+                              dlg.setTitle("You do want delete MediaCollection ?");
+                              dlg.getDialogPane()
+                                 .setContentText("""
+                                                         Do you want to delete MediaCollection:
+                                                           Path: %s
+                                                           Id: %d
+                                                           #Items: %s
+                                                         """.formatted(mc.path(), mc.id(), mc.medias().size()));
 
-                     dlg.show();
-                     dlg.resultProperty()
-                        .addListener(o -> {
-                            if (dlg.getResult() == ButtonType.OK) {
-                                catalogSizeProp.set(catalogSizeProp.get() - mediaCollection.medias().size());
-                                deleteCollection(mediaCollection);
-                            }
-                        });
-                 });
-        }
+                              dlg.show();
+                              dlg.resultProperty()
+                                 .addListener(o -> {
+                                     if (dlg.getResult() == ButtonType.OK) {
+                                         catalogSizeProp.set(catalogSizeProp.get() - mc.medias().size());
+                                         deleteCollection(mc);
+                                     }
+                                 });
+                          });
+//    }
     }
 
     private void deleteCollection(MediaCollection entry) {
-        persistenceService.deleteMediaCollection(entry.id());
-        rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path.equals(entry.path()));
-        taskService.sendEvent(new CollectionEvent(entry, EventType.DELETED, this));
-        // TODO: Clean Thumbnail Cache and DB.
+        taskService.supply(() -> {
+            rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path.equals(entry.path()));
+            persistenceService.deleteMediaCollection(entry.id());
+            taskService.sendEvent(new CollectionEvent(entry, EventType.DELETED, this));
+            // TODO: Clean Thumbnail Cache and DB.
+        });
     }
 
     //    @FXML
@@ -400,7 +403,7 @@ public class CollectionView implements FxView<VBox> {
 
         h.ifPresent(header -> {
             builder.dimension(header.size())
-                   .geoLocation(new GeoLocation(header.geoLocation().getLatitude(), header.geoLocation().getLongitude()))
+                   .geoLocation(header.geoLocation())
                    .originalDate(header.orginalDate());
         });
 

@@ -7,12 +7,27 @@
 
  #fas-expand-alt {
      -fx-icon-code: fas-expand-alt;
-     -fx-icon-color: -fx-text-base-color;
+     -fx-icon-color: -color-fg-default;
      -fx-icon-size: 16;
  }
 
  #fitGridCell {
      -fx-icon-code: fas-expand;
-     -fx-icon-color: -fx-text-base-color;
+     -fx-icon-color: -color-fg-default;
      -fx-icon-size: 16;
  }
+
+.grid-view {
+    .grid-cell:hover {
+        -fx-background-color: -color-base-6;
+        -fx-background-radius: 3.0;
+        -fx-padding: 8;
+    }
+
+    .image-grid-cell:selected {
+        -fx-background-color: -color-base-6;
+        -fx-border-style: solid;
+        -fx-border-width: 3 3 3 3; /* its make really one-pixel-border */
+        -fx-border-color: -color-base-0;
+    }
+}

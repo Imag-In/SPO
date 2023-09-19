@@ -119,7 +119,7 @@ public class PersistenceService {
             mcCache.evictIfPresent(mediaCollectionId);
             catalogById.ifPresent(mc -> {
 //                thumbRepo.deleteAll();
-                log.info("Thumbnail Id to be deleted: {}", mc.medias().stream().map(MediaFile::getId).toList());
+                log.info("Thumbnail Id to be deleted (10 first): {}", mc.medias().stream().map(MediaFile::getId).limit(10).toList());
                 thumbRepo.deleteAllById(mc.medias().stream().map(MediaFile::getId).toList());
                 mc.medias().forEach(thCache::evict);
                 thumbRepo.flush();
@@ -182,7 +182,7 @@ public class PersistenceService {
         mediaFiles.removeIf(toBeDeleted::contains);
         var newRaws = toBeAdded.stream()
                                .map(mfMapper::map)
-                               .peek(dbMf -> dbMf.setMediaCollection(collectionRepo.getReferenceById(id)))
+//                               .peek(dbMf -> dbMf.setMediaCollection(collectionRepo.getReferenceById(id)))
                                .toList();
 
         newRaws = mfRepo.saveAllAndFlush(newRaws);

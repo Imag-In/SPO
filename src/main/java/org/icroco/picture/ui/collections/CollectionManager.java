@@ -42,15 +42,11 @@ public class CollectionManager {
                  .stream()
                  .map(MediaCollection::path)
                  .forEach(directoryWatcher::registerAll);
-
             log.info("End of adding directory watcher");
         });
 
-
         taskService.supply(analyseCollections(List.copyOf(event.getMediaCollections())))
-                   .thenRun(() -> {
-                       log.info("TODO: Add a timer to rescan folders on regular basics");
-                   });
+                   .thenRun(() -> log.info("TODO: Add a timer to rescan folders on regular basics"));
     }
 
     Task<Void> analyseCollections(final List<MediaCollection> mediaCollections) {

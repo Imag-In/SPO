@@ -47,8 +47,8 @@ public class DbMediaFile {
     @Column(name = "last_access", columnDefinition = "DATE")
     private LocalDate lastAccess;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    private DbMediaCollection mediaCollection;
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    private DbMediaCollection mediaCollection;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "tag_id")
@@ -66,4 +66,7 @@ public class DbMediaFile {
     @NotNull
     @Builder.Default
     private DbGeoLocation geoLocation = DbGeoLocation.EMPTY_GEO_LOC;
+
+    @Column(name = "foo")
+    private double foo;
 }

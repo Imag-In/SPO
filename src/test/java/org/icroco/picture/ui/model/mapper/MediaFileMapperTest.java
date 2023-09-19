@@ -27,6 +27,9 @@ class MediaFileMapperTest {
         public MediaFileMapper mediaFileMapper() {
             return new MediaFileMapperImpl();
         }
+
+        @Bean
+        GeoLocationMapper geoLocationMapper() {return new GeoLocationMapperImpl();}
     }
 
     @Autowired

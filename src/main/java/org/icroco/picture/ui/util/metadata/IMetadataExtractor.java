@@ -1,5 +1,6 @@
 package org.icroco.picture.ui.util.metadata;
 
+import org.icroco.picture.ui.model.GeoLocation;
 import org.slf4j.Logger;
 
 import java.io.BufferedInputStream;
@@ -10,7 +11,8 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 public interface IMetadataExtractor {
-    Logger log = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
+    Logger      log      = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
+    GeoLocation NO_WHERE = new GeoLocation(Double.MIN_VALUE, Double.MIN_VALUE);
 
     default Optional<Integer> orientation(Path path) {
         try (var input = new BufferedInputStream(new FileInputStream(path.toFile()))) {

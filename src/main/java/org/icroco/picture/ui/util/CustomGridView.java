@@ -48,6 +48,16 @@ public class CustomGridView<T> extends GridView<T> {
         flow.scrollTo(selectedRow);
     }
 
+//    public Optional<T> getFirstCellVisible() {
+//        // get the underlying VirtualFlow object
+//        VirtualFlow<?> flow = (VirtualFlow<?>) ((GridViewSkin<?>) this.getSkin()).getChildren().get(0);
+//
+//        return Optional.ofNullable(flow.getCell(0))
+//                .flatMap(indexedCell -> indexedCell.getChildrenUnmodifiable().stream().findFirst())
+//                .map(node -> node.getUserData())
+//                .map()
+//    }
+
     public boolean isCellVisible(Node input) {
         VirtualFlow<?> vf  = (VirtualFlow<?>) getChildrenUnmodifiable().get(0);
         boolean        ret = false;

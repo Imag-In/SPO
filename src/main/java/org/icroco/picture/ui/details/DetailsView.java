@@ -13,6 +13,7 @@ import org.icroco.picture.ui.event.PhotoSelectedEvent;
 import org.icroco.picture.ui.model.EThumbnailType;
 import org.icroco.picture.ui.util.MediaLoader;
 import org.icroco.picture.ui.util.Styles;
+import org.icroco.picture.ui.util.metadata.IMetadataExtractor;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -112,7 +113,9 @@ public class DetailsView implements FxView<GridPane> {
             dbId.setText(Long.toString(mf.getId()));
             name.setText(mf.getFileName());
             creationDate.setText(dateTimeFormatter.format(mf.originalDate()));
-            gps.setText(mf.getGeoLocation().toDMSString());
+            if (mf.getGeoLocation() != IMetadataExtractor.NO_WHERE) {
+                gps.setText(mf.getGeoLocation().toDMSString());
+            }
             size.setText(Objects.toString(mf.getDimension()));
             root.setVisible(true);
         } else {

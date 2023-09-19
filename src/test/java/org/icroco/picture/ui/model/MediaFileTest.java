@@ -12,6 +12,7 @@ public class MediaFileTest extends AbstractDataTest<MediaFile> {
         return MediaFile.builder()
                 .id(42)
                 .tags(Set.of(TagTest.DUMMY, Tag.builder().id(1).name("foo").build()))
+                .geoLocation(GeoLocation.builder().longitude(1).latitude(2).build())
                 .build();
     }
 }

@@ -5,7 +5,7 @@ import org.icroco.picture.ui.persistence.model.DbMediaFile;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 
-@Mapper(uses = { TagMapper.class, ThumbnailMapper.class }/*, builder = @Builder(disableBuilder = true)*/)
+@Mapper(uses = { TagMapper.class, ThumbnailMapper.class, GeoLocationMapper.class }/*, builder = @Builder(disableBuilder = true)*/)
 public interface MediaFileMapper {
 
     //    @Mapping(target = "manufacturer", source = "make")

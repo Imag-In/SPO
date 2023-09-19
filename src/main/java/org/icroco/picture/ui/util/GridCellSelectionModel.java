@@ -25,6 +25,18 @@ public class GridCellSelectionModel {
         taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.SELECTED, node, this));
     }
 
+    public void addOrRemove(MediaFile node) {
+        if (selection.remove(node)) {
+            node.setSelected(false);
+            taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.UNSELECTED, node, this));
+        } else {
+            selection.add(node);
+            node.setSelected(true);
+            taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.SELECTED, node, this));
+        }
+    }
+
+
     public int selectionCount() {
         return selection.size();
     }

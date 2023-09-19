@@ -34,7 +34,7 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
             var mf = ((MediaFileGridCell) t.getSource()).getItem();
             if (mf != null && t.getClickCount() == 1) {
 //                ((CustomGridView<MediaFile>) grid).getSelectionModel().clear();
-                ((CustomGridView<MediaFile>) grid).getSelectionModel().add(mf);
+                ((CustomGridView<MediaFile>) grid).getSelectionModel().addOrRemove(mf);
                 cell.requestLayout();
             } else if (t.getClickCount() == 2) {
                 taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.SHOW).build());

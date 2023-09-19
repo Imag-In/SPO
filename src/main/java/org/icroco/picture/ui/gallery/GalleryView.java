@@ -320,11 +320,12 @@ public class GalleryView implements FxView<StackPane> {
     public void updateImages(CollectionSubPathSelectedEvent event) {
         log.info("MediaCollection subpath selected: root: {}, entry: {}", event.getCollectionId(), event.getEntry());
         currentCatalog.setValue(persistenceService.getMediaCollection(event.getCollectionId()));
-        resetBcbModel(event.getEntry());
+        resetBcbModel(event.getEntry().getFileName());
         final var path = getCurrentCatalog().path().resolve(event.getEntry());
         filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);
         gridView.getSelectionModel().clear();
+//        gridView.getFirstCellVisible().ifPresent(mediaFile -> gridView.getSelectionModel().add(mediaFile));
 //        taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
     }
 
@@ -335,7 +336,7 @@ public class GalleryView implements FxView<StackPane> {
     @FxEventListener
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
-            log.info("GridView item in row: {}", gridView.getItemsInRow());
+//            log.info("GridView item in row: {}", gridView.getItemsInRow());
             final var source = Optional.ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
             final var mf     = event.getMf();
             log.atDebug().log(() -> {

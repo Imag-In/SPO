@@ -1,7 +1,9 @@
 package org.icroco.picture.ui.model;
 
 import com.drew.lang.annotations.NotNull;
+import lombok.Builder;
 
+@Builder
 public record GeoLocation(double latitude, double longitude) {
     public static GeoLocation EMPTY_GEO_LOC = new GeoLocation(0, 0);
 
