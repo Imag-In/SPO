@@ -140,6 +140,10 @@ public class ZoomDragPane extends BorderPane {
         event.consume();
     }
 
+    public boolean isZoomed() {
+        return zoomLevel <= 1;
+    }
+
     private void zoom(Zoom zoom, double x, double y) {
         final int zoomLevelTry = zoomLevel + zoom.getZoomLevelDelta();
 
