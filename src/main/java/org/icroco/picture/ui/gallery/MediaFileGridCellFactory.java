@@ -25,16 +25,15 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
 
     @Override
     public GridCell<MediaFile> call(final GridView<MediaFile> grid) {
-        final var selectionModel = ((CustomGridView<MediaFile>) grid).getSelectionModel();
-        final var cell           = new MediaFileGridCell(true, mediaLoader, isExpandCell, selectionModel, (CustomGridView<MediaFile>) grid);
+        final var cell = new MediaFileGridCell(true, mediaLoader, isExpandCell, (CustomGridView<MediaFile>) grid);
 
         cell.setAlignment(Pos.CENTER);
         cell.setEditable(false);
-        cell.setOnMouseClicked((t) -> {
+        cell.setOnMouseClicked(t -> {
             var mf = ((MediaFileGridCell) t.getSource()).getItem();
             if (mf != null && t.getClickCount() == 1) {
 //                ((CustomGridView<MediaFile>) grid).getSelectionModel().clear();
-                ((CustomGridView<MediaFile>) grid).getSelectionModel().addOrRemove(mf);
+                ((CustomGridView<MediaFile>) grid).getSelectionModel().set(cell);
                 cell.requestLayout();
             } else if (t.getClickCount() == 2) {
                 taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(mf).eventType(CarouselEvent.EventType.SHOW).build());

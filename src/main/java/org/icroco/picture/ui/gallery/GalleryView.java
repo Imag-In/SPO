@@ -94,6 +94,7 @@ public class GalleryView implements FxView<StackPane> {
     @PostConstruct
     protected void postConstruct() {
         gridView = new CustomGridView<>(taskService, FXCollections.emptyObservableList());
+        gridView.addScrollAndKeyhandler();
         root.setMinSize(350, 250);
         log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
                  gridView.getCellWidth(),
@@ -170,7 +171,7 @@ public class GalleryView implements FxView<StackPane> {
                    : null;
         });
 
-        gridView.addScrollAndKeyhandler();
+//        gridView.addScrollAndKeyhandler();
         expandCell.addListener((observable, oldValue, newValue) -> gridView.refreshItems());
 
         gallery.setCenter(gridView);
@@ -186,7 +187,6 @@ public class GalleryView implements FxView<StackPane> {
         HBox bar = new HBox();
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().setAll("tool-bar");
-
 
         Label expand = new Label();
         expand.setPrefHeight(10D);
@@ -498,7 +498,9 @@ public class GalleryView implements FxView<StackPane> {
                 // TODO: Jump to previous item.
                 gridView.getSelectionModel().clear();
                 gridView.ensureVisible(event.getMediaFile());
-                gridView.getSelectionModel().add(event.getMediaFile());
+//                if (event.getMediaFile() != null) {
+//                    gridView.getSelectionModel().add(event.getMediaFile());
+//                }
 //                event.getMediaFile().setSelected(true);
             }
         }

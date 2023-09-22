@@ -11,7 +11,6 @@ import org.controlsfx.control.GridCell;
 import org.icroco.picture.ui.model.MediaFile;
 import org.icroco.picture.ui.model.Thumbnail;
 import org.icroco.picture.ui.util.CustomGridView;
-import org.icroco.picture.ui.util.GridCellSelectionModel;
 import org.icroco.picture.ui.util.ImageUtils;
 import org.icroco.picture.ui.util.MediaLoader;
 
@@ -25,15 +24,15 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
     public final  StackPane                 root;
     public final  BooleanProperty           isExpandCell;
     private       MediaFile                 oldValue = null;
-    private       GridCellSelectionModel    selectionModel;
     private final CustomGridView<MediaFile> grid;
 
-    public MediaFileGridCell(boolean preserveImageProperties, MediaLoader mediaLoader, BooleanProperty isExpandCell, GridCellSelectionModel selectionModel,
+    public MediaFileGridCell(boolean preserveImageProperties,
+                             MediaLoader mediaLoader,
+                             BooleanProperty isExpandCell,
                              CustomGridView<MediaFile> grid) {
         this.preserveImageProperties = preserveImageProperties;
         this.mediaLoader = mediaLoader;
         this.isExpandCell = isExpandCell;
-        this.selectionModel = selectionModel;
         getStyleClass().add("image-grid-cell");
         loadingView = new ImageView(ImageUtils.LOADING);
         loadingView.maxHeight(128);
@@ -57,7 +56,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         if (empty || item == null) {
             this.setGraphic(null);
         } else {
-            updateSelected(selectionModel.contains(item));
+            updateSelected(grid.getSelectionModel().contains(this));
             if (item.isLoadedInCache() || MediaFileGridCellFactory.isCellVisible(grid, this)) {
                 setImage(mediaLoader.getCachedValue(item)
                                     .map(Thumbnail::getImage)
