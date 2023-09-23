@@ -11,10 +11,10 @@
         <controlsfx.version>11.1.2</controlsfx.version>
         <eclipse-collections-api.version>11.1.0</eclipse-collections-api.version>
         <ikonli-bom.version>12.3.1</ikonli-bom.version>
-        <java.version>20</java.version>
-        <javafx.version>20.0.1</javafx.version>
-        <lombok.version>1.18.28</lombok.version>
-        <mapstruct.version>1.5.3.Final</mapstruct.version>
+        <java.version>21</java.version>
+        <javafx.version>21</javafx.version>
+        <lombok.version>1.18.30</lombok.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
         <maven-compiler-plugin.version>0.2.0</maven-compiler-plugin.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -217,19 +217,24 @@
             <artifactId>mapstruct</artifactId>
             <version>${mapstruct.version}</version>
         </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>org.openjfx</groupId>-->
+        <!--            <artifactId>javafx-controls</artifactId>-->
+        <!--            <version>${javafx.version}</version>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.openjfx</groupId>-->
+        <!--            <artifactId>javafx-fxml</artifactId>-->
+        <!--            <version>${javafx.version}</version>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.openjfx</groupId>-->
+        <!--            <artifactId>javafx-media</artifactId>-->
+        <!--            <version>${javafx.version}</version>-->
+        <!--        </dependency>-->
         <dependency>
             <groupId>org.openjfx</groupId>
-            <artifactId>javafx-controls</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-fxml</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-media</artifactId>
+            <artifactId>javafx-swing</artifactId>
             <version>${javafx.version}</version>
         </dependency>
         <dependency>
