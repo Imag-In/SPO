@@ -436,7 +436,7 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void resetBcbModel(@Nullable final Path entry) {
-        log.info("Reset CB: {}", entry);
+        log.debug("Reset CB: {}", entry);
         Path[] paths;
         if (getCurrentCatalog().path().equals(entry)) {
             paths = new Path[]{getCurrentCatalog().path()};

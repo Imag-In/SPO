@@ -5,7 +5,6 @@ import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.control.Cell;
 import javafx.scene.control.skin.VirtualFlow;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -37,11 +36,11 @@ public class CustomGridView<T> extends GridView<T> {
 
         // add UP and DOWN arrow key listener, to set scroll position
         this.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
-            if (e.getCode() == KeyCode.UP) {
-                oneRowUp();
-            }
-            if (e.getCode() == KeyCode.DOWN) {
-                oneRowDown();
+            switch (e.getCode()) {
+                case UP -> oneRowUp();
+                case DOWN -> oneRowDown();
+                case LEFT -> oneRowLeft();
+                case RIGHT -> oneRowRight();
             }
             e.consume();
         });
@@ -155,9 +154,40 @@ public class CustomGridView<T> extends GridView<T> {
         }
     }
 
+    private void oneRowLeft() {
+        VirtualFlow<?> flow = (VirtualFlow<?>) ((GridViewSkin<?>) this.getSkin()).getChildren().get(0);
+        if (flow.getCellCount() == 0) {
+            return; // check that rows exist
+        }
+        getSelectionModel().get().ifPresent(cell -> {
+            var idx      = getItems().indexOf(cell.getItem());
+            var idxInRow = idx % getItemsInRow();
+            log.info("idx: {}, col: {}, maxInRow: {}", idx, idxInRow, getItemsInRow());
+            if (idx > 0) {
+                findItem(flow, getItems().get(--idx))
+                        .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
+            }
+        });
+    }
+
+    private void oneRowRight() {
+        VirtualFlow<?> flow = (VirtualFlow<?>) ((GridViewSkin<?>) this.getSkin()).getChildren().get(0);
+        if (flow.getCellCount() == 0) {
+            return; // check that rows exist
+        }
+        getSelectionModel().get().ifPresent(cell -> {
+            var idx      = getItems().indexOf(cell.getItem());
+            var idxInRow = idx % getItemsInRow();
+            log.info("idx: {}, col: {}, maxInRow: {}", idx, idxInRow, getItemsInRow());
+            if (idx + 1 < getItems().size()) {
+                findItem(flow, getItems().get(++idx))
+                        .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
+            }
+        });
+    }
+
     void updateSelectedRow(Cell<?> node) {
         selectedRow = getItems().indexOf(node.getItem()) / getItemsInRow();
-        log.info("Selected row: " + selectedRow);
     }
 
     public void ensureVisible(T item) {
