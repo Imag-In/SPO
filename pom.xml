@@ -331,7 +331,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>org.icroco.picture.ui.ImagInApp</mainClass>
+                    <mainClass>org.icroco.picture.ImagInApp</mainClass>
                 </configuration>
                 <executions>
                     <execution>
