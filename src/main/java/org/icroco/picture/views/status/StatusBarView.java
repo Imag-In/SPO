@@ -43,7 +43,7 @@ public class StatusBarView implements FxView<HBox> {
     private final HBox        root          = new HBox();
     private final Tooltip     tooltip       = new Tooltip("");
     private final Label       progressLabel = new Label();
-    private final ProgressBar smallBar      = new ProgressBar(0.5);
+    private final ProgressBar progressBar   = new ProgressBar(0.5);
     private       ProgressBar memoryStatus;
     private       PopOver     popOver;
 
@@ -54,14 +54,14 @@ public class StatusBarView implements FxView<HBox> {
         memoryStatus = new ProgressBar(0);
         memoryStatus.setPrefWidth(100);
 
-        smallBar.setMinWidth(200);
-        smallBar.setMaxWidth(200);
-        smallBar.getStyleClass().add(Styles.SMALL);
+        progressBar.setMinWidth(200);
+        progressBar.setMaxWidth(200);
+        progressBar.getStyleClass().add(Styles.SMALL);
         progressLabel.setMinWidth(250);
         SimpleListProperty<Task<?>> list = new SimpleListProperty<>(taskView.getTasks());
-        smallBar.progressProperty().bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
+        progressBar.progressProperty().bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
         taskView.getTasks().addListener(getTaskListChangeListener());
-        initPopOver(smallBar);
+        initPopOver(progressBar);
         Label memory = new Label("Memory ");
         memory.setTooltip(tooltip);
         memoryStatus.setOnMouseClicked(event -> {
@@ -74,7 +74,7 @@ public class StatusBarView implements FxView<HBox> {
         tooltip.setShowDelay(Duration.seconds(4));
 
         memoryStatus.setTooltip(tooltip);
-        root.getChildren().addAll(memory, memoryStatus, new Spacer(), progressLabel, smallBar);
+        root.getChildren().addAll(memory, memoryStatus, new Spacer(), progressLabel, progressBar);
         scheduler.scheduleAtFixedRate(this::updateMemory, java.time.Duration.of(5, ChronoUnit.SECONDS));
     }
 
@@ -105,10 +105,14 @@ public class StatusBarView implements FxView<HBox> {
             if (c.getList().isEmpty()) {
                 textProperty.unbind();
                 textProperty.set("");
+                progressLabel.setVisible(false);
                 popOver.hide();
+                progressBar.setVisible(false);
             } else {
                 textProperty.unbind();
                 textProperty.bind(c.getList().get(0).titleProperty());
+                progressLabel.setVisible(true);
+                progressBar.setVisible(true);
             }
 //            else if (c.getList().size() == 2) {
 ////                if (c.wasAdded()) {
@@ -123,7 +127,7 @@ public class StatusBarView implements FxView<HBox> {
     public void initPopOver(Node node) {
         popOver = createPopOver(node);
         progressLabel.setOnMouseClicked(this::showPopup);
-        smallBar.setOnMouseClicked(this::showPopup);
+        progressBar.setOnMouseClicked(this::showPopup);
     }
 
     private void showPopup(MouseEvent event) {
@@ -132,7 +136,7 @@ public class StatusBarView implements FxView<HBox> {
         } else if (event.getClickCount() >= 1) {
             var targetX = event.getScreenX();
             var targetY = event.getScreenY();
-            popOver.show(smallBar, targetX, targetY);
+            popOver.show(progressBar, targetX, targetY);
         }
     }
 
