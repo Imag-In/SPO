@@ -1,7 +1,7 @@
 package org.icroco.picture.model.mapper;
 
 import org.icroco.picture.model.MediaFile;
-import org.icroco.picture.persistence.model.DbMediaFile;
+import org.icroco.picture.persistence.model.MediaFileEntity;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 
@@ -9,10 +9,10 @@ import org.mapstruct.Mapper;
 public interface MediaFileMapper {
 
     //    @Mapping(target = "manufacturer", source = "make")
-    MediaFile map(DbMediaFile mediaFile);
+    MediaFile map(MediaFileEntity mediaFile);
 
     @InheritInverseConfiguration
-    DbMediaFile map(MediaFile mediaFile);
+    MediaFileEntity map(MediaFile mediaFile);
 
 
 }

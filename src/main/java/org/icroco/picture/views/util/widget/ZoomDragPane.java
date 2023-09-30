@@ -14,6 +14,9 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.views.util.MaskerPane;
+import org.icroco.picture.views.util.MediaLoader;
 import org.springframework.lang.Nullable;
 
 @Slf4j
@@ -43,6 +46,8 @@ public class ZoomDragPane extends BorderPane {
     private       double    imageHeight;
     private final double    rotation90scale;
 
+    private final MaskerPane maskerPane = new MaskerPane();
+
     /**
      * Create a
      * {@link  Pane}
@@ -60,8 +65,17 @@ public class ZoomDragPane extends BorderPane {
         view.setSmooth(true);
         view.setCache(true);
         view.setPickOnBounds(true);
-        setCenter(view);
-        setImage(null);
+        maskerPane.getChildren().addLast(view);
+        view.requestFocus();
+        maskerPane.setFocusTraversable(true);
+        maskerPane.getProgressProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue.doubleValue() >= 1) {
+                maskerPane.stop();
+                maskerPane.getProgressProperty().unbind();
+            }
+        });
+        setCenter(maskerPane);
+        setImage((MediaFile) null);
 
         /*
          * Unless its square, the Image must be scaled when rotated through 90 (or 270) degrees...
@@ -89,6 +103,42 @@ public class ZoomDragPane extends BorderPane {
             imageWidth = getPrefWidth();
         }
     }
+
+
+    public void setImage(MediaFile mediaFile) {
+        zoomLevel = 0;
+        view.setImage(null);
+        view.setRotate(0);
+        view.requestFocus();
+        if (mediaFile != null) {
+            var image = new Image(mediaFile.getFullPath().toUri().toString(), MediaLoader.PRIMARY_SCREEN_WIDTH, 0, true, true, true);
+            maskerPane.start(image.progressProperty());
+            view.setImage(image);
+            imageWidth = image.getWidth();
+            imageHeight = image.getHeight();
+            view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
+        } else {
+            view.setViewport(null);
+            imageHeight = getPrefHeight();
+            imageWidth = getPrefWidth();
+            maskerPane.getProgressProperty().unbind();
+        }
+    }
+
+//    public final void loadImage(MediaFile mediaFile) {
+//        zoomLevel = 0;
+//        if (image != null) {
+//            view.setImage(image);
+//            imageWidth = image.getWidth();
+//            imageHeight = image.getHeight();
+//            view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
+//        } else {
+//            view.setViewport(null);
+//            imageHeight = getPrefHeight();
+//            imageWidth = getPrefWidth();
+//        }
+//    }
+
 
     /**
      * Drag the Viewport as the Mouse is moved.
@@ -175,7 +225,13 @@ public class ZoomDragPane extends BorderPane {
         final Point2D mouseInImage = imageViewToImage(x, y);
 
         final Point2D newLocation = zoomCalculateNewViewportXY(mouseInImage, zoom.getScale());
-        log.debug("zoomLevel: {}, scale:{}, x:{}, y:{}, nouseImage:{}, newLocation: {}", zoomLevel, zoom.getScale(), x, y, mouseInImage, newLocation);
+        log.debug("zoomLevel: {}, scale:{}, x:{}, y:{}, nouseImage:{}, newLocation: {}",
+                  zoomLevel,
+                  zoom.getScale(),
+                  x,
+                  y,
+                  mouseInImage,
+                  newLocation);
 
         /*
          * Store the new Coordinates & Size in the Viewport...

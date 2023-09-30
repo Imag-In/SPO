@@ -13,7 +13,7 @@ import java.nio.file.Path;
 @AllArgsConstructor
 @Builder
 @Table(name = "media_collection_entry")
-public class DbMediaCollectionEntry {
+public class MediaCollectionEntryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

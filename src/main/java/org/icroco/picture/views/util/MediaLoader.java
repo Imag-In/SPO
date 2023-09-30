@@ -1,6 +1,7 @@
 package org.icroco.picture.views.util;
 
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
 import javafx.concurrent.Task;
 import javafx.scene.image.Image;
 import javafx.stage.Screen;
@@ -155,6 +156,20 @@ public class MediaLoader {
             return imageLoader.loadImage(mediaFile);
         }
         catch (Exception e) {
+            log.error("invalid mf: {}", mediaFile.getFullPath(), e);
+        }
+        return null;
+    }
+
+    @Cacheable(cacheNames = ImagInConfiguration.FULL_SIZE, unless = "#result == null", key = "#mediaFile")
+    public Image loadImage(final MediaFile mediaFile, final DoubleProperty progressIndicator) {
+        if (mediaFile == null) {
+            return null;
+        }
+
+        try {
+            return imageLoader.loadImage(mediaFile, progressIndicator);
+        } catch (Exception e) {
             log.error("invalid mf: {}", mediaFile.getFullPath(), e);
         }
         return null;

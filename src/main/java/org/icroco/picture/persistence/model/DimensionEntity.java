@@ -10,8 +10,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DbDimension {
-    static DbDimension EMPTY_DIM = new DbDimension(0, 0);
+public class DimensionEntity {
+    static DimensionEntity EMPTY_DIM = new DimensionEntity(0, 0);
 
     @Column(name = "width")
     private int width;

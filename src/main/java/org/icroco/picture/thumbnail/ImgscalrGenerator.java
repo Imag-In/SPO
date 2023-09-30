@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.Dimension;
+import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.EThumbnailType;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.views.util.ImageUtils;
@@ -40,11 +41,11 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             var img         = ImageIO.read(path.toFile()); // load image
 
             return Thumbnail.builder()
-                    .fullPath(path)
-                    .image(SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null))
-                    .origin(EThumbnailType.GENERATED)
-                    .lastUpdate(LocalDateTime.now())
-                    .build();
+                            .fullPath(path)
+                            .image(SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null))
+                            .origin(EThumbnailType.GENERATED)
+                            .lastUpdate(LocalDateTime.now())
+                            .build();
         }, throwable -> log.error("Cannot generate thumbnail for: '{}'", path, throwable)).get();
     }
 
@@ -84,24 +85,22 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                     }
                     var bi = adaptOrientation(reader.readThumbnail(0, 0), orientation);
                     return Thumbnail.builder()
-                            .fullPath(path)
-                            .image(SwingFXUtils.toFXImage(bi, null))
-                            .origin(EThumbnailType.EXTRACTED)
-                            .lastUpdate(LocalDateTime.now())
-                            .build();
+                                    .fullPath(path)
+                                    .image(SwingFXUtils.toFXImage(bi, null))
+                                    .origin(EThumbnailType.EXTRACTED)
+                                    .lastUpdate(LocalDateTime.now())
+                                    .build();
 
 //                        new Thumbnail(path, SwingFXUtils.toFXImage(bi, null), EThumbnailType.EXTRACTED, null);
 //                byte[]        jpgs   = ImageUtils.toByteArray(t, "jpg");
                     //return new ThumbnailOutput(path, jpgs, null);
                     // ...
-                }
-                finally {
+                } finally {
                     // Dispose reader in finally block to avoid memory leaks
                     reader.dispose();
                 }
             }
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             log.error("Cannot extract thumbnail from: '{}', message: {}", path, e.getLocalizedMessage());
         }
         return null;
@@ -122,8 +121,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             BufferedImage resize = resize(img, dim);
             byte[]        jpgs   = ImageUtils.toByteArray(resize, "jpg");
             return new ThumbnailOutput(path, jpgs, null);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             return new ThumbnailOutput(path, null, e);
         }
     }
@@ -137,23 +135,13 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             img = resize(img, dim);
             img = adaptOrientation(img, orientation);
             ImageIO.write(img, "jpg", target.toFile());
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static BufferedImage adaptOrientation(BufferedImage img, int orientation) {
-        return switch (orientation) {
-            case 2 -> rotate(img, Rotation.FLIP_VERT);
-            case 3 -> rotate(img, Rotation.CW_180);
-            case 4 -> rotate(img, Rotation.CW_180, Rotation.FLIP_VERT);
-            case 5 -> rotate(img, Rotation.CW_90, Rotation.FLIP_HORZ);
-            case 6 -> rotate(img, Rotation.CW_90);
-            case 7 -> rotate(img, Rotation.CW_270, Rotation.FLIP_HORZ);
-            case 8 -> rotate(img, Rotation.CW_270);
-            default -> img;
-        };
+        return rotate(img, ERotation.fromOrientation(orientation));
     }
 
     static BufferedImage resize(BufferedImage bi, Dimension dim) {
@@ -275,8 +263,8 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      * @since 3.0
      */
     public static final ConvolveOp OP_ANTIALIAS = new ConvolveOp(
-            new Kernel(3, 3, new float[]{ .0f, .08f, .0f, .08f, .68f, .08f,
-                                          .0f, .08f, .0f }), ConvolveOp.EDGE_NO_OP, null);
+            new Kernel(3, 3, new float[]{.0f, .08f, .0f, .08f, .68f, .08f,
+                                         .0f, .08f, .0f}), ConvolveOp.EDGE_NO_OP, null);
 
     /**
      * A {@link RescaleOp} used to make any input image 10% darker.
@@ -437,50 +425,6 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      * @author Riyad Kalla (software@thebuzzmedia.com)
      * @since 3.2
      */
-    public enum Rotation {
-        /**
-         * 90-degree, clockwise rotation (to the right). This is equivalent to a
-         * quarter-turn of the image to the right; moving the picture on to its
-         * right side.
-         */
-        CW_90,
-        /**
-         * 180-degree, clockwise rotation (to the right). This is equivalent to
-         * 1 half-turn of the image to the right; rotating the picture around
-         * until it is upside down from the original position.
-         */
-        CW_180,
-        /**
-         * 270-degree, clockwise rotation (to the right). This is equivalent to
-         * a quarter-turn of the image to the left; moving the picture on to its
-         * left side.
-         */
-        CW_270,
-        /**
-         * Flip the image horizontally by reflecting it around the y axis.
-         * <p/>
-         * This is not a standard rotation around a center point, but instead
-         * creates the mirrored reflection of the image horizontally.
-         * <p/>
-         * More specifically, the vertical orientation of the image stays the
-         * same (the top stays on top, and the bottom on bottom), but the right
-         * and left sides flip. This is different than a standard rotation where
-         * the top and bottom would also have been flipped.
-         */
-        FLIP_HORZ,
-        /**
-         * Flip the image vertically by reflecting it around the x axis.
-         * <p/>
-         * This is not a standard rotation around a center point, but instead
-         * creates the mirrored reflection of the image vertically.
-         * <p/>
-         * More specifically, the horizontal orientation of the image stays the
-         * same (the left stays on the left and the right stays on the right),
-         * but the top and bottom sides flip. This is different than a standard
-         * rotation where the left and right would also have been flipped.
-         */
-        FLIP_VERT;
-    }
 
     /**
      * Threshold (in pixels) at which point the scaling operation using the
@@ -574,13 +518,16 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
     public static BufferedImage apply(BufferedImage src, BufferedImageOp... ops)
             throws IllegalArgumentException, ImagingOpException {
         long t = -1;
-        if (DEBUG)
+        if (DEBUG) {
             t = System.currentTimeMillis();
+        }
 
-        if (src == null)
+        if (src == null) {
             throw new IllegalArgumentException("src cannot be null");
-        if (ops == null || ops.length == 0)
+        }
+        if (ops == null || ops.length == 0) {
             throw new IllegalArgumentException("ops cannot be null or empty");
+        }
 
         int type = src.getType();
 
@@ -610,27 +557,32 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
          * ensure that the src image starts in an optimally supported format
          * before we try and apply the filter.
          */
-        if (!(type == BufferedImage.TYPE_INT_RGB || type == BufferedImage.TYPE_INT_ARGB))
+        if (!(type == BufferedImage.TYPE_INT_RGB || type == BufferedImage.TYPE_INT_ARGB)) {
             src = copyToOptimalImage(src);
+        }
 
-        if (DEBUG)
+        if (DEBUG) {
             log(0, "Applying %d BufferedImageOps...", ops.length);
+        }
 
         boolean hasReassignedSrc = false;
 
         for (int i = 0; i < ops.length; i++) {
             long subT = -1;
-            if (DEBUG)
+            if (DEBUG) {
                 subT = System.currentTimeMillis();
+            }
             BufferedImageOp op = ops[i];
 
             // Skip null ops instead of throwing an exception.
-            if (op == null)
+            if (op == null) {
                 continue;
+            }
 
-            if (DEBUG)
+            if (DEBUG) {
                 log(1, "Applying BufferedImageOp [class=%s, toString=%s]...",
                     op.getClass(), op.toString());
+            }
 
             /*
              * Must use op.getBounds instead of src.getWidth and src.getHeight
@@ -642,12 +594,13 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             Rectangle2D resultBounds = op.getBounds2D(src);
 
             // Watch out for flaky/misbehaving ops that fail to work right.
-            if (resultBounds == null)
+            if (resultBounds == null) {
                 throw new ImagingOpException(
                         "BufferedImageOp ["
                         + op.toString()
                         +
                         "] getBounds2D(src) returned null bounds for the target image; this should not happen and indicates a problem with application of this type of op.");
+            }
 
             /*
              * We must manually create the target image; we cannot rely on the
@@ -668,8 +621,9 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
              * images being used when applying 2 or more operations back to
              * back. We never want to flush the original image passed in.
              */
-            if (hasReassignedSrc)
+            if (hasReassignedSrc) {
                 src.flush();
+            }
 
             /*
              * Incase there are more operations to perform, update what we
@@ -686,16 +640,18 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
              */
             hasReassignedSrc = true;
 
-            if (DEBUG)
+            if (DEBUG) {
                 log(1,
                     "Applied BufferedImageOp in %d ms, result [width=%d, height=%d]",
                     System.currentTimeMillis() - subT, result.getWidth(),
                     result.getHeight());
+            }
         }
 
-        if (DEBUG)
+        if (DEBUG) {
             log(0, "All %d BufferedImageOps applied in %d ms", ops.length,
                 System.currentTimeMillis() - t);
+        }
 
         return src;
     }
@@ -736,7 +692,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      */
     public static BufferedImage crop(BufferedImage src, int width, int height,
                                      BufferedImageOp... ops) throws IllegalArgumentException,
-                                                                    ImagingOpException {
+            ImagingOpException {
         return crop(src, 0, 0, width, height, ops);
     }
 
@@ -781,33 +737,39 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                                      int width, int height, BufferedImageOp... ops)
             throws IllegalArgumentException, ImagingOpException {
         long t = -1;
-        if (DEBUG)
+        if (DEBUG) {
             t = System.currentTimeMillis();
+        }
 
-        if (src == null)
+        if (src == null) {
             throw new IllegalArgumentException("src cannot be null");
-        if (x < 0 || y < 0 || width < 0 || height < 0)
+        }
+        if (x < 0 || y < 0 || width < 0 || height < 0) {
             throw new IllegalArgumentException("Invalid crop bounds: x [" + x
                                                + "], y [" + y + "], width [" + width + "] and height ["
                                                + height + "] must all be >= 0");
+        }
 
         int srcWidth  = src.getWidth();
         int srcHeight = src.getHeight();
 
-        if ((x + width) > srcWidth)
+        if ((x + width) > srcWidth) {
             throw new IllegalArgumentException(
                     "Invalid crop bounds: x + width [" + (x + width)
                     + "] must be <= src.getWidth() [" + srcWidth + "]");
-        if ((y + height) > srcHeight)
+        }
+        if ((y + height) > srcHeight) {
             throw new IllegalArgumentException(
                     "Invalid crop bounds: y + height [" + (y + height)
                     + "] must be <= src.getHeight() [" + srcHeight
                     + "]");
+        }
 
-        if (DEBUG)
+        if (DEBUG) {
             log(0,
                 "Cropping Image [width=%d, height=%d] to [x=%d, y=%d, width=%d, height=%d]...",
                 srcWidth, srcHeight, x, y, width, height);
+        }
 
         // Create a target image of an optimal type to render into.
         BufferedImage result = createOptimalImage(src, width, height);
@@ -822,12 +784,14 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                     null);
         g.dispose();
 
-        if (DEBUG)
+        if (DEBUG) {
             log(0, "Cropped Image in %d ms", System.currentTimeMillis() - t);
+        }
 
         // Apply any optional operations (if specified).
-        if (ops != null && ops.length > 0)
+        if (ops != null && ops.length > 0) {
             result = apply(result, ops);
+        }
 
         return result;
     }
@@ -873,7 +837,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      */
     public static BufferedImage pad(BufferedImage src, int padding,
                                     BufferedImageOp... ops) throws IllegalArgumentException,
-                                                                   ImagingOpException {
+            ImagingOpException {
         return pad(src, padding, Color.BLACK);
     }
 
@@ -923,16 +887,20 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                                     Color color, BufferedImageOp... ops)
             throws IllegalArgumentException, ImagingOpException {
         long t = -1;
-        if (DEBUG)
+        if (DEBUG) {
             t = System.currentTimeMillis();
+        }
 
-        if (src == null)
+        if (src == null) {
             throw new IllegalArgumentException("src cannot be null");
-        if (padding < 1)
+        }
+        if (padding < 1) {
             throw new IllegalArgumentException("padding [" + padding
                                                + "] must be > 0");
-        if (color == null)
+        }
+        if (color == null) {
             throw new IllegalArgumentException("color cannot be null");
+        }
 
         int srcWidth  = src.getWidth();
         int srcHeight = src.getHeight();
@@ -947,10 +915,11 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
         int newWidth  = srcWidth + sizeDiff;
         int newHeight = srcHeight + sizeDiff;
 
-        if (DEBUG)
+        if (DEBUG) {
             log(0,
                 "Padding Image from [originalWidth=%d, originalHeight=%d, padding=%d] to [newWidth=%d, newHeight=%d]...",
                 srcWidth, srcHeight, padding, newWidth, newHeight);
+        }
 
         boolean colorHasAlpha = (color.getAlpha() != 255);
         boolean imageHasAlpha = (src.getTransparency() != BufferedImage.OPAQUE);
@@ -963,16 +932,18 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
          * contain it.
          */
         if (colorHasAlpha || imageHasAlpha) {
-            if (DEBUG)
+            if (DEBUG) {
                 log(1,
                     "Transparency FOUND in source image or color, using ARGB image type...");
+            }
 
             result = new BufferedImage(newWidth, newHeight,
                                        BufferedImage.TYPE_INT_ARGB);
         } else {
-            if (DEBUG)
+            if (DEBUG) {
                 log(1,
                     "Transparency NOT FOUND in source image or color, using RGB image type...");
+            }
 
             result = new BufferedImage(newWidth, newHeight,
                                        BufferedImage.TYPE_INT_RGB);
@@ -991,12 +962,14 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
         g.drawImage(src, padding, padding, null);
         g.dispose();
 
-        if (DEBUG)
+        if (DEBUG) {
             log(0, "Padding Applied in %d ms", System.currentTimeMillis() - t);
+        }
 
         // Apply any optional operations (if specified).
-        if (ops != null && ops.length > 0)
+        if (ops != null && ops.length > 0) {
             result = apply(result, ops);
+        }
 
         return result;
     }
@@ -1037,7 +1010,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      */
     public static BufferedImage resize(BufferedImage src, int targetSize,
                                        BufferedImageOp... ops) throws IllegalArgumentException,
-                                                                      ImagingOpException {
+            ImagingOpException {
         return resize(src, Method.AUTOMATIC, Mode.AUTOMATIC, targetSize,
                       targetSize, ops);
     }
@@ -1409,23 +1382,29 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                                        int targetWidth,
                                        int targetHeight,
                                        BufferedImageOp... ops) throws IllegalArgumentException,
-                                                                      ImagingOpException {
+            ImagingOpException {
         long t = -1;
-        if (DEBUG)
+        if (DEBUG) {
             t = System.currentTimeMillis();
+        }
 
-        if (src == null)
+        if (src == null) {
             throw new IllegalArgumentException("src cannot be null");
-        if (targetWidth < 0)
+        }
+        if (targetWidth < 0) {
             throw new IllegalArgumentException("targetWidth must be >= 0");
-        if (targetHeight < 0)
+        }
+        if (targetHeight < 0) {
             throw new IllegalArgumentException("targetHeight must be >= 0");
-        if (scalingMethod == null)
+        }
+        if (scalingMethod == null) {
             throw new IllegalArgumentException(
                     "scalingMethod cannot be null. A good default value is Method.AUTOMATIC.");
-        if (resizeMode == null)
+        }
+        if (resizeMode == null) {
             throw new IllegalArgumentException(
                     "resizeMode cannot be null. A good default value is Mode.AUTOMATIC.");
+        }
 
         BufferedImage result = null;
 
@@ -1435,12 +1414,13 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
         // <= 1 is a square or landscape-oriented image, > 1 is a portrait.
         float ratio = ((float) currentHeight / (float) currentWidth);
 
-        if (DEBUG)
+        if (DEBUG) {
             log(0,
                 "Resizing Image [size=%dx%d, resizeMode=%s, orientation=%s, ratio(H/W)=%f] to [targetSize=%dx%d]",
                 currentWidth, currentHeight, resizeMode,
                 (ratio <= 1 ? "Landscape/Square" : "Portrait"), ratio,
                 targetWidth, targetHeight);
+        }
 
         /*
          * First determine if ANY size calculation needs to be done, in the case
@@ -1460,9 +1440,10 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
          * within and it will do the right thing without mangling the result.
          */
         if (resizeMode == Mode.FIT_EXACT) {
-            if (DEBUG)
+            if (DEBUG) {
                 log(1,
                     "Resize Mode FIT_EXACT used, no width/height checking or re-calculation will be done.");
+            }
         } else if (resizeMode == Mode.BEST_FIT_BOTH) {
             float requestedHeightScaling = ((float) targetHeight / (float) currentHeight);
             float requestedWidthScaling  = ((float) targetWidth / (float) currentWidth);
@@ -1471,17 +1452,20 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             targetHeight = Math.round((float) currentHeight * actualScaling);
             targetWidth = Math.round((float) currentWidth * actualScaling);
 
-            if (targetHeight == currentHeight && targetWidth == currentWidth)
+            if (targetHeight == currentHeight && targetWidth == currentWidth) {
                 return src;
+            }
 
-            if (DEBUG)
+            if (DEBUG) {
                 log(1, "Auto-Corrected width and height based on scalingRatio %d.", actualScaling);
+            }
         } else {
             if ((ratio <= 1 && resizeMode == Mode.AUTOMATIC)
                 || (resizeMode == Mode.FIT_TO_WIDTH)) {
                 // First make sure we need to do any work in the first place
-                if (targetWidth == src.getWidth())
+                if (targetWidth == src.getWidth()) {
                     return src;
+                }
 
                 // Save for detailed logging (this is cheap).
                 int originalTargetHeight = targetHeight;
@@ -1493,14 +1477,16 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                  */
                 targetHeight = (int) Math.ceil((float) targetWidth * ratio);
 
-                if (DEBUG && originalTargetHeight != targetHeight)
+                if (DEBUG && originalTargetHeight != targetHeight) {
                     log(1,
                         "Auto-Corrected targetHeight [from=%d to=%d] to honor image proportions.",
                         originalTargetHeight, targetHeight);
+                }
             } else {
                 // First make sure we need to do any work in the first place
-                if (targetHeight == src.getHeight())
+                if (targetHeight == src.getHeight()) {
                     return src;
+                }
 
                 // Save for detailed logging (this is cheap).
                 int originalTargetWidth = targetWidth;
@@ -1511,20 +1497,23 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                  */
                 targetWidth = Math.round((float) targetHeight / ratio);
 
-                if (DEBUG && originalTargetWidth != targetWidth)
+                if (DEBUG && originalTargetWidth != targetWidth) {
                     log(1,
                         "Auto-Corrected targetWidth [from=%d to=%d] to honor image proportions.",
                         originalTargetWidth, targetWidth);
+                }
             }
         }
 
         // If AUTOMATIC was specified, determine the real scaling method.
-        if (scalingMethod == Method.AUTOMATIC)
+        if (scalingMethod == Method.AUTOMATIC) {
             scalingMethod = determineScalingMethod(targetWidth, targetHeight,
                                                    ratio);
+        }
 
-        if (DEBUG)
+        if (DEBUG) {
             log(1, "Using Scaling Method: %s", scalingMethod);
+        }
 
         // Now we scale the image
         if (scalingMethod == Method.SPEED) {
@@ -1546,9 +1535,10 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
              * algorithm for the best result.
              */
             if (targetWidth > currentWidth || targetHeight > currentHeight) {
-                if (DEBUG)
+                if (DEBUG) {
                     log(1,
                         "QUALITY scale-up, a single BICUBIC scale operation will be used...");
+                }
 
                 /*
                  * BILINEAR and BICUBIC look similar the smaller the scale jump
@@ -1561,9 +1551,10 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                 result = scaleImage(src, targetWidth, targetHeight,
                                     RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             } else {
-                if (DEBUG)
+                if (DEBUG) {
                     log(1,
                         "QUALITY scale-down, incremental scaling will be used...");
+                }
 
                 /*
                  * Originally we wanted to use BILINEAR interpolation here
@@ -1581,21 +1572,25 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             }
         }
 
-        if (DEBUG)
+        if (DEBUG) {
             log(0, "Resized Image in %d ms", System.currentTimeMillis() - t);
+        }
 
         // Apply any optional operations (if specified).
-        if (ops != null && ops.length > 0)
+        if (ops != null && ops.length > 0) {
             result = apply(result, ops);
+        }
 
         return result;
     }
 
-    public static BufferedImage rotate(BufferedImage src, Rotation rotation1, Rotation rotation2,
+    public static BufferedImage rotate(BufferedImage src, ERotation[] rotations,
                                        BufferedImageOp... ops) throws IllegalArgumentException,
-                                                                      ImagingOpException {
-        final var transfo1 = rotate(src, rotation1, ops);
-        return rotate(transfo1, rotation2, ops);
+            ImagingOpException {
+        for (ERotation rotation : rotations) {
+            src = rotate(src, rotation, ops);
+        }
+        return src;
     }
 
     /**
@@ -1628,20 +1623,24 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      *                                  operations.
      * @see Rotation
      */
-    public static BufferedImage rotate(BufferedImage src, Rotation rotation,
+    public static BufferedImage rotate(BufferedImage src, ERotation rotation,
                                        BufferedImageOp... ops) throws IllegalArgumentException,
-                                                                      ImagingOpException {
+            ImagingOpException {
         long t = -1;
-        if (DEBUG)
+        if (DEBUG) {
             t = System.currentTimeMillis();
+        }
 
-        if (src == null)
+        if (src == null) {
             throw new IllegalArgumentException("src cannot be null");
-        if (rotation == null)
+        }
+        if (rotation == null) {
             throw new IllegalArgumentException("rotation cannot be null");
+        }
 
-        if (DEBUG)
+        if (DEBUG) {
             log(0, "Rotating Image [%s]...", rotation);
+        }
 
         /*
          * Setup the default width/height values from our image.
@@ -1739,14 +1738,16 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
         g2d.drawImage(src, tx, null);
         g2d.dispose();
 
-        if (DEBUG)
+        if (DEBUG) {
             log(0, "Rotation Applied in %d ms, result [width=%d, height=%d]",
                 System.currentTimeMillis() - t, result.getWidth(),
                 result.getHeight());
+        }
 
         // Apply any optional operations (if specified).
-        if (ops != null && ops.length > 0)
+        if (ops != null && ops.length > 0) {
             result = apply(result, ops);
+        }
 
         return result;
     }
@@ -1851,9 +1852,10 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      */
     protected static BufferedImage createOptimalImage(BufferedImage src,
                                                       int width, int height) throws IllegalArgumentException {
-        if (width <= 0 || height <= 0)
+        if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("width [" + width
                                                + "] and height [" + height + "] must be > 0");
+        }
 
         return new BufferedImage(width,
                                  height,
@@ -1888,8 +1890,9 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      */
     protected static BufferedImage copyToOptimalImage(BufferedImage src)
             throws IllegalArgumentException {
-        if (src == null)
+        if (src == null) {
             throw new IllegalArgumentException("src cannot be null");
+        }
 
         // Calculate the type depending on the presence of alpha.
         int type = (src.getTransparency() == Transparency.OPAQUE ? BufferedImage.TYPE_INT_RGB
@@ -1936,13 +1939,15 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
         Method result = Method.SPEED;
 
         // Figure out which scalingMethod should be used
-        if (length <= THRESHOLD_QUALITY_BALANCED)
+        if (length <= THRESHOLD_QUALITY_BALANCED) {
             result = Method.QUALITY;
-        else if (length <= THRESHOLD_BALANCED_SPEED)
+        } else if (length <= THRESHOLD_BALANCED_SPEED) {
             result = Method.BALANCED;
+        }
 
-        if (DEBUG)
+        if (DEBUG) {
             log(2, "AUTOMATIC scaling method selected: %s", result.name());
+        }
 
         return result;
     }
@@ -2060,8 +2065,9 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                  * If we cut the width too far it means we are on our last
                  * iteration. Just set it to the target width and finish up.
                  */
-                if (currentWidth < targetWidth)
+                if (currentWidth < targetWidth) {
                     currentWidth = targetWidth;
+                }
             }
 
             /*
@@ -2077,8 +2083,9 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                  * iteration. Just set it to the target height and finish up.
                  */
 
-                if (currentHeight < targetHeight)
+                if (currentHeight < targetHeight) {
                     currentHeight = targetHeight;
+                }
             }
 
             /*
@@ -2094,12 +2101,14 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
              * consider ourselves done.
              */
             if (prevCurrentWidth == currentWidth
-                && prevCurrentHeight == currentHeight)
+                && prevCurrentHeight == currentHeight) {
                 break;
+            }
 
-            if (DEBUG)
+            if (DEBUG) {
                 log(2, "Scaling from [%d x %d] to [%d x %d]", prevCurrentWidth,
                     prevCurrentHeight, currentWidth, currentHeight);
+            }
 
             // Render the incremental scaled image.
             BufferedImage incrementalImage = scaleImage(src, currentWidth,
@@ -2115,8 +2124,9 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
              * caller-supplied BufferedImage in which case we don't want to
              * flush() it and just leave it alone.
              */
-            if (hasReassignedSrc)
+            if (hasReassignedSrc) {
                 src.flush();
+            }
 
             /*
              * Now treat our incremental partially scaled image as the src image
@@ -2136,8 +2146,9 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             incrementCount++;
         } while (currentWidth != targetWidth || currentHeight != targetHeight);
 
-        if (DEBUG)
+        if (DEBUG) {
             log(2, "Incrementally Scaled Image in %d steps.", incrementCount);
+        }
 
         /*
          * Once the loop has exited, the src image argument is now our scaled

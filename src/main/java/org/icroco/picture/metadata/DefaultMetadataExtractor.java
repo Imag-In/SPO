@@ -30,6 +30,9 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     public static final  LocalDateTime EPOCH_0 = Instant.ofEpochMilli(0).atZone(ZoneId.systemDefault()).toLocalDateTime();
     private static final Logger        log     = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
 
+    private static final Supplier<Integer> DEFAULT_ORIENTATION = () -> 1;
+
+
     @Override
     public Optional<Integer> orientation(InputStream input) {
         try {
@@ -110,8 +113,9 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                        .orElse(Dimension.EMPTY_DIM);
     }
 
-    public Integer extractOrientation(Path path, Optional<? extends ExifDirectoryBase> exif) {
-        return getTagAsInt(exif, ExifDirectoryBase.TAG_ORIENTATION, () -> 1, t -> log.warn("'{}' Cannot read orientation", path));
+    public short extractOrientation(Path path, Optional<? extends ExifDirectoryBase> exif) {
+        return (short) getTagAsInt(exif, ExifDirectoryBase.TAG_ORIENTATION,
+                                   DEFAULT_ORIENTATION, t -> log.warn("'{}' Cannot read orientation", path));
 
 //        return exif.map(Unchecked.function(this::getOrientation, throwable -> log.warn("'{}' Cannot read orientation", path)));
     }

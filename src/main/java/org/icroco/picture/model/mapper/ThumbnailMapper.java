@@ -2,7 +2,7 @@ package org.icroco.picture.model.mapper;
 
 import javafx.scene.image.Image;
 import org.icroco.picture.model.Thumbnail;
-import org.icroco.picture.persistence.model.DbThumbnail;
+import org.icroco.picture.persistence.model.ThumbnailEntity;
 import org.icroco.picture.views.util.ImageUtils;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
@@ -11,10 +11,10 @@ import org.mapstruct.Mapper;
 public abstract class ThumbnailMapper {
 
     //    @Mapping(target = "manufacturer", source = "make")
-    public abstract Thumbnail map(DbThumbnail thumbnail);
+    public abstract Thumbnail map(ThumbnailEntity thumbnail);
 
     @InheritInverseConfiguration
-    public abstract DbThumbnail map(Thumbnail thumbnail);
+    public abstract ThumbnailEntity map(Thumbnail thumbnail);
 
 //    public final SimpleObjectProperty<EThumbnailType> map(EThumbnailType status) {
 //        return new SimpleObjectProperty<>(status);

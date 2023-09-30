@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Builder
 public record MetadataHeader(LocalDateTime orginalDate,
-                             Integer orientation,
+                             Short orientation,
                              Dimension size,
                              GeoLocation geoLocation) {
 }

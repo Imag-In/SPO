@@ -10,6 +10,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +19,10 @@ import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.EThumbnailType;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.util.FxView;
+import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
 import org.icroco.picture.views.util.Styles;
+import org.jooq.lambda.Unchecked;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -42,8 +45,8 @@ public class DetailsView implements FxView<VBox> {
 //    private final IMetadataExtractor    metadataExtractor;
 
     private final MediaLoader mediaLoader;
-
-    VBox root = new VBox();
+    private       MaskerPane  maskerPane = new MaskerPane();
+    private       VBox        root       = new VBox();
 
     private final Label   name          = createLabel();
     private final Label   txtDbId       = new Label("Id: ");
@@ -75,13 +78,20 @@ public class DetailsView implements FxView<VBox> {
         tabs.getSelectionModel().selectFirst();
         tabs.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> selectTab(newValue));
 
+        VBox.setVgrow(tabs, Priority.ALWAYS);
         root.getChildren().add(tabs);
-
     }
 
     private void selectTab(Tab newValue) {
         if (newValue.getId().equals(IMAGE_METADATA_DETAILS)) {
-            log.info("TODO: Tab selected: {}", newValue);
+            maskerPane.start();
+            // TODO:
+            Thread.ofVirtual().start(() -> {
+                Unchecked.runnable(() -> {
+                    Thread.sleep(2000);
+                    maskerPane.stop();
+                }).run();
+            });
         }
     }
 
@@ -89,7 +99,7 @@ public class DetailsView implements FxView<VBox> {
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.TOP_RIGHT);
 
-        return grid;
+        return maskerPane;
     }
 
     private GridPane createInfo() {

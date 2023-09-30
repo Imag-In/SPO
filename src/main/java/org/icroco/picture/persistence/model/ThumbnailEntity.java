@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Table(name = "thumbnail")
 @Slf4j
-public class DbThumbnail {
+public class ThumbnailEntity {
     @Id
     Long mfId;
 

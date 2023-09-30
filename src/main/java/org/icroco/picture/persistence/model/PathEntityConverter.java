@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @Converter
-public class DbPathConverter implements AttributeConverter<Path, String> {
+public class PathEntityConverter implements AttributeConverter<Path, String> {
     @Override
     public String convertToDatabaseColumn(Path path) {
         return path.toString();

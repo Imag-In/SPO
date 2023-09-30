@@ -1,15 +1,15 @@
 package org.icroco.picture.model.mapper;
 
 import org.icroco.picture.model.GeoLocation;
-import org.icroco.picture.persistence.model.DbGeoLocation;
+import org.icroco.picture.persistence.model.GeoLocationEntity;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 
 @Mapper
 public interface GeoLocationMapper {
     //    @Mapping(target = "manufacturer", source = "make")
-    GeoLocation map(DbGeoLocation geoLocation);
+    GeoLocation map(GeoLocationEntity geoLocation);
 
     @InheritInverseConfiguration
-    DbGeoLocation map(GeoLocation geoLocation);
+    GeoLocationEntity map(GeoLocation geoLocation);
 }

@@ -67,9 +67,7 @@ public class GalleryView implements FxView<StackPane> {
     private final StackPane root = new StackPane();
     private final BorderPane gallery  = new BorderPane();
     private final BorderPane carousel = new BorderPane();
-
     private final Slider zoomThumbnails = createTickSlider();
-
     //    private final BreadCrumbBar<Path>       breadCrumbBar  = new BreadCrumbBar<>();
     private final Breadcrumbs<Path> breadCrumbBar = new Breadcrumbs<>();
 
@@ -483,7 +481,8 @@ public class GalleryView implements FxView<StackPane> {
             case SHOW -> {
                 gallery.setVisible(false);
                 carousel.setVisible(true);
-                photo.setImage(mediaLoader.loadImage(event.getMediaFile()));
+//                photo.setImage(mediaLoader.loadImage(event.getMediaFile()));
+                photo.setImage(event.getMediaFile());
 //                MultipleSelectionModel<MediaFile> selectionModel = carouselIcons.getSelectionModel();
 //                selectionModel.select(event.getMediaFile());
 //                var idx = selectionModel.getSelectedIndex();

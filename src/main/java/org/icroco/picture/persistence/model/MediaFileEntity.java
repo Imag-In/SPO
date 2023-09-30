@@ -18,7 +18,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @Table(name = "media")
-public class DbMediaFile {
+public class MediaFileEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,7 +52,7 @@ public class DbMediaFile {
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "tag_id")
-    private Set<DbTag> tags;
+    private Set<TagEntity> tags;
 
     @NonNull
     @Enumerated(EnumType.STRING)
@@ -61,12 +61,13 @@ public class DbMediaFile {
 
     @NotNull
     @Builder.Default
-    private DbDimension dimension = DbDimension.EMPTY_DIM;
+    private DimensionEntity dimension = DimensionEntity.EMPTY_DIM;
 
     @NotNull
     @Builder.Default
-    private DbGeoLocation geoLocation = DbGeoLocation.EMPTY_GEO_LOC;
+    private GeoLocationEntity geoLocation = GeoLocationEntity.EMPTY_GEO_LOC;
 
-    @Column(name = "foo")
-    private double foo;
+    @Builder.Default
+    @Column(name = "orientation")
+    private Short orientation = 1;
 }

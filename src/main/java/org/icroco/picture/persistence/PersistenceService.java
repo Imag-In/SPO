@@ -12,7 +12,7 @@ import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.model.mapper.MediaCollectionMapper;
 import org.icroco.picture.model.mapper.MediaFileMapper;
 import org.icroco.picture.model.mapper.ThumbnailMapper;
-import org.icroco.picture.persistence.model.DbMediaCollection;
+import org.icroco.picture.persistence.model.MediaCollectionEntity;
 import org.icroco.picture.views.task.TaskService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
@@ -88,8 +88,8 @@ public class PersistenceService {
 //    @CachePut(cacheNames = ImageInConfiguration.CATALOG, key = "#mediaCollection.id")
     public MediaCollection saveCollection(@NonNull final MediaCollection mediaCollection) {
         synchronized (collectionRepo) {
-            DbMediaCollection saved             = collectionRepo.saveAndFlush(colMapper.map(mediaCollection));
-            var               updatedCollection = colMapper.map(saved);
+            MediaCollectionEntity saved             = collectionRepo.saveAndFlush(colMapper.map(mediaCollection));
+            var                   updatedCollection = colMapper.map(saved);
 
             mcCache.put(updatedCollection.id(), updatedCollection);
             log.info("Collection saved, id: '{}', path: '{}'", updatedCollection.id(), updatedCollection.path());

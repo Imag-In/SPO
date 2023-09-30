@@ -14,7 +14,7 @@ import java.util.Collections;
 import java.util.Set;
 
 @Data
-@EqualsAndHashCode(of = { "fullPath" })
+@EqualsAndHashCode(of = {"fullPath"})
 @Builder
 @AllArgsConstructor
 public class MediaFile implements IMediaFile {
@@ -27,6 +27,7 @@ public class MediaFile implements IMediaFile {
     private String        hash;
     private LocalDate     hashDate;
     private Dimension     dimension;
+    private short         orientation;
 
     @NonNull
     @Builder.Default
@@ -88,12 +89,17 @@ public class MediaFile implements IMediaFile {
         return tags == null ? Collections.emptySet() : tags;
     }
 
+    @Override
+    public Short orientation() {
+        return orientation;
+    }
+
     public void invertSelection() {
         selected = !selected;
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[]{ mf.loadedInCache, mf.thumbnailUpdateProperty };
+        return mf -> new Observable[]{mf.loadedInCache, mf.thumbnailUpdateProperty};
     }
 
     public void setId(long id) {

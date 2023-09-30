@@ -222,7 +222,8 @@ public class CollectionView implements FxView<VBox> {
         return root;
     }
 
-    record TitlePaneEntry(TitledPane titledPane, int mediaCollectionId) {}
+    record TitlePaneEntry(TitledPane titledPane, int mediaCollectionId) {
+    }
 
     @FxEventListener
     public void onDeleteCollection(DeleteCollectionEvent event) {
@@ -277,7 +278,8 @@ public class CollectionView implements FxView<VBox> {
                         .findFirst()
                         .ifPresent(p -> {
                             // TODO: Rather than getting an error, jump to that dir into the proper collection.
-                            throw new CollectionException("Path: '%s' is already included into collection item: '%s'".formatted(rootPath, p));
+                            throw new CollectionException("Path: '%s' is already included into collection item: '%s'".formatted(rootPath,
+                                                                                                                                p));
                         });
             rootTreeItem.getChildren()
                         .stream()
@@ -288,7 +290,8 @@ public class CollectionView implements FxView<VBox> {
 
             disablePathActions.set(true);
 
-            record CatalogAndTask(MediaCollection mediaCollection, CompletableFuture<?>[] futures) {}
+            record CatalogAndTask(MediaCollection mediaCollection, CompletableFuture<?>[] futures) {
+            }
 
             taskService.supply(scanDirectory(rootPath))
                        // TODO: generate hash only at the end of collection creation.
@@ -340,12 +343,12 @@ public class CollectionView implements FxView<VBox> {
                     final var size = filteredImages.size();
                     updateProgress(0, size);
                     return MediaCollection.builder().path(rootPath)
-                                                    .subPaths(children)
-                                                    .medias(EntryStream.of(filteredImages)
-                                                                       .peek(i -> updateProgress(i.getKey(), size))
-                                                                       .map(i -> create(now, i.getValue()))
-                                                                       .collect(Collectors.toSet()))
-                                                    .build();
+                                          .subPaths(children)
+                                          .medias(EntryStream.of(filteredImages)
+                                                             .peek(i -> updateProgress(i.getKey(), size))
+                                                             .map(i -> create(now, i.getValue()))
+                                                             .collect(Collectors.toSet()))
+                                          .build();
                 }
             }
 
@@ -398,12 +401,13 @@ public class CollectionView implements FxView<VBox> {
         final var h = metadataExtractor.header(p);
 
         var builder = MediaFile.builder()
-                .fullPath(p)
-                .fileName(p.getFileName().toString())
-                .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN));
+                               .fullPath(p)
+                               .fileName(p.getFileName().toString())
+                               .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN));
 
         h.ifPresent(header -> {
             builder.dimension(header.size())
+                   .orientation(header.orientation())
                    .geoLocation(header.geoLocation())
                    .originalDate(header.orginalDate());
         });

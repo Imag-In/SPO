@@ -18,4 +18,6 @@ public interface IMediaFile {
     GeoLocation geoLocation();
 
     Dimension dimension();
+
+    Short orientation();
 }
