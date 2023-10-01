@@ -162,7 +162,6 @@ public class CustomGridView<T> extends GridView<T> {
         getSelectionModel().get().ifPresent(cell -> {
             var idx      = getItems().indexOf(cell.getItem());
             var idxInRow = idx % getItemsInRow();
-            log.info("idx: {}, col: {}, maxInRow: {}", idx, idxInRow, getItemsInRow());
             if (idx > 0) {
                 findItem(flow, getItems().get(--idx))
                         .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
@@ -178,7 +177,6 @@ public class CustomGridView<T> extends GridView<T> {
         getSelectionModel().get().ifPresent(cell -> {
             var idx      = getItems().indexOf(cell.getItem());
             var idxInRow = idx % getItemsInRow();
-            log.info("idx: {}, col: {}, maxInRow: {}", idx, idxInRow, getItemsInRow());
             if (idx + 1 < getItems().size()) {
                 findItem(flow, getItems().get(++idx))
                         .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
@@ -219,7 +217,11 @@ public class CustomGridView<T> extends GridView<T> {
             selection.add(node);
             node.updateSelected(true);
             updateSelectedRow(node);
-            taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.SELECTED, node.getItem(), this));
+            taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                    .mf(node.getItem())
+                                                    .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+                                                    .source(this)
+                                                    .build());
         }
 
         Optional<Cell<MediaFile>> get() {
@@ -234,17 +236,29 @@ public class CustomGridView<T> extends GridView<T> {
             updateSelectedRow(node);
             node.getItem().setSelected(true);
 //        node.setStyle("aaa");
-            taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.SELECTED, node.getItem(), this));
+            taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                    .mf(node.getItem())
+                                                    .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+                                                    .source(this)
+                                                    .build());
         }
 
         public void addOrRemove(Cell<MediaFile> node) {
             if (selection.remove(node)) {
                 node.getItem().setSelected(false);
-                taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.UNSELECTED, node.getItem(), this));
+                taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                        .mf(node.getItem())
+                                                        .type(PhotoSelectedEvent.ESelectionType.UNSELECTED)
+                                                        .source(this)
+                                                        .build());
             } else {
                 selection.add(node);
                 node.getItem().setSelected(true);
-                taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.SELECTED, node.getItem(), this));
+                taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                        .mf(node.getItem())
+                                                        .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+                                                        .source(this)
+                                                        .build());
             }
         }
 
@@ -257,13 +271,17 @@ public class CustomGridView<T> extends GridView<T> {
             node.updateSelected(false);
             selection.remove(node);
             node.getItem().setSelected(false);
-            taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.UNSELECTED, node.getItem(), this));
+            taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                    .mf(node.getItem())
+                                                    .type(PhotoSelectedEvent.ESelectionType.UNSELECTED)
+                                                    .source(this)
+                                                    .build());
         }
 
         public void clear() {
             selection.forEach(mf -> mf.getItem().setSelected(false));
             selection.clear();
-            taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.UNSELECTED, null, this));
+            taskService.sendEvent(PhotoSelectedEvent.builder().type(PhotoSelectedEvent.ESelectionType.UNSELECTED).source(this).build());
         }
 
         public boolean contains(final Cell<MediaFile> node) {

@@ -24,7 +24,10 @@ public class GridCellSelectionModelOld {
     public void add(Cell<MediaFile> node) {
         selection.add(node);
         node.updateSelected(true);
-        taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.SELECTED, node.getItem(), this));
+        taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                .mf(node.getItem())
+                                                .type(PhotoSelectedEvent.ESelectionType.SELECTED).source(this)
+                                                .build());
     }
 
     Optional<Cell<MediaFile>> get() {
@@ -38,17 +41,26 @@ public class GridCellSelectionModelOld {
         node.updateSelected(true);
         node.getItem().setSelected(true);
 //        node.setStyle("aaa");
-        taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.SELECTED, node.getItem(), this));
+        taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                .mf(node.getItem())
+                                                .type(PhotoSelectedEvent.ESelectionType.SELECTED).source(this)
+                                                .build());
     }
 
     public void addOrRemove(Cell<MediaFile> node) {
         if (selection.remove(node)) {
             node.getItem().setSelected(false);
-            taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.UNSELECTED, node.getItem(), this));
+            taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                    .mf(node.getItem())
+                                                    .type(PhotoSelectedEvent.ESelectionType.UNSELECTED).source(this)
+                                                    .build());
         } else {
             selection.add(node);
             node.getItem().setSelected(true);
-            taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.SELECTED, node.getItem(), this));
+            taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                    .mf(node.getItem())
+                                                    .type(PhotoSelectedEvent.ESelectionType.SELECTED).source(this)
+                                                    .build());
         }
     }
 
@@ -61,13 +73,18 @@ public class GridCellSelectionModelOld {
         node.updateSelected(false);
         selection.remove(node);
         node.getItem().setSelected(false);
-        taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.UNSELECTED, node.getItem(), this));
+        taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                .mf(node.getItem())
+                                                .type(PhotoSelectedEvent.ESelectionType.UNSELECTED).source(this)
+                                                .build());
     }
 
     public void clear() {
         selection.forEach(mf -> mf.getItem().setSelected(false));
         selection.clear();
-        taskService.sendEvent(new PhotoSelectedEvent(PhotoSelectedEvent.ESelectionType.UNSELECTED, null, this));
+        taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                .type(PhotoSelectedEvent.ESelectionType.UNSELECTED).source(this)
+                                                .build());
     }
 
     public boolean contains(final Cell<MediaFile> node) {

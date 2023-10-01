@@ -32,8 +32,8 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class ImagInConfiguration {
 
-    public static final String THUMBNAILS = "thumbnails";
-    public static final String FULL_SIZE  = "fullSize";
+    public static final String THUMBNAILS      = "thumbnails";
+    public static final String IMAGE_FULL_SIZE = "imageFullSize";
 
     public static final String CATALOG           = "catalog";
     public static final String DIRECTORY_WATCHER = "DirWatch";
@@ -56,13 +56,13 @@ public class ImagInConfiguration {
                                          .build());
     }
 
-    @Bean(name = FULL_SIZE)
+    @Bean(name = IMAGE_FULL_SIZE)
     public CaffeineCache fullSize() {
-        return new CaffeineCache(FULL_SIZE,
+        return new CaffeineCache(IMAGE_FULL_SIZE,
                                  Caffeine.newBuilder()
 //                                         .softValues()
                                          .recordStats()
-                                         .maximumSize(100)
+                                         .maximumSize(50) // TODO: Compute this at runtime, based on RAM and -Xmx.
                                          .expireAfterAccess(1, TimeUnit.HOURS)
                                          .build());
     }

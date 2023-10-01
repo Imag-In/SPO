@@ -89,15 +89,19 @@ public class DirectoryWatcher {
                     return FileVisitResult.CONTINUE;
                 }
             });
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.error("Cannot walk through '{}'", start, e);
         }
     }
 
-    enum FileChangeType {CREATED, DELETED, MODIFIED}
+    enum FileChangeType {
+        CREATED,
+        DELETED,
+        MODIFIED
+    }
 
-    record FileChange(Path path, FileChangeType type) {}
+    record FileChange(Path path, FileChangeType type) {
+    }
 
     /**
      * Process all events for keys queued to the watcher
@@ -109,26 +113,32 @@ public class DirectoryWatcher {
         try {
             for (; ; ) {
                 if (!changes.isEmpty() && System.currentTimeMillis() > lastDrain + 5_000) {
-                    log.info("Drain files changes detected, nb changes: '{}': ten first: {}", changes.size(), changes.stream().limit(10).toList());
-                    FilesChangesDetectedEvent event = new FilesChangesDetectedEvent(changes.stream()
-                                                                                           .filter(fc -> fc.type == FileChangeType.CREATED)
-                                                                                           .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                                         Constant.isSupportedExtension(fc.path))
-                                                                                           .map(FileChange::path)
-                                                                                           .toList(),
-                                                                                    changes.stream()
-                                                                                           .filter(fc -> fc.type == FileChangeType.DELETED)
-                                                                                           .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                                         Constant.isSupportedExtension(fc.path))
-                                                                                           .map(FileChange::path)
-                                                                                           .toList(),
-                                                                                    changes.stream()
-                                                                                           .filter(fc -> fc.type == FileChangeType.MODIFIED)
-                                                                                           .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                                         Constant.isSupportedExtension(fc.path))
-                                                                                           .map(FileChange::path)
-                                                                                           .toList(),
-                                                                                    this);
+                    log.info("Drain files changes detected, nb changes: '{}': ten first: {}",
+                             changes.size(),
+                             changes.stream().limit(10).toList());
+                    var event = FilesChangesDetectedEvent.builder()
+                                                         .created(changes.stream()
+                                                                         .filter(fc -> fc.type == FileChangeType.CREATED)
+                                                                         .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                       Constant.isSupportedExtension(fc.path))
+                                                                         .map(FileChange::path)
+                                                                         .toList())
+                                                         .modified(changes.stream()
+                                                                          .filter(fc -> fc.type == FileChangeType.MODIFIED)
+                                                                          .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                        Constant.isSupportedExtension(fc.path))
+                                                                          .map(FileChange::path)
+                                                                          .toList())
+                                                         .deleted(
+                                                                 changes.stream()
+                                                                        .filter(fc -> fc.type == FileChangeType.DELETED)
+                                                                        .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                      Constant.isSupportedExtension(fc.path))
+                                                                        .map(FileChange::path)
+                                                                        .toList())
+                                                         .source(this)
+                                                         .build();
+
                     if (event.isNotEmpty()) {
                         log.info("Drain files changes detected, valid changes are: '{}' creation, '{}' deletion, '{}' updates",
                                  event.getCreated().size(),
@@ -143,8 +153,7 @@ public class DirectoryWatcher {
                 WatchKey key;
                 try {
                     key = watcher.poll(5, TimeUnit.SECONDS);
-                }
-                catch (InterruptedException x) {
+                } catch (InterruptedException x) {
                     return;
                 }
 
@@ -206,8 +215,7 @@ public class DirectoryWatcher {
                     }
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.warn("Fail to scan dir", e);
         }
     }

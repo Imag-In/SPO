@@ -33,6 +33,7 @@ import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.views.FxEventListener;
+import org.icroco.picture.views.organize.OrganizeConfiguration;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Collections;
@@ -42,6 +43,7 @@ import org.icroco.picture.views.util.widget.ZoomDragPane;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -62,17 +64,19 @@ public class GalleryView implements FxView<StackPane> {
     private final MediaLoader           mediaLoader;
     private final UserPreferenceService pref;
     private final TaskService           taskService;
+    @Qualifier(OrganizeConfiguration.GALLERY_ZOOM)
+    private final ZoomDragPane          photo;
     private final PersistenceService    persistenceService;
 
-    private final StackPane root = new StackPane();
-    private final BorderPane gallery  = new BorderPane();
-    private final BorderPane carousel = new BorderPane();
-    private final Slider zoomThumbnails = createTickSlider();
+    private final StackPane         root           = new StackPane();
+    private final BorderPane        gallery        = new BorderPane();
+    private final BorderPane        carousel       = new BorderPane();
+    private final Slider            zoomThumbnails = createTickSlider();
     //    private final BreadCrumbBar<Path>       breadCrumbBar  = new BreadCrumbBar<>();
-    private final Breadcrumbs<Path> breadCrumbBar = new Breadcrumbs<>();
+    private final Breadcrumbs<Path> breadCrumbBar  = new Breadcrumbs<>();
 
     private       CustomGridView<MediaFile>             gridView;
-    private       ZoomDragPane                          photo;
+    //    private       ZoomDragPane                          photo;
     //    @FXML
 //    private ImageView              photo;
     private final StackPane                             photoContainer = new StackPane();
@@ -121,8 +125,8 @@ public class GalleryView implements FxView<StackPane> {
 //        carouselIcons.prefWidthProperty().bind(gridView.cellWidthProperty());
 //        carouselIcons.prefHeightProperty().bind(gridView.cellHeightProperty().add(20));
 
-        photo = new ZoomDragPane(photoContainer);
-        photo.setOnMouseClicked(this::onPhotoClick);
+//        photo = new ZoomDragPane(photoContainer);
+        photo.setOnMouseClicked(this::onImageClick);
 //        photo.setFocusTraversable(true);
         photoContainer.getChildren().add(photo);
         photo.getView().setFocusTraversable(true);
@@ -237,8 +241,10 @@ public class GalleryView implements FxView<StackPane> {
         }
     }
 
-    private void onPhotoClick(MouseEvent event) {
+    private void onImageClick(MouseEvent event) {
+        log.info("CLICK: {}", event);
         if (event.getClickCount() == 2 && event.getButton() == MouseButton.PRIMARY) {
+            photo.requestFocus();
             if (photo.isZoomed()) {
                 // TODO: Zoom from mouse coordinate, not center.
                 photo.zoom(event);
@@ -327,6 +333,7 @@ public class GalleryView implements FxView<StackPane> {
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);
         gridView.getSelectionModel().clear();
         escapePressed(null);
+        pref.getUserPreference().setLastViewed(event.getCollectionId(), event.getEntry());
 //        gridView.getFirstCellVisible().ifPresent(mediaFile -> gridView.getSelectionModel().add(mediaFile));
 //        taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
     }
@@ -363,6 +370,17 @@ public class GalleryView implements FxView<StackPane> {
 //            TreeItem<Path> root = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
 //            resetBcbModel(null);
         }
+    }
+
+    @FxEventListener
+    public void imageLoading(ImageLoadingdEvent event) {
+        photo.getMaskerPane().start(event.getProgress());
+    }
+
+    @FxEventListener
+    public void imageLoaded(ImageLoadedEvent event) {
+        photo.setImage(event.getImage());
+        photo.getMaskerPane().stop();
     }
 
     Task<List<MediaFile>> fillGallery(final List<MediaFile> files) {
@@ -451,9 +469,9 @@ public class GalleryView implements FxView<StackPane> {
 
     private void escapePressed(KeyEvent event) {
         taskService.sendEvent(CarouselEvent.builder()
-                                           .source(this)
                                            .mediaFile(null)
                                            .eventType(CarouselEvent.EventType.HIDE)
+                                           .source(this)
                                            .build());
     }
 
@@ -482,7 +500,7 @@ public class GalleryView implements FxView<StackPane> {
                 gallery.setVisible(false);
                 carousel.setVisible(true);
 //                photo.setImage(mediaLoader.loadImage(event.getMediaFile()));
-                photo.setImage(event.getMediaFile());
+                mediaLoader.getOrLoadImage(event.getMediaFile());
 //                MultipleSelectionModel<MediaFile> selectionModel = carouselIcons.getSelectionModel();
 //                selectionModel.select(event.getMediaFile());
 //                var idx = selectionModel.getSelectedIndex();

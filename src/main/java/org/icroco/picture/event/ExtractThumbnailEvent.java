@@ -1,16 +1,13 @@
 package org.icroco.picture.event;
 
 import lombok.Getter;
+import lombok.experimental.SuperBuilder;
 import org.icroco.picture.model.MediaCollection;
 
 @Getter
+@SuperBuilder
 public class ExtractThumbnailEvent extends IiEvent {
     private final MediaCollection mediaCollection;
-
-    public ExtractThumbnailEvent(MediaCollection mediaCollection, Object source) {
-        super(source);
-        this.mediaCollection = mediaCollection;
-    }
 
     @Override
     public String toString() {

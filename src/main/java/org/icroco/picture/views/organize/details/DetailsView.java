@@ -73,6 +73,7 @@ public class DetailsView implements FxView<VBox> {
         Tab details = new Tab("Details", createFullDetails());
         details.setId(IMAGE_METADATA_DETAILS);
         tabs = new TabPane(info, details);
+        root.setFocusTraversable(false);
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getStyleClass().add(atlantafx.base.theme.Styles.DENSE);
         tabs.getSelectionModel().selectFirst();
@@ -80,6 +81,7 @@ public class DetailsView implements FxView<VBox> {
 
         VBox.setVgrow(tabs, Priority.ALWAYS);
         root.getChildren().add(tabs);
+        root.setFocusTraversable(false);
     }
 
     private void selectTab(Tab newValue) {

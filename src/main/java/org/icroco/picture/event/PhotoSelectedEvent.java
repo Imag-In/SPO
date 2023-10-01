@@ -1,12 +1,14 @@
 package org.icroco.picture.event;
 
 import lombok.Getter;
+import lombok.experimental.SuperBuilder;
 import org.icroco.picture.model.MediaFile;
 
 import java.nio.file.Path;
 import java.util.Optional;
 
 @Getter
+@SuperBuilder
 public class PhotoSelectedEvent extends IiEvent {
     private final MediaFile      mf;
     private final ESelectionType type;
@@ -14,12 +16,6 @@ public class PhotoSelectedEvent extends IiEvent {
     public enum ESelectionType {
         SELECTED,
         UNSELECTED
-    }
-
-    public PhotoSelectedEvent(ESelectionType type, MediaFile file, Object source) {
-        super(source);
-        this.mf = file;
-        this.type = type;
     }
 
     @Override

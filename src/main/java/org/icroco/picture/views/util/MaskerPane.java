@@ -1,49 +1,49 @@
 package org.icroco.picture.views.util;
 
 import atlantafx.base.controls.RingProgressIndicator;
-import javafx.beans.property.DoubleProperty;
+import atlantafx.base.util.Animations;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MaskerPane extends StackPane {
-    RingProgressIndicator ring = new RingProgressIndicator(0, false);
-    HBox                  hBox = new HBox();
+    private final RingProgressIndicator ring = new RingProgressIndicator(0, false);
+    private final Pane                  progressPane;
 
     public MaskerPane() {
-        getChildren().add(createMasker());
+        progressPane = createMasker();
+        getChildren().add(progressPane);
     }
 
     public void start(ReadOnlyDoubleProperty doubleProperty) {
         ring.progressProperty().unbind();
         ring.setProgress(-1D);
         ring.progressProperty().bind(doubleProperty);
-        hBox.setVisible(true);
+        start();
     }
 
     public void start() {
-        ring.setProgress(-1D);
-        hBox.setVisible(true);
-    }
-
-    public DoubleProperty getProgressProperty() {
-        return ring.progressProperty();
+        progressPane.setVisible(true);
+        getChildren().getLast().setOpacity(0);
+        if (!ring.progressProperty().isBound()) {
+            ring.setProgress(-1D);
+        }
     }
 
     public void stop() {
-        hBox.setVisible(false);
+        progressPane.setVisible(false);
         ring.progressProperty().unbind();
-        ring.setProgress(0D);
+        ring.setProgress(1);
+        var t = Animations.fadeIn(getChildren().getLast(), Duration.millis(500));
+        t.playFromStart();
     }
 
-    private Node createMasker() {
+    private Pane createMasker() {
         VBox vBox = new VBox();
         vBox.setAlignment(Pos.CENTER);
         vBox.setSpacing(10.0);
@@ -53,6 +53,7 @@ public class MaskerPane extends StackPane {
         vBox.getChildren().add(createLabel());
         vBox.getChildren().add(createProgressIndicator());
 
+        HBox hBox = new HBox();
         HBox.setHgrow(hBox, Priority.ALWAYS);
         hBox.setAlignment(Pos.CENTER);
         hBox.getChildren().addAll(vBox);
@@ -62,6 +63,7 @@ public class MaskerPane extends StackPane {
 //        glass.getStyleClass().add("masker-glass"); //$NON-NLS-1$
         glass.getChildren().add(hBox);
 
+        glass.setFocusTraversable(false);
         return glass;
     }
 

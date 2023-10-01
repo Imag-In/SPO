@@ -80,7 +80,7 @@ public class CollectionTreeCell extends TreeCell<CollectionView.CollectionNode> 
         var deleteMenu = new MenuItem(null, new FontIcon(MaterialDesignD.DELETE_OUTLINE));
         deleteMenu.setOnAction(event -> {
             if (mediaCollectionId >= 0) {
-                taskService.sendEvent(new DeleteCollectionEvent(mediaCollectionId, this));
+                taskService.sendEvent(DeleteCollectionEvent.builder().mcId(mediaCollectionId).source(this).build());
             }
         });
 //        FxUtil.styleCircleFlat(deleteMenu);

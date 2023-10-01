@@ -159,13 +159,16 @@ public class CollectionView implements FxView<VBox> {
     private void treeItemSelectionChanged(ObservableValue<? extends TreeItem<CollectionNode>> v,
                                           TreeItem<CollectionNode> oldValue,
                                           TreeItem<CollectionNode> newValue) {
+        log.info("TREE Selection: old: {}, new: {}", oldValue, newValue);
         if (newValue != null) {
             log.trace("Tree view selected: {} ", newValue.getValue());
-            pref.getUserPreference().getCollection().setLastViewed(newValue.getValue().id);
+//            pref.getUserPreference().setLastViewed(newValue.getValue().id, newValue.getValue().path);
 
-            taskService.sendEvent(new CollectionSubPathSelectedEvent(findMainCollectionNode(newValue).getValue().id(),
-                                                                     newValue.getValue().path,
-                                                                     CollectionView.this));
+            taskService.sendEvent(CollectionSubPathSelectedEvent.builder()
+                                                                .collectionId(findMainCollectionNode(newValue).getValue().id())
+                                                                .entry(newValue.getValue().path)
+                                                                .source(CollectionView.this)
+                                                                .build());
         }
     }
 
@@ -260,7 +263,7 @@ public class CollectionView implements FxView<VBox> {
         taskService.supply(() -> {
             rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path.equals(entry.path()));
             persistenceService.deleteMediaCollection(entry.id());
-            taskService.sendEvent(new CollectionEvent(entry, EventType.DELETED, this));
+            taskService.sendEvent(CollectionEvent.builder().mediaCollection(entry).type(EventType.DELETED).source(this).build());
             // TODO: Clean Thumbnail Cache and DB.
         });
     }
@@ -314,7 +317,10 @@ public class CollectionView implements FxView<VBox> {
                        .thenApplyAsync(persistenceService::saveCollection)
                        .thenAccept(mediaCollection -> runLater(() -> {
                            createTreeView(mediaCollection);
-                           taskService.sendEvent(new ExtractThumbnailEvent(mediaCollection, this));
+                           taskService.sendEvent(ExtractThumbnailEvent.builder()
+                                                                      .mediaCollection(mediaCollection)
+                                                                      .source(this)
+                                                                      .build());
                        }));
         }
     }
@@ -432,8 +438,13 @@ public class CollectionView implements FxView<VBox> {
                  log.info("Expand: {}", p.getKey().path());
                  p.getValue().setExpanded(true);
                  var catalogById = persistenceService.getMediaCollection(id);
-                 taskService.sendEvent(new CollectionEvent(catalogById, EventType.SELECTED, this));
+                 taskService.sendEvent(CollectionEvent.builder()
+                                                      .mediaCollection(catalogById)
+                                                      .type(EventType.SELECTED)
+                                                      .source(this)
+                                                      .build());
                  treeView.getSelectionModel().select(p.getValue());
+                 // TODO: Select subpath
              });
     }
 

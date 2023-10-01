@@ -117,10 +117,7 @@ public class ImagInApp extends Application {
             preStart(primaryStage);
             primaryStage.setOnCloseRequest(this::closeRequest);
             Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));
-            Platform.runLater(() -> {
-                primaryStage.show();
-                primaryStage.requestFocus();
-            });
+            Platform.runLater(primaryStage::show);
         }
         catch (Exception ex) {
             log.error("Unexpected error while starting", ex);

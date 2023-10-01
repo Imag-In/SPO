@@ -1,7 +1,6 @@
 package org.icroco.picture.views.util;
 
 import javafx.application.Platform;
-import javafx.beans.property.DoubleProperty;
 import javafx.concurrent.Task;
 import javafx.scene.image.Image;
 import javafx.stage.Screen;
@@ -45,15 +44,16 @@ import static java.util.Optional.ofNullable;
 @Component
 @Slf4j
 public class MediaLoader {
-    public static double              PRIMARY_SCREEN_WIDTH = Screen.getPrimary().getVisualBounds().getWidth();
+    public static double PRIMARY_SCREEN_WIDTH = Screen.getPrimary().getVisualBounds().getWidth();
+
     private final IThumbnailGenerator thumbnailGenerator;
     private final ImageLoader         imageLoader;
-    @Qualifier(ImagInConfiguration.THUMBNAILS)
     final         Cache               thCache;
+    final         Cache               imagesCache;
     private final TaskService         taskService;
     private final PersistenceService  persistenceService;
-    private final Map<Integer, Lock>  catalogLock          = new ConcurrentHashMap<>();
-    private final Set<Integer>        catalogToReGenerate  = new CopyOnWriteArraySet<>();
+    private final Map<Integer, Lock>  catalogLock         = new ConcurrentHashMap<>();
+    private final Set<Integer>        catalogToReGenerate = new CopyOnWriteArraySet<>();
 //    private final LRUCache<MediaFile, Thumbnail> lruCache = new LRUCache<>(1000);
 
     final Function<MediaFile, Thumbnail> cacheOrLoad;
@@ -61,11 +61,13 @@ public class MediaLoader {
     public MediaLoader(IThumbnailGenerator thumbnailGenerator,
                        ImageLoader imageLoader,
                        @Qualifier(ImagInConfiguration.THUMBNAILS) Cache thCache,
+                       @Qualifier(ImagInConfiguration.IMAGE_FULL_SIZE) Cache imagesCache,
                        TaskService taskService,
                        PersistenceService persistenceService) {
         this.thumbnailGenerator = thumbnailGenerator;
         this.imageLoader = imageLoader;
         this.thCache = thCache;
+        this.imagesCache = imagesCache;
         this.taskService = taskService;
         this.persistenceService = persistenceService;
         cacheOrLoad = mf -> getCachedValue(mf).orElseGet(() -> persistenceService.findByPathOrId(mf)
@@ -129,24 +131,23 @@ public class MediaLoader {
         try {
             thumbnail = Optional.ofNullable(thumbnailGenerator.extractThumbnail(mf.getFullPath()))
                                 .orElseGet(() -> Thumbnail.builder().fullPath(mf.getFullPath())
-                                                                    .origin(EThumbnailType.ABSENT)
-                                                                    .build());
+                                                          .origin(EThumbnailType.ABSENT)
+                                                          .build());
             thumbnail.setMfId(mf.getId());
             mf.setThumbnailType(thumbnail.getOrigin());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("invalid mf: '{}'", mf, e);
             thumbnail = Thumbnail.builder().fullPath(mf.getFullPath())
-                                           .origin(EThumbnailType.ABSENT)
-                                           .mfId(mf.getId())
-                                           .build();
+                                 .origin(EThumbnailType.ABSENT)
+                                 .mfId(mf.getId())
+                                 .build();
         }
         // TODO: Add better error management if cannot read the image
         thumbnail.setLastUpdate(LocalDateTime.now());
         return thumbnail;
     }
 
-    @Cacheable(cacheNames = ImagInConfiguration.FULL_SIZE, unless = "#result == null")
+    @Cacheable(cacheNames = ImagInConfiguration.IMAGE_FULL_SIZE, unless = "#result == null")
     public Image loadImage(MediaFile mediaFile) {
         if (mediaFile == null) {
             return null;
@@ -154,44 +155,80 @@ public class MediaLoader {
 
         try {
             return imageLoader.loadImage(mediaFile);
-        }
-        catch (Exception e) {
-            log.error("invalid mf: {}", mediaFile.getFullPath(), e);
-        }
-        return null;
-    }
-
-    @Cacheable(cacheNames = ImagInConfiguration.FULL_SIZE, unless = "#result == null", key = "#mediaFile")
-    public Image loadImage(final MediaFile mediaFile, final DoubleProperty progressIndicator) {
-        if (mediaFile == null) {
-            return null;
-        }
-
-        try {
-            return imageLoader.loadImage(mediaFile, progressIndicator);
         } catch (Exception e) {
             log.error("invalid mf: {}", mediaFile.getFullPath(), e);
         }
         return null;
     }
 
+    public Optional<Image> getCachedImage(MediaFile mediaFile) {
+        if (mediaFile == null) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(imagesCache.get(mediaFile, Image.class));
+    }
+
+    public void getOrLoadImage(final MediaFile mediaFile) {
+
+        getCachedImage(mediaFile)
+                .ifPresentOrElse(image -> taskService.sendEvent(ImageLoadedEvent.builder()
+                                                                                .mediaFile(mediaFile)
+                                                                                .image(image)
+                                                                                .source(MediaLoader.this)
+                                                                                .build()),
+                                 () -> {
+                                     taskService.supply(new AbstractTask<Image>() {
+                                         @Override
+                                         protected Image call() throws Exception {
+                                             var image = new Image(mediaFile.getFullPath().toUri().toString(),
+                                                                   MediaLoader.PRIMARY_SCREEN_WIDTH,
+                                                                   0,
+                                                                   true,
+                                                                   true,
+                                                                   true);
+                                             taskService.sendEvent(ImageLoadingdEvent.builder()
+                                                                                     .mediaFile(mediaFile)
+                                                                                     .progress(image.progressProperty())
+                                                                                     .source(MediaLoader.this)
+                                                                                     .build());
+                                             imagesCache.put(mediaFile, image);
+                                             return image;
+                                         }
+
+                                         @Override
+                                         protected void succeeded() {
+                                             taskService.sendEvent(ImageLoadedEvent.builder()
+                                                                                   .mediaFile(mediaFile)
+                                                                                   .image(getValue())
+                                                                                   .source(MediaLoader.this)
+                                                                                   .build());
+                                         }
+                                     }, false);
+                                 });
+    }
+
     @EventListener(WarmThumbnailCacheEvent.class)
     public void warmThumbnailCache(final WarmThumbnailCacheEvent event) {
-        var catalog = event.getMediaCollection();
+        var mc = event.getMediaCollection();
         log.info("warmThumbnailCache for '{}', size: {}", event.getMediaCollection().path(), event.getMediaCollection().medias().size());
-//        var mediaFiles = List.copyOf(catalog.medias());
-        taskService.sendEvent(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this));
+//        var mediaFiles = List.copyOf(mc.medias());
+        taskService.sendEvent(CollectionEvent.builder()
+                                             .mediaCollection(mc)
+                                             .type(CollectionEvent.EventType.SELECTED)
+                                             .source(this)
+                                             .build());
 
-//        var mediaFiles = List.copyOf(catalog.medias().stream().sorted(Comparator.comparing(MediaFile::getOriginalDate)).limit(500).toList());
+//        var mediaFiles = List.copyOf(mc.medias().stream().sorted(Comparator.comparing(MediaFile::getOriginalDate)).limit(500).toList());
 //
 //        var futures = StreamEx.ofSubLists(mediaFiles, Constant.split(mediaFiles.size()))
-//                              .map(files -> taskService.supply(warmCache(catalog, files)))
+//                              .map(files -> taskService.supply(warmCache(mc, files)))
 //                              .toArray(new CompletableFuture[0]);
 //
 //        CompletableFuture.allOf(futures)
-//                         .thenAcceptAsync(unused -> taskService.senfEventIntoFx(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this)))
-//                         .thenAcceptAsync(u -> lockThenRunOrSkip(catalog, () -> mayRegenerateThubmnail(catalog)));
-////        taskService.fxNotifyLater(new CollectionEvent(catalog, CollectionEvent.EventType.SELECTED, this));
+//                         .thenAcceptAsync(unused -> taskService.senfEventIntoFx(new CollectionEvent(mc, CollectionEvent.EventType.SELECTED, this)))
+//                         .thenAcceptAsync(u -> lockThenRunOrSkip(mc, () -> mayRegenerateThubmnail(mc)));
+////        taskService.fxNotifyLater(new CollectionEvent(mc, CollectionEvent.EventType.SELECTED, this));
     }
 
     Task<List<ThumbnailRes>> warmCache(MediaCollection mediaCollection, final List<MediaFile> files) {
@@ -234,11 +271,9 @@ public class MediaLoader {
             if (lock.tryLock(1, TimeUnit.SECONDS)) {
                 return callable.get();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("Cannot acquire lock for mediaCollection: '{}'", mediaCollection.path(), e);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
         return null;
@@ -246,7 +281,9 @@ public class MediaLoader {
 
     Void mayRegenerateThubmnail(MediaCollection mediaCollection) {
         if (catalogToReGenerate.contains(mediaCollection.id())) {
-            taskService.sendEvent(new GenerateThumbnailEvent(mediaCollection, this));
+            taskService.sendEvent(GenerateThumbnailEvent.builder()
+                                                        .mediaCollection(mediaCollection)
+                                                        .source(this).build());
             catalogToReGenerate.remove(mediaCollection.id());
         }
         return null;
@@ -284,14 +321,24 @@ public class MediaLoader {
                          .thenAccept(unused -> log.info("Thumbnail extraction finished for '{}', '{}', files, it took: '{}'",
                                                         mediaCollection.path(),
                                                         mediaFiles.size(),
-                                                        AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())
+                                                        AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start),
+                                                                                Locale.getDefault())
                          ))
                          .thenAccept(u -> catalogToReGenerate.add(mediaCollection.id()))
-                         .thenAccept(u -> taskService.sendEvent(new GalleryRefreshEvent(mediaCollection.id(), this)))
-                         .thenAccept(u -> taskService.sendEvent(new CollectionEvent(persistenceService.getMediaCollection(mediaCollection.id()),
-                                                                                    CollectionEvent.EventType.READY,
-                                                                                    this)))
-                         .thenAccept(u -> taskService.sendEvent(new GenerateThumbnailEvent(mediaCollection, this)))
+                         .thenAccept(u -> taskService.sendEvent(GalleryRefreshEvent.builder()
+                                                                                   .mediaCollectionId(mediaCollection.id())
+                                                                                   .source(this)
+                                                                                   .build()))
+                         .thenAccept(u -> taskService.sendEvent(CollectionEvent.builder()
+                                                                               .mediaCollection(persistenceService.getMediaCollection(
+                                                                                       mediaCollection.id()))
+                                                                               .type(CollectionEvent.EventType.READY)
+                                                                               .source(this)
+                                                                               .build()))
+                         .thenAccept(u -> taskService.sendEvent(GenerateThumbnailEvent.builder()
+                                                                                      .mediaCollection(mediaCollection)
+                                                                                      .source(this)
+                                                                                      .build()))
         ;
     }
 
@@ -375,11 +422,15 @@ public class MediaLoader {
                              .toArray(new CompletableFuture[0]);
 
         CompletableFuture.allOf(futures)
-                         .thenAccept(u -> taskService.sendEvent(new GalleryRefreshEvent(mediaCollection.id(), this)))
+                         .thenAccept(u -> taskService.sendEvent(GalleryRefreshEvent.builder()
+                                                                                   .mediaCollectionId(mediaCollection.id())
+                                                                                   .source(this)
+                                                                                   .build()))
                          .thenAccept(u -> log.info("Thumbnail generation finished for '{}', '{}', files, it took: '{}'",
                                                    mediaCollection.path(),
                                                    mediaFiles.size(),
-                                                   AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start), Locale.getDefault())
+                                                   AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start),
+                                                                           Locale.getDefault())
                          ));
     }
 

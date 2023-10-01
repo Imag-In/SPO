@@ -58,13 +58,13 @@ public enum ERotation {
     private final static Map<Integer, ERotation[]> CACHE = Map.ofEntries(Map.entry(1, new ERotation[0]),
                                                                          Map.entry(2, new ERotation[]{ERotation.FLIP_VERT}),
                                                                          Map.entry(3, new ERotation[]{ERotation.CW_180}),
-                                                                         Map.entry(4,
-                                                                                   new ERotation[]{ERotation.CW_180, ERotation.FLIP_VERT}),
-                                                                         Map.entry(5,
-                                                                                   new ERotation[]{ERotation.CW_90, ERotation.FLIP_HORZ}),
+                                                                         Map.entry(4, new ERotation[]{ERotation.CW_180,
+                                                                                                      ERotation.FLIP_VERT}),
+                                                                         Map.entry(5, new ERotation[]{ERotation.CW_90,
+                                                                                                      ERotation.FLIP_HORZ}),
                                                                          Map.entry(6, new ERotation[]{ERotation.CW_90}),
-                                                                         Map.entry(7,
-                                                                                   new ERotation[]{ERotation.CW_270, ERotation.FLIP_HORZ}),
+                                                                         Map.entry(7, new ERotation[]{ERotation.CW_270,
+                                                                                                      ERotation.FLIP_HORZ}),
                                                                          Map.entry(8, new ERotation[]{ERotation.CW_270})
     );
 

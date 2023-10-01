@@ -14,7 +14,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
 import org.springframework.lang.Nullable;
@@ -38,27 +37,22 @@ public class ZoomDragPane extends BorderPane {
      */
     private static final double ZOOM_IN_SCALE = Math.pow(HALF, 1.0d / ZOOM_N);
     private static final double MIN_PX        = 10;
+    private static final javafx.util.Duration DURATION = javafx.util.Duration.millis(500);
 
-    private       int       zoomLevel = 0;
+    private final MediaLoader mediaLoader;
+    private       int         zoomLevel = 0;
     @Getter
-    private final ImageView view;
-    private       double    imageWidth;
-    private       double    imageHeight;
-    private final double    rotation90scale;
+    private final ImageView   view;
+    private       double      imageWidth;
+    private       double      imageHeight;
+    private final double      rotation90scale;
 
+    @Getter
     private final MaskerPane maskerPane = new MaskerPane();
 
-    /**
-     * Create a
-     * {@link  Pane}
-     * container for an
-     * {@link  ImageView}
-     * which encapsulates all the Zoom, Drag & Rotation logic for an Image.
-     */
-    public ZoomDragPane(Pane parent) {
-        prefHeightProperty().bind(parent.heightProperty());
-        prefWidthProperty().bind(parent.widthProperty());
-//        setStyle("-fx-background-color: LIGHTGREY");
+    public ZoomDragPane(MediaLoader mediaLoader) {
+        this.mediaLoader = mediaLoader;
+        //        setStyle("-fx-background-color: LIGHTGREY");
 
         view = new ImageView();
         view.setPreserveRatio(true);
@@ -66,16 +60,9 @@ public class ZoomDragPane extends BorderPane {
         view.setCache(true);
         view.setPickOnBounds(true);
         maskerPane.getChildren().addLast(view);
-        view.requestFocus();
-        maskerPane.setFocusTraversable(true);
-        maskerPane.getProgressProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue.doubleValue() >= 1) {
-                maskerPane.stop();
-                maskerPane.getProgressProperty().unbind();
-            }
-        });
+
         setCenter(maskerPane);
-        setImage((MediaFile) null);
+        setImage(null);
 
         /*
          * Unless its square, the Image must be scaled when rotated through 90 (or 270) degrees...
@@ -88,6 +75,20 @@ public class ZoomDragPane extends BorderPane {
         setMouseDraggedEventHandler();
         view.setOnScroll(this::zoom);
         view.setOnZoom(this::zoom);
+    }
+
+    /**
+     * Create a
+     * {@link  Pane}
+     * container for an
+     * {@link  ImageView}
+     * which encapsulates all the Zoom, Drag & Rotation logic for an Image.
+     */
+    public ZoomDragPane(MediaLoader mediaLoader, Pane parent) {
+        this(mediaLoader);
+        prefHeightProperty().bind(parent.heightProperty());
+        prefWidthProperty().bind(parent.widthProperty());
+
     }
 
     public final void setImage(@Nullable Image image) {
@@ -105,24 +106,28 @@ public class ZoomDragPane extends BorderPane {
     }
 
 
-    public void setImage(MediaFile mediaFile) {
-        zoomLevel = 0;
-        view.setImage(null);
-        view.setRotate(0);
-        view.requestFocus();
-        if (mediaFile != null) {
-            var image = new Image(mediaFile.getFullPath().toUri().toString(), MediaLoader.PRIMARY_SCREEN_WIDTH, 0, true, true, true);
-            maskerPane.start(image.progressProperty());
-            view.setImage(image);
-            imageWidth = image.getWidth();
-            imageHeight = image.getHeight();
-            view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
-        } else {
-            view.setViewport(null);
-            imageHeight = getPrefHeight();
-            imageWidth = getPrefWidth();
-            maskerPane.getProgressProperty().unbind();
-        }
+//    public void setImage(MediaFile mediaFile) {
+//        zoomLevel = 0;
+//        view.setImage(null);
+//        view.setRotate(0);
+//        view.requestFocus();
+//        view.setOpacity(0);
+//        if (mediaFile != null) {
+//            mediaLoader.getOrLoadImage(mediaFile, maskerPane, this::imageLoaded);
+//        } else {
+//            view.setViewport(null);
+//            imageHeight = getPrefHeight();
+//            imageWidth = getPrefWidth();
+//            maskerPane.getProgressProperty().unbind();
+//        }
+//    }
+
+    private void imageLoaded(Image i) {
+        view.setImage(i);
+        imageWidth = i.getWidth();
+        imageHeight = i.getHeight();
+        view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
+
     }
 
 //    public final void loadImage(MediaFile mediaFile) {

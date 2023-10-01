@@ -51,7 +51,7 @@ public class PersistenceService {
                                                                          .map(colMapper::map)
                                                                          .peek(c -> mcCache.put(c.id(), c))
                                                                          .toList();
-            taskService.sendEvent(new CollectionsLoadedEvent(mediaCollections, this));
+            taskService.sendEvent(CollectionsLoadedEvent.builder().mediaCollections(mediaCollections).source(this).build());
         }
     }
 
@@ -175,7 +175,10 @@ public class PersistenceService {
     }
 
     @Transactional
-    public synchronized void updateCollection(int id, Collection<MediaFile> toBeAdded, Collection<MediaFile> toBeDeleted, boolean sendRefreshEvent) {
+    public synchronized void updateCollection(int id,
+                                              Collection<MediaFile> toBeAdded,
+                                              Collection<MediaFile> toBeDeleted,
+                                              boolean sendRefreshEvent) {
         var mc         = getMediaCollection(id);
         var mediaFiles = mc.medias();
 
@@ -200,7 +203,12 @@ public class PersistenceService {
 //                               .filter(toBeDeleted::contains)
 //                               .toList();
         if (sendRefreshEvent) {
-            taskService.sendEvent(new CollectionUpdatedEvent(mc.id(), toBeAddedSaved, toBeDeleted, this));
+            taskService.sendEvent(CollectionUpdatedEvent.builder()
+                                                        .mediaCollectionId(mc.id())
+                                                        .newItems(toBeAddedSaved)
+                                                        .deletedItems(toBeDeleted)
+                                                        .source(this)
+                                                        .build());
         }
 
     }
