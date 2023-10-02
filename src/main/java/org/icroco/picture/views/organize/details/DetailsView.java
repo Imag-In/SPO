@@ -9,6 +9,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -22,12 +23,12 @@ import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
 import org.icroco.picture.views.util.Styles;
-import org.jooq.lambda.Unchecked;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Objects;
@@ -36,16 +37,16 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Component
 public class DetailsView implements FxView<VBox> {
-    public static final String FILE_NOT_FOUND         = "File Not Found";
-    public static final String IMAGE_METADATA_DETAILS = "imageMetadataDetails";
+    public static final String             FILE_NOT_FOUND         = "File Not Found";
+    public static final String             IMAGE_METADATA_DETAILS = "imageMetadataDetails";
     //    private final PersistenceService    persistenceService;
 //    private final TaskService           taskService;
 //    private final PersistenceService    service;
 //    private final UserPreferenceService pref;
-//    private final IMetadataExtractor    metadataExtractor;
+    private final       IMetadataExtractor metadataExtractor;
 
     private final MediaLoader mediaLoader;
-    private       MaskerPane  maskerPane = new MaskerPane();
+    private       MaskerPane<GridPane> maskerPane = new MaskerPane<>(true);
     private       VBox        root       = new VBox();
 
     private final Label   name          = createLabel();
@@ -60,6 +61,7 @@ public class DetailsView implements FxView<VBox> {
     private       TabPane tabs;
     DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
+    private       Path                  path        = null;
 
     @PostConstruct
     private void postConstruct() {
@@ -87,25 +89,30 @@ public class DetailsView implements FxView<VBox> {
     private void selectTab(Tab newValue) {
         if (newValue.getId().equals(IMAGE_METADATA_DETAILS)) {
             maskerPane.start();
-            // TODO:
-            Thread.ofVirtual().start(() -> {
-                Unchecked.runnable(() -> {
-                    Thread.sleep(2000);
-                    maskerPane.stop();
-                }).run();
-            });
+            var      data = metadataExtractor.getAllInformation(path);
+            GridPane gp   = maskerPane.getContent();
+            gp.getChildren().clear();
+            int rowIdx = 0;
+
+            for (var d : data.entrySet().stream().sorted((o1, o2) -> o1.getKey().compareToIgnoreCase(o2.getKey())).toList()) {
+                gp.add(createLabel(d.getKey(), 50, 150), 0, rowIdx);
+                gp.add(createTextField(Objects.toString(d.getValue()), 100, 150), 1, rowIdx);
+                rowIdx++;
+            }
+            maskerPane.stop();
         }
     }
 
     private Node createFullDetails() {
         GridPane grid = new GridPane();
-        grid.setAlignment(Pos.TOP_RIGHT);
+        grid.setAlignment(Pos.TOP_LEFT);
+        grid.setPadding(new Insets(0, 10, 0, 10));
 
-        return maskerPane;
+        maskerPane.setContent(grid);
+        return maskerPane.getRootContent();
     }
 
     private GridPane createInfo() {
-
         GridPane grid = new GridPane();
         grid.setPadding(new Insets(0, 10, 0, 10));
         grid.add(FontIcon.of(FontAwesomeRegular.FILE), 0, 0);
@@ -144,8 +151,8 @@ public class DetailsView implements FxView<VBox> {
         return createLabel(150, 200);
     }
 
-    static Label createLabel(int minWidth, int prefWidth) {
-        Label l = new Label();
+    static Label createLabel(String text, int minWidth, int prefWidth) {
+        Label l = new Label(text);
         if (minWidth > 0) {
             l.setMinWidth(minWidth);
         }
@@ -154,6 +161,23 @@ public class DetailsView implements FxView<VBox> {
         }
 
         return l;
+    }
+
+    static TextField createTextField(String text, int minWidth, int prefWidth) {
+        TextField l = new TextField(text);
+        l.setEditable(false);
+        if (minWidth > 0) {
+            l.setMinWidth(minWidth);
+        }
+        if (prefWidth > 0) {
+            l.setPrefWidth(prefWidth);
+        }
+
+        return l;
+    }
+
+    static Label createLabel(int minWidth, int prefWidth) {
+        return createLabel(null, minWidth, prefWidth);
     }
 
     @FxEventListener
@@ -175,6 +199,8 @@ public class DetailsView implements FxView<VBox> {
             }
             size.setText(Objects.toString(mf.getDimension()));
             root.setVisible(true);
+            orientation.setText(String.valueOf(mf.getOrientation()));
+            path = mf.getFullPath();
         } else {
             root.setVisible(false);
             thumbnailType.setText(EThumbnailType.ABSENT.toString());
@@ -182,6 +208,7 @@ public class DetailsView implements FxView<VBox> {
             size.setText("");
             gps.setText("");
             orientation.setText("");
+            maskerPane.getContent().getChildren().clear();
         }
     }
 

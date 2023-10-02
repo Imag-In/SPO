@@ -14,19 +14,21 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.model.ERotation;
+import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
 import org.springframework.lang.Nullable;
 
 @Slf4j
 public class ZoomDragPane extends BorderPane {
-    private static final double HALF          = 0.5d;
+    private static final double               HALF          = 0.5d;
     /**
      * This is the number of Zoom-In operations required to
      * <b><i>almost exactly</i></b>
      * halve the size of the Viewport.
      */
-    private static final int    ZOOM_N        = 9; // TODO try.: 1 <= ZOOM_N <= 20"-ish"
+    private static final int                  ZOOM_N        = 9; // TODO try.: 1 <= ZOOM_N <= 20"-ish"
     /**
      * This factor guarantees that after
      * {@link  #ZOOM_N}
@@ -35,9 +37,9 @@ public class ZoomDragPane extends BorderPane {
      * (HALF was chosen to - perhaps? - avoid excessive Image degradation when zooming)<br>
      * For ZOOM_N = 9 the factor value is approximately 93%
      */
-    private static final double ZOOM_IN_SCALE = Math.pow(HALF, 1.0d / ZOOM_N);
-    private static final double MIN_PX        = 10;
-    private static final javafx.util.Duration DURATION = javafx.util.Duration.millis(500);
+    private static final double               ZOOM_IN_SCALE = Math.pow(HALF, 1.0d / ZOOM_N);
+    private static final double               MIN_PX        = 10;
+    private static final javafx.util.Duration DURATION      = javafx.util.Duration.millis(500);
 
     private final MediaLoader mediaLoader;
     private       int         zoomLevel = 0;
@@ -48,7 +50,7 @@ public class ZoomDragPane extends BorderPane {
     private final double      rotation90scale;
 
     @Getter
-    private final MaskerPane maskerPane = new MaskerPane();
+    private final MaskerPane<ImageView> maskerPane = new MaskerPane<>(false);
 
     public ZoomDragPane(MediaLoader mediaLoader) {
         this.mediaLoader = mediaLoader;
@@ -59,10 +61,10 @@ public class ZoomDragPane extends BorderPane {
         view.setSmooth(true);
         view.setCache(true);
         view.setPickOnBounds(true);
-        maskerPane.getChildren().addLast(view);
+        maskerPane.setContent(view);
 
-        setCenter(maskerPane);
-        setImage(null);
+        setCenter(maskerPane.getRootContent());
+        setImage(null, null);
 
         /*
          * Unless its square, the Image must be scaled when rotated through 90 (or 270) degrees...
@@ -91,10 +93,12 @@ public class ZoomDragPane extends BorderPane {
 
     }
 
-    public final void setImage(@Nullable Image image) {
+    public final void setImage(MediaFile mediaFile, @Nullable Image image) {
         zoomLevel = 0;
+        view.setRotate(0);
         if (image != null) {
             view.setImage(image);
+            rotate(mediaFile.orientation());
             imageWidth = image.getWidth();
             imageHeight = image.getHeight();
             view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
@@ -105,45 +109,31 @@ public class ZoomDragPane extends BorderPane {
         }
     }
 
-
-//    public void setImage(MediaFile mediaFile) {
-//        zoomLevel = 0;
-//        view.setImage(null);
-//        view.setRotate(0);
-//        view.requestFocus();
-//        view.setOpacity(0);
-//        if (mediaFile != null) {
-//            mediaLoader.getOrLoadImage(mediaFile, maskerPane, this::imageLoaded);
-//        } else {
-//            view.setViewport(null);
-//            imageHeight = getPrefHeight();
-//            imageWidth = getPrefWidth();
-//            maskerPane.getProgressProperty().unbind();
-//        }
-//    }
-
-    private void imageLoaded(Image i) {
-        view.setImage(i);
-        imageWidth = i.getWidth();
-        imageHeight = i.getHeight();
-        view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
-
+    private void rotate(short orientation) {
+        ERotation[] rotates = ERotation.fromOrientation(orientation);
+        for (ERotation r : rotates) {
+            switch (r) {
+                case CW_90 -> {
+                    view.setRotate(90);
+                    log.info("CW_90");
+                }
+                case CW_180 -> {
+                    view.setRotate(180);
+                    log.info("CW_180");
+                }
+                case CW_270 -> {
+                    view.setRotate(270);
+                    log.info("CW_270");
+                }
+                default -> log.info("Not Supported: {}", r);
+//                case FLIP_HORZ -> view.(270);
+//                case FLIP_VERT -> view.setRotate(270);
+            }
+//            Translate flipTranslation = new Translate(0,imageView.getImage().getHeight());
+//            Rotate flipRotation = new Rotate(180,Rotate.X_AXIS);
+//            imageView.getTransforms().addAll(flipTranslation,flipRotation);
+        }
     }
-
-//    public final void loadImage(MediaFile mediaFile) {
-//        zoomLevel = 0;
-//        if (image != null) {
-//            view.setImage(image);
-//            imageWidth = image.getWidth();
-//            imageHeight = image.getHeight();
-//            view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
-//        } else {
-//            view.setViewport(null);
-//            imageHeight = getPrefHeight();
-//            imageWidth = getPrefWidth();
-//        }
-//    }
-
 
     /**
      * Drag the Viewport as the Mouse is moved.

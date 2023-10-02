@@ -6,21 +6,35 @@ import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class MaskerPane extends StackPane {
-    private final RingProgressIndicator ring = new RingProgressIndicator(0, false);
+public class MaskerPane<T extends Node> {
+    private final RingProgressIndicator ring        = new RingProgressIndicator(0, false);
     private final Pane                  progressPane;
+    @Getter
+    private final StackPane             rootContent = new StackPane();
+    @Getter
+    private       T                     content;
+    private final boolean               wrapSp;
 
-    public MaskerPane() {
+    public MaskerPane(boolean wrapIntoScrollPane) {
         progressPane = createMasker();
-        getChildren().add(progressPane);
+        rootContent.getChildren().add(progressPane);
+        wrapSp = wrapIntoScrollPane;
+    }
+
+    public void setContent(T content) {
+        this.content = content;
+        rootContent.getChildren().addLast(wrapSp ? new ScrollPane(content) : content);
     }
 
     public void start(ReadOnlyDoubleProperty doubleProperty) {
+        content.setOpacity(0);
         ring.progressProperty().unbind();
         ring.setProgress(-1D);
         ring.progressProperty().bind(doubleProperty);
@@ -29,17 +43,17 @@ public class MaskerPane extends StackPane {
 
     public void start() {
         progressPane.setVisible(true);
-        getChildren().getLast().setOpacity(0);
+        content.setOpacity(0);
         if (!ring.progressProperty().isBound()) {
             ring.setProgress(-1D);
         }
     }
 
     public void stop() {
-        progressPane.setVisible(false);
         ring.progressProperty().unbind();
         ring.setProgress(1);
-        var t = Animations.fadeIn(getChildren().getLast(), Duration.millis(500));
+        progressPane.setVisible(false);
+        var t = Animations.fadeIn(content, Duration.millis(1000));
         t.playFromStart();
     }
 
@@ -84,4 +98,6 @@ public class MaskerPane extends StackPane {
         return ring;
 
     }
+
+
 }

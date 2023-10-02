@@ -4,11 +4,13 @@ import com.drew.imaging.ImageMetadataReader;
 import com.drew.lang.GeoLocation;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
+import com.drew.metadata.Tag;
 import com.drew.metadata.exif.ExifDirectoryBase;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
 import org.icroco.picture.model.Dimension;
+import org.icroco.picture.views.util.Collections;
 import org.jooq.lambda.Unchecked;
 import org.slf4j.Logger;
 
@@ -17,11 +19,13 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -30,8 +34,26 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     public static final  LocalDateTime EPOCH_0 = Instant.ofEpochMilli(0).atZone(ZoneId.systemDefault()).toLocalDateTime();
     private static final Logger        log     = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
 
-    private static final Supplier<Integer> DEFAULT_ORIENTATION = () -> 1;
+    private static final Supplier<Integer> DEFAULT_ORIENTATION = () -> 0;
 
+
+    @Override
+    public Map<String, Object> getAllInformation(Path path) {
+        try {
+            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+
+            return Collections.toStream(metadata.getDirectories())
+                              .flatMap(d -> d.getTags().stream())
+                              .collect(Collectors.toMap(Tag::getTagName, Tag::getDescription, (o, o2) -> {
+                                  log.warn("Duplicat Metadata values: {} <-> {}", o, o2);
+                                  return o2;
+                              }));
+        } catch (Exception e) {
+            log.error("Cannot read metadata for: {}", path, e);
+        }
+
+        return java.util.Collections.emptyMap();
+    }
 
     @Override
     public Optional<Integer> orientation(InputStream input) {
@@ -40,9 +62,11 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             return extractTag(metadata,
                               ExifIFD0Directory.class,
                               ExifIFD0Directory.TAG_ORIENTATION,
-                              d -> getTagAsInt(Optional.of(d), ExifDirectoryBase.TAG_ORIENTATION, () -> 1, t -> log.warn("Cannot read orientation")));
-        }
-        catch (Throwable ex) {
+                              d -> getTagAsInt(Optional.of(d),
+                                               ExifDirectoryBase.TAG_ORIENTATION,
+                                               DEFAULT_ORIENTATION,
+                                               t -> log.warn("Cannot read orientation")));
+        } catch (Throwable ex) {
             log.warn("Cannot read orientation, message: {}", ex.getLocalizedMessage());
         }
         return Optional.empty();
@@ -65,16 +89,17 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 //            }
             var edb = Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
             return Optional.of(MetadataHeader.builder()
-                                       .orginalDate(originalDateTime(path, metadata).orElse(EPOCH_0))
-                                       .orientation(extractOrientation(path, Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class))))
+                                             .orginalDate(originalDateTime(path, metadata).orElse(EPOCH_0))
+                                             .orientation(extractOrientation(path,
+                                                                             Optional.ofNullable(metadata.getFirstDirectoryOfType(
+                                                                                     ExifIFD0Directory.class))))
                                              .geoLocation(gps(path,
                                                               metadata).map(gl -> new org.icroco.picture.model.GeoLocation(gl.getLatitude(),
                                                                                                                            gl.getLongitude()))
                                                                        .orElse(NO_WHERE))
-                                       .size(extractSize(path, edb))
-                                       .build());
-        }
-        catch (Throwable ex) {
+                                             .size(extractSize(path, edb))
+                                             .build());
+        } catch (Throwable ex) {
             log.warn("Cannot read header for Path: {}, message: {}", path, ex.getLocalizedMessage());
             return Optional.empty();
         }

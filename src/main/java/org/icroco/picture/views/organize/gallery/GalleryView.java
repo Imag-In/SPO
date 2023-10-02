@@ -68,13 +68,12 @@ public class GalleryView implements FxView<StackPane> {
     private final ZoomDragPane          photo;
     private final PersistenceService    persistenceService;
 
-    private final StackPane         root           = new StackPane();
-    private final BorderPane        gallery        = new BorderPane();
-    private final BorderPane        carousel       = new BorderPane();
-    private final Slider            zoomThumbnails = createTickSlider();
+    private final StackPane                             root           = new StackPane();
+    private final BorderPane                            gallery        = new BorderPane();
+    private final BorderPane                            carousel       = new BorderPane();
+    private final Slider                                zoomThumbnails = createTickSlider();
     //    private final BreadCrumbBar<Path>       breadCrumbBar  = new BreadCrumbBar<>();
-    private final Breadcrumbs<Path> breadCrumbBar  = new Breadcrumbs<>();
-
+    private final Breadcrumbs<Path>                     breadCrumbBar  = new Breadcrumbs<>();
     private       CustomGridView<MediaFile>             gridView;
     //    private       ZoomDragPane                          photo;
     //    @FXML
@@ -89,6 +88,7 @@ public class GalleryView implements FxView<StackPane> {
     private       double                                gridCellHeight;
     private       double                                zoomLevel      = 0;
     private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
+    private       EGalleryClickState                    clickState     = EGalleryClickState.GALLERY;
 
     @PostConstruct
     protected void postConstruct() {
@@ -282,8 +282,7 @@ public class GalleryView implements FxView<StackPane> {
                  gridView.getItemsInRow(),
                  gridView.getCellWidth(),
                  width);
-        gridCellHeight = width;
-        gridCellWidth = width;
+        gridCellHeight = gridCellWidth = width;
         gridView.setCellHeight(width);
         gridView.setCellWidth(width);
         gridView.requestFocus();
@@ -334,8 +333,6 @@ public class GalleryView implements FxView<StackPane> {
         gridView.getSelectionModel().clear();
         escapePressed(null);
         pref.getUserPreference().setLastViewed(event.getCollectionId(), event.getEntry());
-//        gridView.getFirstCellVisible().ifPresent(mediaFile -> gridView.getSelectionModel().add(mediaFile));
-//        taskService.sendEvent(CarouselEvent.builder().source(this).mediaFile(null).eventType(CarouselEvent.EventType.HIDE).build());
     }
 
     private MediaCollection getCurrentCatalog() {
@@ -379,7 +376,7 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void imageLoaded(ImageLoadedEvent event) {
-        photo.setImage(event.getImage());
+        photo.setImage(event.getMediaFile(), event.getImage());
         photo.getMaskerPane().stop();
     }
 
@@ -484,10 +481,6 @@ public class GalleryView implements FxView<StackPane> {
                 l.getGraphic().setId("fas-expand-alt");
             }
             expandCell.set(!expandCell.getValue());
-//            log.info("expand");
-//            FontIcon fi = new FontIcon("fas-expand-alt");
-//            fi.setId("fas-expand-alt");
-//            expand.setGraphic(fi);
         }
     }
 
@@ -498,33 +491,19 @@ public class GalleryView implements FxView<StackPane> {
         switch (event.getEventType()) {
             case SHOW -> {
                 gallery.setVisible(false);
+                photo.setImage(null, null);
                 carousel.setVisible(true);
-//                photo.setImage(mediaLoader.loadImage(event.getMediaFile()));
                 mediaLoader.getOrLoadImage(event.getMediaFile());
-//                MultipleSelectionModel<MediaFile> selectionModel = carouselIcons.getSelectionModel();
-//                selectionModel.select(event.getMediaFile());
-//                var idx = selectionModel.getSelectedIndex();
-//                selectionModel.select(Math.max(0, idx-5));
-//                carouselIcons.scrollTo(event.getMediaFile());
             }
             case HIDE -> {
                 gallery.setVisible(true);
                 carousel.setVisible(false);
+                photo.setImage(null, null);
                 // TODO: Jump to previous item.
                 gridView.getSelectionModel().clear();
                 gridView.ensureVisible(event.getMediaFile());
-//                if (event.getMediaFile() != null) {
-//                    gridView.getSelectionModel().add(event.getMediaFile());
-//                }
-//                event.getMediaFile().setSelected(true);
             }
         }
-    }
-
-    private void carouselItemSelected(ObservableValue<? extends MediaFile> observableValue,
-                                      MediaFile oldValue,
-                                      MediaFile newValue) {
-        photo.setImage(mediaLoader.loadImage(newValue));
     }
 
     //    @FxEventListener

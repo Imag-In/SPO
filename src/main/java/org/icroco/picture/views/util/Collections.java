@@ -33,4 +33,8 @@ public class Collections {
     public static <T> Stream<T> toStream(Iterator<T> iterable) {
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterable, Spliterator.ORDERED), false);
     }
+
+    public static <T> Stream<T> toStream(Iterable<T> iterable) {
+        return toStream(iterable.iterator());
+    }
 }

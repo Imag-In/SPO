@@ -8,11 +8,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 
 public interface IMetadataExtractor {
     Logger      log      = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
     GeoLocation NO_WHERE = new GeoLocation(Double.MIN_VALUE, Double.MIN_VALUE);
+
+    Map<String, Object> getAllInformation(Path path);
 
     default Optional<Integer> orientation(Path path) {
         try (var input = new BufferedInputStream(new FileInputStream(path.toFile()))) {

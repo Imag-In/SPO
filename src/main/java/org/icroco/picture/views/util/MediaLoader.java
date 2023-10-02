@@ -185,7 +185,7 @@ public class MediaLoader {
                                                                    MediaLoader.PRIMARY_SCREEN_WIDTH,
                                                                    0,
                                                                    true,
-                                                                   true,
+                                                                   false,
                                                                    true);
                                              taskService.sendEvent(ImageLoadingdEvent.builder()
                                                                                      .mediaFile(mediaFile)

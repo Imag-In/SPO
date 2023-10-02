@@ -53,7 +53,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
     @Override
     public Thumbnail extractThumbnail(Path path) {
         try (ImageInputStream input = ImageIO.createImageInputStream(path.toFile())) {
-            int orientation = metadataExtractor.orientation(path).orElse(1);
+            int orientation = metadataExtractor.orientation(path).orElse(0);
             // Get the reader
             Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
 
