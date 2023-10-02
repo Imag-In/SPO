@@ -9,6 +9,8 @@ import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.DeleteCollectionEvent;
 import org.icroco.picture.views.task.TaskService;
@@ -24,6 +26,7 @@ public class CollectionTreeCell extends TreeCell<CollectionView.CollectionNode> 
     private static final PseudoClass GROUP = PseudoClass.getPseudoClass("group");
     private final        TaskService taskService;
 
+    @Getter(value = AccessLevel.PACKAGE)
     private final HBox  root;
     private final Label titleLabel;
     private final Node  arrowIcon;
@@ -59,6 +62,21 @@ public class CollectionTreeCell extends TreeCell<CollectionView.CollectionNode> 
         root.getChildren().setAll(titleLabel, spacer, tagLabel, flatMenuBtn);
         root.setCursor(Cursor.HAND);
         root.getStyleClass().add("container");
+
+//        root.addEventHandler(MouseEvent.ANY, event -> {
+//            if (event.getClickCount() == 2 && event.getButton().equals(MouseButton.PRIMARY)) {
+////                if (event.getEventType().equals(MouseEvent.MOUSE_CLICKED)) {
+//                log.info("Clicked: {}", event);
+//                taskService.sendEvent(CollectionSubPathSelectedEvent.builder()
+//                                                                    .collectionId(findMainCollectionNode(newValue).getValue().id())
+//                                                                    .entry(newValue.getValue().path)
+//                                                                    .source(this)
+//                                                                    .build());
+////                }
+//
+//                event.consume();
+//            }
+//        });
 //        root.setMaxWidth(ApplicationWindow.SIDEBAR_WIDTH - 10);
 
 //        root.setOnMouseClicked(e -> {

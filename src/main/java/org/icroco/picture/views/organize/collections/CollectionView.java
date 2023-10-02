@@ -11,6 +11,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -70,14 +71,13 @@ public class CollectionView implements FxView<VBox> {
     private final BooleanProperty       disablePathActions = new SimpleBooleanProperty(false);
     private final SimpleIntegerProperty catalogSizeProp    = new SimpleIntegerProperty(0);
 
-    private final VBox   root             = new VBox();
-    private final Label  catalogSize      = new Label();
+    private final VBox                     root             = new VBox();
+    private final Label                    catalogSize      = new Label();
     //    private final Accordion mediaCollections = new Accordion();
-    private final Button addCollection    = new Button();
-    private final HBox   collectionHeader = new HBox();
-
-    private final CollectionTreeItem rootTreeItem = new CollectionTreeItem(new CollectionNode(Path.of("Files"), -1));
-    private final TreeView<CollectionNode> treeView     = new TreeView<>(rootTreeItem);
+    private final Button                   addCollection    = new Button();
+    private final HBox                     collectionHeader = new HBox();
+    private final CollectionTreeItem       rootTreeItem     = new CollectionTreeItem(new CollectionNode(Path.of("Files"), -1));
+    private final TreeView<CollectionNode> treeView         = new TreeView<>(rootTreeItem);
 
     public record CollectionNode(Path path, int id) {
         public CollectionNode(Path path) {
@@ -97,7 +97,29 @@ public class CollectionView implements FxView<VBox> {
         treeView.setMinHeight(250);
         treeView.setShowRoot(false);
         treeView.setEditable(false);
-        treeView.setCellFactory(param -> new CollectionTreeCell(taskService));
+        treeView.setCellFactory(param -> {
+            var cell = new CollectionTreeCell(taskService);
+
+            cell.getRoot().addEventHandler(MouseEvent.ANY, event -> {
+                if (event.getClickCount() == 1 && event.getButton().equals(MouseButton.PRIMARY)) {
+//                if (event.getEventType().equals(MouseEvent.MOUSE_CLICKED)) {
+                    log.info("Clicked: {}", event);
+                    taskService.sendEvent(CollectionSubPathSelectedEvent.builder()
+                                                                        .collectionId(findMainCollectionNode(treeView.getSelectionModel()
+                                                                                                                     .getSelectedItem())
+                                                                                              .getValue()
+                                                                                              .id)
+                                                                        .entry(treeView.getSelectionModel().getSelectedItem().getValue()
+                                                                                       .path())
+                                                                        .source(this)
+                                                                        .build());
+//                }
+
+//                    event.consume();
+                }
+            });
+            return cell;
+        });
         treeView.getSelectionModel().selectedItemProperty().addListener(this::treeItemSelectionChanged);
         atlantafx.base.theme.Styles.toggleStyleClass(treeView, Tweaks.EDGE_TO_EDGE);
 
@@ -159,7 +181,6 @@ public class CollectionView implements FxView<VBox> {
     private void treeItemSelectionChanged(ObservableValue<? extends TreeItem<CollectionNode>> v,
                                           TreeItem<CollectionNode> oldValue,
                                           TreeItem<CollectionNode> newValue) {
-        log.info("TREE Selection: old: {}, new: {}", oldValue, newValue);
         if (newValue != null) {
             log.trace("Tree view selected: {} ", newValue.getValue());
 //            pref.getUserPreference().setLastViewed(newValue.getValue().id, newValue.getValue().path);
