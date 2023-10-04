@@ -10,6 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString
 public class GeoLocationEntity {
     static GeoLocationEntity EMPTY_GEO_LOC = new GeoLocationEntity(0D, 0D);
 

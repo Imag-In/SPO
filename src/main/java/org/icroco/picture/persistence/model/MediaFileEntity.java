@@ -47,8 +47,8 @@ public class MediaFileEntity {
     @Column(name = "last_access", columnDefinition = "DATE")
     private LocalDate lastAccess;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    private DbMediaCollection mediaCollection;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private MediaCollectionEntity mediaCollection;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "tag_id")
@@ -63,9 +63,7 @@ public class MediaFileEntity {
     @Builder.Default
     private DimensionEntity dimension = DimensionEntity.EMPTY_DIM;
 
-    @NotNull
-    @Builder.Default
-    private GeoLocationEntity geoLocation = GeoLocationEntity.EMPTY_GEO_LOC;
+    private GeoLocationEntity geoLocation;
 
     @Builder.Default
     @Column(name = "orientation")

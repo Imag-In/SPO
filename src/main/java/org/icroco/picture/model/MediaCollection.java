@@ -27,6 +27,8 @@ public record MediaCollection(int id, Path path, Set<MediaFile> medias, Set<Medi
         return "MediaCollection{" +
                "id:" + id +
                ", path:" + path +
+               ", subDir:" + subPaths.size() +
+               ", files:" + medias.size() +
                '}';
     }
 }

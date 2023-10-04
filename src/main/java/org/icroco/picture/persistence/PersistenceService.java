@@ -12,7 +12,6 @@ import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.model.mapper.MediaCollectionMapper;
 import org.icroco.picture.model.mapper.MediaFileMapper;
 import org.icroco.picture.model.mapper.ThumbnailMapper;
-import org.icroco.picture.persistence.model.MediaCollectionEntity;
 import org.icroco.picture.views.task.TaskService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
@@ -25,33 +24,39 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @SuppressWarnings("unchecked")
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class PersistenceService {
-    private final CollectionRepository  collectionRepo;
-    private final MediaFileRepository   mfRepo;
-    private final ThumbnailRepository   thumbRepo;
-    private final MediaCollectionMapper colMapper;
-    private final MediaFileMapper       mfMapper;
-    private final ThumbnailMapper       thMapper;
+    private final CollectionRepository   collectionRepo;
+    private final MediaFileRepository    mfRepo;
+    private final ThumbnailRepository    thumbRepo;
+    private final MediaCollectionMapper  colMapper;
+    private final MediaFileMapper        mfMapper;
+    private final ThumbnailMapper        thMapper;
     @Qualifier(ImagInConfiguration.CATALOG)
-    private final Cache                 mcCache;
+    private final Cache                  mcCache;
     @Qualifier(ImagInConfiguration.THUMBNAILS)
-    private final Cache                 thCache;
-    private final TaskService           taskService;
+    private final Cache                  thCache;
+    private final TaskService            taskService;
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     @EventListener(ApplicationStartedEvent.class)
     public void loadAllMediaCollection() {
-        synchronized (collectionRepo) {
+        var rLock = lock.readLock();
+        try {
+            rLock.lock();
             Collection<MediaCollection> mediaCollections = collectionRepo.findAll()
                                                                          .stream()
                                                                          .map(colMapper::map)
                                                                          .peek(c -> mcCache.put(c.id(), c))
                                                                          .toList();
             taskService.sendEvent(CollectionsLoadedEvent.builder().mediaCollections(mediaCollections).source(this).build());
+        } finally {
+            rLock.unlock();
         }
     }
 
@@ -64,6 +69,7 @@ public class PersistenceService {
     /**
      * Identical to @{link {@link #findMediaCollection(int)}} but expect a non-empty result.
      */
+    @Transactional
     public MediaCollection getMediaCollection(int id) {
         return findMediaCollection(id).orElseThrow(() -> new IllegalStateException(
                 "Technical Error: Collection not found: " + id));
@@ -87,13 +93,43 @@ public class PersistenceService {
     @Transactional
 //    @CachePut(cacheNames = ImageInConfiguration.CATALOG, key = "#mediaCollection.id")
     public MediaCollection saveCollection(@NonNull final MediaCollection mediaCollection) {
-        synchronized (collectionRepo) {
-            MediaCollectionEntity saved             = collectionRepo.saveAndFlush(colMapper.map(mediaCollection));
-            var                   updatedCollection = colMapper.map(saved);
+        var wLock = lock.writeLock();
+        try {
+            wLock.lock();
+
+            log.info("Save collection: {}", mediaCollection);
+
+            var entity            = colMapper.map(mediaCollection);
+            var entitySaved       = collectionRepo.saveAndFlush(entity);
+            var updatedCollection = colMapper.map(entitySaved);
 
             mcCache.put(updatedCollection.id(), updatedCollection);
-            log.info("Collection saved, id: '{}', path: '{}'", updatedCollection.id(), updatedCollection.path());
+            log.info("Collection entitySaved, id: '{}', path: '{}'", updatedCollection.id(), updatedCollection.path());
             return updatedCollection;
+        } finally {
+            wLock.unlock();
+        }
+    }
+
+    @Transactional
+//    @CachePut(cacheNames = ImageInConfiguration.CATALOG, key = "#mediaCollection.id")
+    public MediaFile saveMediaFile(int mediaCollectionId, MediaFile mf) {
+        var wLock = lock.writeLock();
+        try {
+            wLock.lock();
+
+            log.info("Save mediaFile: {}, collectionId: {}", mf, mediaCollectionId);
+
+            var entity = mfMapper.map(mf);
+            entity.setMediaCollection(collectionRepo.findById(mediaCollectionId).orElseThrow());
+            var entitySaved = mfRepo.saveAndFlush(entity);
+            var updatedMf   = mfMapper.map(entitySaved);
+
+            findMediaCollection(mediaCollectionId).ifPresent(mcCache -> mcCache.medias().add(updatedMf));
+            log.info("mediaFile saved, id: '{}', path: '{}'", updatedMf.id(), updatedMf.fullPath());
+            return updatedMf;
+        } finally {
+            wLock.unlock();
         }
     }
 
@@ -109,13 +145,16 @@ public class PersistenceService {
     @Transactional
 //    @CacheEvict(cacheNames = ImageInConfiguration.CATALOG)
     public void deleteMediaCollection(int mediaCollectionId) {
-        synchronized (collectionRepo) {
+        var wLock = lock.writeLock();
+        try {
+            wLock.lock();
             log.info("MediaCollection delete, id: '{}'", mediaCollectionId);
             Optional<MediaCollection> catalogById = findMediaCollection(mediaCollectionId);
             log.info("thRepo size before: {}, thCache: {}",
                      thumbRepo.findAll().size(),
                      ((com.github.benmanes.caffeine.cache.Cache<?, ?>) thCache.getNativeCache()).asMap().size());
             collectionRepo.deleteById(mediaCollectionId);
+            collectionRepo.flush();
             mcCache.evictIfPresent(mediaCollectionId);
             catalogById.ifPresent(mc -> {
 //                thumbRepo.deleteAll();
@@ -127,16 +166,8 @@ public class PersistenceService {
             log.info("thRepo size after: {}, thCache: {}",
                      thumbRepo.findAll().size(),
                      ((com.github.benmanes.caffeine.cache.Cache<?, ?>) thCache.getNativeCache()).asMap().size());
-        }
-    }
-
-    public Thumbnail saveOrUpdate(Thumbnail thumbnail) {
-        synchronized (thumbRepo) {
-            var dbThumbnail = thMapper.map(thumbnail);
-
-            thumbRepo.save(dbThumbnail);
-
-            return thumbnail;
+        } finally {
+            wLock.unlock();
         }
     }
 

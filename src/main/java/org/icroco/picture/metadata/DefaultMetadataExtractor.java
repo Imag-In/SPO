@@ -45,7 +45,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             return Collections.toStream(metadata.getDirectories())
                               .flatMap(d -> d.getTags().stream())
                               .collect(Collectors.toMap(Tag::getTagName, Tag::getDescription, (o, o2) -> {
-                                  log.warn("Duplicat Metadata values: {} <-> {}", o, o2);
+                                  log.warn("File: '{}', Duplicate metadata values: {} <-> {}", path, o, o2);
                                   return o2;
                               }));
         } catch (Exception e) {
