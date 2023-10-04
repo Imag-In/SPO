@@ -42,11 +42,11 @@ public class PersistenceService {
     @Qualifier(ImagInConfiguration.THUMBNAILS)
     private final Cache                  thCache;
     private final TaskService            taskService;
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock mcLock = new ReentrantReadWriteLock();
 
     @EventListener(ApplicationStartedEvent.class)
     public void loadAllMediaCollection() {
-        var rLock = lock.readLock();
+        var rLock = mcLock.readLock();
         try {
             rLock.lock();
             Collection<MediaCollection> mediaCollections = collectionRepo.findAll()
@@ -93,7 +93,7 @@ public class PersistenceService {
     @Transactional
 //    @CachePut(cacheNames = ImageInConfiguration.CATALOG, key = "#mediaCollection.id")
     public MediaCollection saveCollection(@NonNull final MediaCollection mediaCollection) {
-        var wLock = lock.writeLock();
+        var wLock = mcLock.writeLock();
         try {
             wLock.lock();
 
@@ -114,18 +114,21 @@ public class PersistenceService {
     @Transactional
 //    @CachePut(cacheNames = ImageInConfiguration.CATALOG, key = "#mediaCollection.id")
     public MediaFile saveMediaFile(int mediaCollectionId, MediaFile mf) {
-        var wLock = lock.writeLock();
+        var wLock = mcLock.writeLock();
         try {
             wLock.lock();
 
             log.info("Save mediaFile: {}, collectionId: {}", mf, mediaCollectionId);
 
-            var entity = mfMapper.map(mf);
-            entity.setMediaCollection(collectionRepo.findById(mediaCollectionId).orElseThrow());
+            var entity = mfMapper.mapToEntity(mf);
+            entity.setCollectionId(mediaCollectionId);
             var entitySaved = mfRepo.saveAndFlush(entity);
-            var updatedMf   = mfMapper.map(entitySaved);
+            var updatedMf   = mfMapper.mapToDomain(entitySaved);
 
-            findMediaCollection(mediaCollectionId).ifPresent(mcCache -> mcCache.medias().add(updatedMf));
+            findMediaCollection(mediaCollectionId).ifPresent(mcCache -> {
+                mcCache.medias().remove(updatedMf);
+                mcCache.medias().add(updatedMf);
+            });
             log.info("mediaFile saved, id: '{}', path: '{}'", updatedMf.id(), updatedMf.fullPath());
             return updatedMf;
         } finally {
@@ -135,17 +138,13 @@ public class PersistenceService {
 
     @Transactional
     public void saveMediaFiles(Collection<MediaFile> files) {
-        mfRepo.saveAll(files.stream().map(mfMapper::map).toList());
-    }
-
-    public void deleteMediaCollection(@NonNull MediaCollection mediaCollection) {
-        deleteMediaCollection(mediaCollection.id());
+        mfRepo.saveAll(files.stream().map(mfMapper::mapToEntity).toList());
     }
 
     @Transactional
 //    @CacheEvict(cacheNames = ImageInConfiguration.CATALOG)
     public void deleteMediaCollection(int mediaCollectionId) {
-        var wLock = lock.writeLock();
+        var wLock = mcLock.writeLock();
         try {
             wLock.lock();
             log.info("MediaCollection delete, id: '{}'", mediaCollectionId);
@@ -182,10 +181,10 @@ public class PersistenceService {
 
     public List<MediaFile> saveAllMediaFiles(Collection<MediaFile> mediaFiles) {
         return mfRepo.saveAllAndFlush(mediaFiles.stream()
-                                                .map(mfMapper::map)
+                                                .map(mfMapper::mapToEntity)
                                                 .toList())
                      .stream()
-                     .map(mfMapper::map)
+                     .map(mfMapper::mapToDomain)
                      .toList();
     }
 
@@ -205,27 +204,73 @@ public class PersistenceService {
                         .map(thMapper::map);
     }
 
+//    @Transactional
+//    public synchronized void updateCollection(int id,
+//                                              Collection<MediaFile> toBeAdded,
+//                                              Collection<MediaFile> toBeDeleted,
+//                                              boolean sendRefreshEvent) {
+//        var wLock = mcLock.writeLock();
+//        try {
+//            wLock.lock();
+//            var mc         = getMediaCollection(id);
+//            var mediaFiles = mc.medias();
+//
+//            mediaFiles.removeIf(toBeDeleted::contains);
+//            var newRaws = toBeAdded.stream()
+//                                   .map(mfMapper::map)
+////                               .peek(dbMf -> dbMf.setMediaCollection(collectionRepo.getReferenceById(id)))
+//                                   .toList();
+//
+//            newRaws = mfRepo.saveAllAndFlush(newRaws);
+//            List<MediaFile> toBeAddedSaved = newRaws.stream().map(mfMapper::map).toList();
+//            mediaFiles.removeAll(toBeAdded);
+//            mediaFiles.addAll(toBeAddedSaved);
+//            // just to delete values
+//            mc = saveCollection(mc);
+//            mcCache.put(mc.id(), mc);
+//
+////            var newUpdated = mc.medias().stream()
+////                               .filter(toBeAdded::contains)
+////                               .toList();
+////            var delUpdated = mc.medias().stream()
+////                               .filter(toBeDeleted::contains)
+////                               .toList();
+//            if (sendRefreshEvent) {
+//                taskService.sendEvent(CollectionUpdatedEvent.builder()
+//                                                            .mediaCollectionId(mc.id())
+//                                                            .newItems(toBeAddedSaved)
+//                                                            .deletedItems(toBeDeleted)
+//                                                            .source(this)
+//                                                            .build());
+//            }
+//        } finally {
+//            wLock.unlock();
+//        }
+//    }
+
     @Transactional
     public synchronized void updateCollection(int id,
                                               Collection<MediaFile> toBeAdded,
                                               Collection<MediaFile> toBeDeleted,
                                               boolean sendRefreshEvent) {
-        var mc         = getMediaCollection(id);
-        var mediaFiles = mc.medias();
+        var wLock = mcLock.writeLock();
+        try {
+            wLock.lock();
+            final var mc         = getMediaCollection(id);
+            final var mediaFiles = mc.medias();
 
-        mediaFiles.removeIf(toBeDeleted::contains);
-        var newRaws = toBeAdded.stream()
-                               .map(mfMapper::map)
-//                               .peek(dbMf -> dbMf.setMediaCollection(collectionRepo.getReferenceById(id)))
-                               .toList();
+            mfRepo.deleteAllById(toBeDeleted.stream().map(MediaFile::getId).toList());
+            mediaFiles.removeIf(toBeDeleted::contains);
 
-        newRaws = mfRepo.saveAllAndFlush(newRaws);
-        List<MediaFile> toBeAddedSaved = newRaws.stream().map(mfMapper::map).toList();
-        mediaFiles.removeAll(toBeAdded);
-        mediaFiles.addAll(toBeAddedSaved);
-        // just to delete values
-        mc = saveCollection(mc);
-        mcCache.put(mc.id(), mc);
+            var mfEntities = toBeAdded.stream()
+                                      .map(mfMapper::mapToEntity)
+                                      .peek(dbMf -> dbMf.setCollectionId(mc.id()))
+                                      .toList();
+
+            mfEntities = mfRepo.saveAllAndFlush(mfEntities);
+            mediaFiles.removeAll(toBeAdded);
+            var toBeAddedSaved = mfEntities.stream().map(mfMapper::mapToDomain).toList();
+            mediaFiles.addAll(toBeAddedSaved);
 
 //            var newUpdated = mc.medias().stream()
 //                               .filter(toBeAdded::contains)
@@ -233,15 +278,17 @@ public class PersistenceService {
 //            var delUpdated = mc.medias().stream()
 //                               .filter(toBeDeleted::contains)
 //                               .toList();
-        if (sendRefreshEvent) {
-            taskService.sendEvent(CollectionUpdatedEvent.builder()
-                                                        .mediaCollectionId(mc.id())
-                                                        .newItems(toBeAddedSaved)
-                                                        .deletedItems(toBeDeleted)
-                                                        .source(this)
-                                                        .build());
+            if (sendRefreshEvent) {
+                taskService.sendEvent(CollectionUpdatedEvent.builder()
+                                                            .mediaCollectionId(mc.id())
+                                                            .newItems(toBeAddedSaved)
+                                                            .deletedItems(toBeDeleted)
+                                                            .source(this)
+                                                            .build());
+            }
+        } finally {
+            wLock.unlock();
         }
-
     }
 
 //    public List<Thumbnail> saveAll(List<Thumbnail> values) {
