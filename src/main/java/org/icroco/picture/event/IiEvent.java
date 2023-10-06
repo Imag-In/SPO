@@ -10,11 +10,11 @@ import java.time.Clock;
 public class IiEvent extends ApplicationEvent {
     @Builder
     public IiEvent(Object source, Clock clock) {
-        super(source, clock);
+        super(source, clock == null ? Clock.systemDefaultZone() : clock);
     }
 
     protected IiEvent(IiEventBuilder<?, ?> b) {
-        super(b);
+        this(b.source, b.clock);
     }
 
     public static IiEventBuilder<?, ?> builder() {

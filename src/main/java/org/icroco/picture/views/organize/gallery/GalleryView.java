@@ -126,10 +126,15 @@ public class GalleryView implements FxView<StackPane> {
 //        carouselIcons.prefHeightProperty().bind(gridView.cellHeightProperty().add(20));
 
 //        photo = new ZoomDragPane(photoContainer);
-        photo.setOnMouseClicked(this::onImageClick);
+//        photoContainer.setOnMouseClicked(this::onImageClick);
+//        photoContainer.addEventFilter(MouseEvent.MOUSE_CLICKED, e -> log.info("" + e.getSource() + " mouse clicked filter"));
+//        photoContainer.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> log.info("" + e.getSource() + " mouse clicked handler"));
+//
+//        photoContainer.addEventFilter(DoubleClickEventDispatcher.CustomMouseEvent.MOUSE_DOUBLE_CLICKED, e -> log.info("" + e.getSource() + " mouse double clicked filter"));
+        photoContainer.addEventHandler(DoubleClickEventDispatcher.CustomMouseEvent.MOUSE_DOUBLE_CLICKED, this::onImageClick);
 //        photo.setFocusTraversable(true);
         photoContainer.getChildren().add(photo);
-        photo.getView().setFocusTraversable(true);
+
 
         carousel.setCenter(photoContainer);
 //        carousel.setBottom(carouselIcons);
@@ -196,6 +201,7 @@ public class GalleryView implements FxView<StackPane> {
         expand.setGraphic(icon);
         expand.setOnMouseClicked(this::expandGridCell);
 
+
 //        zoomThumbnails.getStyleClass().add(Styles.SMALL);
         zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
         zoomThumbnails.valueProperty()
@@ -242,7 +248,7 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void onImageClick(MouseEvent event) {
-        log.info("CLICK: {}", event);
+        log.info("CLICK: {}", event.getEventType());
         if (event.getClickCount() == 2 && event.getButton() == MouseButton.PRIMARY) {
             photo.requestFocus();
             if (photo.isZoomed()) {
@@ -371,6 +377,7 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void imageLoading(ImageLoadingdEvent event) {
+//        photo.setImage(null, null);
         photo.getMaskerPane().start(event.getProgress());
     }
 
@@ -500,8 +507,8 @@ public class GalleryView implements FxView<StackPane> {
                 carousel.setVisible(false);
                 photo.setImage(null, null);
                 // TODO: Jump to previous item.
-                gridView.getSelectionModel().clear();
-                gridView.ensureVisible(event.getMediaFile());
+//                gridView.getSelectionModel().clear();
+//                gridView.ensureVisible(event.getMediaFile());
             }
         }
     }

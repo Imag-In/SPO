@@ -75,7 +75,7 @@ public class MediaLoader {
                                                                                      thCache.put(mf, t);
                                                                                      return t;
                                                                                  })
-                                                                                 .get());
+                                                                                 .orElseThrow());
     }
 
     public Optional<Thumbnail> getCachedValue(MediaFile mf) {
@@ -170,7 +170,8 @@ public class MediaLoader {
     }
 
     public void getOrLoadImage(final MediaFile mediaFile) {
-
+        record FutureImage(Image image, CompletableFuture<?> future) {
+        }
         getCachedImage(mediaFile)
                 .ifPresentOrElse(image -> taskService.sendEvent(ImageLoadedEvent.builder()
                                                                                 .mediaFile(mediaFile)
@@ -178,31 +179,36 @@ public class MediaLoader {
                                                                                 .source(MediaLoader.this)
                                                                                 .build()),
                                  () -> {
-                                     taskService.supply(new AbstractTask<Image>() {
+                                     taskService.supply(new AbstractTask<FutureImage>() {
                                          @Override
-                                         protected Image call() throws Exception {
+                                         protected FutureImage call() throws Exception {
                                              var image = new Image(mediaFile.getFullPath().toUri().toString(),
                                                                    MediaLoader.PRIMARY_SCREEN_WIDTH,
                                                                    0,
                                                                    true,
                                                                    false,
                                                                    true);
-                                             taskService.sendEvent(ImageLoadingdEvent.builder()
-                                                                                     .mediaFile(mediaFile)
-                                                                                     .progress(image.progressProperty())
-                                                                                     .source(MediaLoader.this)
-                                                                                     .build());
+                                             var future = taskService.sendEvent(ImageLoadingdEvent.builder()
+                                                                                                  .mediaFile(mediaFile)
+                                                                                                  .progress(image.progressProperty())
+                                                                                                  .source(MediaLoader.this)
+                                                                                                  .build());
                                              imagesCache.put(mediaFile, image);
-                                             return image;
+//                                             Thread.sleep(20);
+                                             return new FutureImage(image, future);
                                          }
 
                                          @Override
                                          protected void succeeded() {
-                                             taskService.sendEvent(ImageLoadedEvent.builder()
-                                                                                   .mediaFile(mediaFile)
-                                                                                   .image(getValue())
-                                                                                   .source(MediaLoader.this)
-                                                                                   .build());
+                                             var futureImage = getValue();
+                                             // To make sure ImageLoadedEvent come after ImageLoadingdEvent.
+                                             futureImage.future
+                                                     .thenRun(() ->
+                                                                      taskService.sendEvent(ImageLoadedEvent.builder()
+                                                                                                            .mediaFile(mediaFile)
+                                                                                                            .image(futureImage.image)
+                                                                                                            .source(MediaLoader.this)
+                                                                                                            .build()));
                                          }
                                      }, false);
                                  });

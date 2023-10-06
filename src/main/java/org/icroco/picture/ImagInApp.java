@@ -14,6 +14,7 @@ import org.icroco.picture.util.Error;
 import org.icroco.picture.util.Resources;
 import org.icroco.picture.views.MainView;
 import org.icroco.picture.views.pref.UserPreferenceService;
+import org.icroco.picture.views.util.DoubleClickEventDispatcher;
 import org.icroco.picture.views.util.ImageUtils;
 import org.icroco.picture.views.util.Nodes;
 import org.scenicview.ScenicView;
@@ -167,6 +168,8 @@ public class ImagInApp extends Application {
                                  userPref.getUserPreference().getMainWindow().getWidth(),
                                  userPref.getUserPreference().getMainWindow().getHeight());
         primaryStage.setScene(scene);
+        scene.setEventDispatcher(new DoubleClickEventDispatcher(scene.getEventDispatcher()));
+
         scene.getStylesheets().addAll(Resources.resolve("/styles/index.css"));
         if (Boolean.getBoolean("SCENIC")) {
             ScenicView.show(scene);

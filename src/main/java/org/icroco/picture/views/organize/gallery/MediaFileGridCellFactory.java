@@ -5,6 +5,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Cell;
 import javafx.scene.control.IndexedCell;
 import javafx.scene.control.skin.VirtualFlow;
+import javafx.scene.input.MouseEvent;
 import javafx.util.Callback;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import org.icroco.picture.event.CarouselEvent;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.CustomGridView;
+import org.icroco.picture.views.util.DoubleClickEventDispatcher;
 import org.icroco.picture.views.util.MediaLoader;
 
 @Slf4j
@@ -29,17 +31,9 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
 
         cell.setAlignment(Pos.CENTER);
         cell.setEditable(false);
-        cell.setOnMouseClicked(t -> {
-            var mf = ((MediaFileGridCell) t.getSource()).getItem();
-            if (mf != null && t.getClickCount() == 1) {
-//                ((CustomGridView<MediaFile>) grid).getSelectionModel().clear();
-                ((CustomGridView<MediaFile>) grid).getSelectionModel().set(cell);
-                cell.requestLayout();
-            } else if (t.getClickCount() == 2) {
-                taskService.sendEvent(CarouselEvent.builder().mediaFile(mf).eventType(CarouselEvent.EventType.SHOW).source(this).build());
-            }
-            t.consume();
-        });
+        cell.setOnMouseClicked(e -> processMouseEvent((CustomGridView<MediaFile>) grid, e, cell));
+        cell.addEventHandler(DoubleClickEventDispatcher.CustomMouseEvent.MOUSE_DOUBLE_CLICKED,
+                             e -> processMouseEvent((CustomGridView<MediaFile>) grid, e, cell));
 
         cell.itemProperty().addListener((ov, oldMediaItem, newMediaItem) -> {
 //            log.info("old: {}, new: {}", oldMediaItem, newMediaItem);
@@ -56,9 +50,27 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
         return cell;
     }
 
+    private void processMouseEvent(CustomGridView<MediaFile> grid, MouseEvent t, MediaFileGridCell cell) {
+        var mf = ((MediaFileGridCell) t.getSource()).getItem();
+        if (mf != null && t.getClickCount() == 1) {
+//                ((CustomGridView<MediaFile>) grid).getSelectionModel().clear();
+            grid.getSelectionModel().set(cell);
+            cell.requestLayout();
+        } else if (t.getClickCount() == 2) {
+            taskService.sendEvent(CarouselEvent.builder()
+                                               .mediaFile(mf)
+                                               .eventType(CarouselEvent.EventType.SHOW)
+                                               .source(this)
+                                               .build());
+        }
+        t.consume();
+    }
+
     public static boolean isCellVisible(GridView<MediaFile> grid, MediaFileGridCell cell) {
-        VirtualFlow<? extends IndexedCell<MediaFile>> vf  = (VirtualFlow<? extends IndexedCell<MediaFile>>) grid.getChildrenUnmodifiable().get(0);
-        boolean                                       ret = false;
+        VirtualFlow<? extends IndexedCell<MediaFile>>
+                vf =
+                (VirtualFlow<? extends IndexedCell<MediaFile>>) grid.getChildrenUnmodifiable().get(0);
+        boolean ret = false;
         if (vf.getFirstVisibleCell() == null) {
 //            log.info("Cell: {}, visible: {}, index: {} null", cell.getItem().getFileName(), false, cell.getIndex());
             return false;

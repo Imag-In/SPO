@@ -76,11 +76,11 @@ public class TaskService {
     }
 
     /**
-     *  We do not use thread pool TaskExecutor becaise if this pool is busy we want to make sure to dispatch event.
+     * We do not use thread pool TaskExecutor because if this pool is busy we want to make sure to dispatch event.
      *
      */
-    public void sendEvent(final ApplicationEvent event) {
-        CompletableFuture.runAsync(() -> {
+    public CompletableFuture<Void> sendEvent(final ApplicationEvent event) {
+        return CompletableFuture.runAsync(() -> {
             log.info("Send Event from source: {}, event: {}", event.getSource().getClass().getSimpleName(), event);
             eventBus.multicastEvent(event);
         });

@@ -90,13 +90,13 @@ public class ZoomDragPane extends BorderPane {
         this(mediaLoader);
         prefHeightProperty().bind(parent.heightProperty());
         prefWidthProperty().bind(parent.widthProperty());
-
     }
 
     public final void setImage(MediaFile mediaFile, @Nullable Image image) {
         zoomLevel = 0;
         view.setRotate(0);
         if (image != null) {
+            view.setVisible(true);
             view.setImage(image);
             rotate(mediaFile.orientation());
             imageWidth = image.getWidth();
@@ -104,6 +104,7 @@ public class ZoomDragPane extends BorderPane {
             view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
         } else {
             view.setViewport(null);
+            view.setVisible(false);
             imageHeight = getPrefHeight();
             imageWidth = getPrefWidth();
         }
@@ -115,17 +116,14 @@ public class ZoomDragPane extends BorderPane {
             switch (r) {
                 case CW_90 -> {
                     view.setRotate(90);
-                    log.info("CW_90");
                 }
                 case CW_180 -> {
                     view.setRotate(180);
-                    log.info("CW_180");
                 }
                 case CW_270 -> {
                     view.setRotate(270);
-                    log.info("CW_270");
                 }
-                default -> log.info("Not Supported: {}", r);
+                default -> log.warn("Not Supported: {}", r);
 //                case FLIP_HORZ -> view.(270);
 //                case FLIP_VERT -> view.setRotate(270);
             }

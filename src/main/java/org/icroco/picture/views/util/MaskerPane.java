@@ -34,9 +34,7 @@ public class MaskerPane<T extends Node> {
     }
 
     public void start(ReadOnlyDoubleProperty doubleProperty) {
-        content.setOpacity(0);
         ring.progressProperty().unbind();
-        ring.setProgress(-1D);
         ring.progressProperty().bind(doubleProperty);
         start();
     }
@@ -44,17 +42,17 @@ public class MaskerPane<T extends Node> {
     public void start() {
         progressPane.setVisible(true);
         content.setOpacity(0);
-        if (!ring.progressProperty().isBound()) {
-            ring.setProgress(-1D);
-        }
+//        if (!ring.progressProperty().isBound()) {
+//            ring.setProgress(-1D);
+//        }
     }
 
     public void stop() {
         ring.progressProperty().unbind();
-        ring.setProgress(1);
-        progressPane.setVisible(false);
+//        ring.setProgress(1);
         var t = Animations.fadeIn(content, Duration.millis(1000));
         t.playFromStart();
+        t.setOnFinished(event -> ring.setProgress(0));
     }
 
     private Pane createMasker() {
