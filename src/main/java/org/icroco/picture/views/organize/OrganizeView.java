@@ -24,7 +24,6 @@ public class OrganizeView implements FxView<BorderPane> {
     @PostConstruct
     protected void initializedOnce() {
         root.getStyleClass().add("v-organize");
-
         root.setLeft(collectionView.getRootContent());
         root.setCenter(galleryView.getRootContent());
         root.setRight(detailsView.getRootContent());

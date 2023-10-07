@@ -32,17 +32,18 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class ImagInConfiguration {
 
-    public static final String THUMBNAILS      = "thumbnails";
-    public static final String IMAGE_FULL_SIZE = "imageFullSize";
+    public static final String CACHE_THUMBNAILS      = "thumbnails";
+    public static final String CACHE_IMAGE_FULL_SIZE = "imageFullSize";
+    public static final String CACHE_IMAGE_HEADER    = "imageHeader";
 
-    public static final String CATALOG           = "catalog";
+    public static final String CACHE_CATALOG = "catalog";
     public static final String DIRECTORY_WATCHER = "DirWatch";
     public static final String FX_EXECUTOR       = "FX_EXECUTOR";
     public static final String IMAG_IN_EXECUTOR  = "IMAG_IN_EXEC";
 
-    @Bean(name = THUMBNAILS)
+    @Bean(name = CACHE_THUMBNAILS)
     public CaffeineCache thumbnails() {
-        return new CaffeineCache(THUMBNAILS,
+        return new CaffeineCache(CACHE_THUMBNAILS,
                                  Caffeine.<Long, Thumbnail>newBuilder()
                                          .recordStats()
 //                                         .softValues()
@@ -56,9 +57,9 @@ public class ImagInConfiguration {
                                          .build());
     }
 
-    @Bean(name = IMAGE_FULL_SIZE)
+    @Bean(name = CACHE_IMAGE_FULL_SIZE)
     public CaffeineCache fullSize() {
-        return new CaffeineCache(IMAGE_FULL_SIZE,
+        return new CaffeineCache(CACHE_IMAGE_FULL_SIZE,
                                  Caffeine.newBuilder()
 //                                         .softValues()
                                          .recordStats()
@@ -67,12 +68,21 @@ public class ImagInConfiguration {
                                          .build());
     }
 
-    @Bean(name = CATALOG)
+    @Bean(name = CACHE_CATALOG)
     public CaffeineCache catalogCache() {
-        return new CaffeineCache(CATALOG,
+        return new CaffeineCache(CACHE_CATALOG,
                                  Caffeine.newBuilder()
 //                                         .softValues()
                                          .recordStats()
+                                         .build());
+    }
+
+    @Bean(name = CACHE_IMAGE_HEADER)
+    public CaffeineCache catalogImageHeader() {
+        return new CaffeineCache(CACHE_CATALOG,
+                                 Caffeine.newBuilder()
+                                         .recordStats()
+                                         .maximumSize(200) // TODO: Compute this at runtime, based on RAM and -Xmx.
                                          .build());
     }
 

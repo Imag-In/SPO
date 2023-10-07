@@ -37,9 +37,9 @@ public class PersistenceService {
     private final MediaCollectionMapper  colMapper;
     private final MediaFileMapper        mfMapper;
     private final ThumbnailMapper        thMapper;
-    @Qualifier(ImagInConfiguration.CATALOG)
+    @Qualifier(ImagInConfiguration.CACHE_CATALOG)
     private final Cache                  mcCache;
-    @Qualifier(ImagInConfiguration.THUMBNAILS)
+    @Qualifier(ImagInConfiguration.CACHE_THUMBNAILS)
     private final Cache                  thCache;
     private final TaskService            taskService;
     private final ReentrantReadWriteLock mcLock = new ReentrantReadWriteLock();

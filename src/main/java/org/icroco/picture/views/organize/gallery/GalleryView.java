@@ -3,6 +3,7 @@ package org.icroco.picture.views.organize.gallery;
 import atlantafx.base.controls.Breadcrumbs;
 import atlantafx.base.controls.ProgressSliderSkin;
 import atlantafx.base.controls.Spacer;
+import atlantafx.base.util.Animations;
 import jakarta.annotation.PostConstruct;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
@@ -25,6 +26,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
 import org.icroco.javafx.StageReadyEvent;
 import org.icroco.picture.event.*;
@@ -94,6 +96,7 @@ public class GalleryView implements FxView<StackPane> {
     @PostConstruct
     protected void postConstruct() {
         root.getStyleClass().add("v-gallery");
+        root.setId("gallery");
         gridView = new CustomGridView<>(taskService, FXCollections.emptyObservableList());
         gridView.addScrollAndKeyhandler();
         root.setMinSize(350, 250);
@@ -263,6 +266,7 @@ public class GalleryView implements FxView<StackPane> {
         switch (dblCickState) {
             case GALLERY -> {
                 gallery.requestFocus();
+                Animations.fadeOut(carousel, Duration.millis(1000)).playFromStart();
                 gallery.setVisible(true);
                 carousel.setVisible(false);
             }
@@ -360,8 +364,10 @@ public class GalleryView implements FxView<StackPane> {
         dblCickState = EGalleryClickState.GALLERY;
         if (newValue.equalsNoSeed(oldValue)) {
             gallery.requestFocus();
-            gallery.setVisible(true);
             carousel.setVisible(false);
+            gallery.setVisible(true);
+//            gallery.setOpacity(0);
+//             Animations.fadeIn(gallery, Duration.millis(1000)).playFromStart();
         } else {
             currentCatalog.setValue(persistenceService.getMediaCollection(newValue.mediaCollectionId()));
             resetBcbModel(newValue.subPath());

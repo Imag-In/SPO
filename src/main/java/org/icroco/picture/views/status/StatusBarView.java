@@ -39,7 +39,6 @@ public class StatusBarView implements FxView<HBox> {
     private final TaskView            taskView;
     private final TaskScheduler       scheduler;
 
-
     private final HBox        root          = new HBox();
     private final Tooltip     tooltip       = new Tooltip("");
     private final Label       progressLabel = new Label();
@@ -49,6 +48,8 @@ public class StatusBarView implements FxView<HBox> {
 
     @PostConstruct
     protected void initializedOnce() {
+        root.getStyleClass().add("v-status");
+
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(10, 10, 10, 10));
         memoryStatus = new ProgressBar(0);

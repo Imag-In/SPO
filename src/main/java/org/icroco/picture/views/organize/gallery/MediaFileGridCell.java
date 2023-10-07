@@ -1,10 +1,12 @@
 package org.icroco.picture.views.organize.gallery;
 
+import atlantafx.base.util.Animations;
 import javafx.beans.property.BooleanProperty;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridCell;
@@ -87,7 +89,12 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         } else {
             imageView.setViewport(null);
         }
-        imageView.setImage(image);
+        if (image != imageView.getImage()) {
+            imageView.setOpacity(0);
+            imageView.setImage(image);
+            Animations.fadeIn(imageView, Duration.millis(300)).playFromStart();
+        }
+
 
         return imageView;
     }

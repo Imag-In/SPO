@@ -60,8 +60,8 @@ public class MediaLoader {
 
     public MediaLoader(IThumbnailGenerator thumbnailGenerator,
                        ImageLoader imageLoader,
-                       @Qualifier(ImagInConfiguration.THUMBNAILS) Cache thCache,
-                       @Qualifier(ImagInConfiguration.IMAGE_FULL_SIZE) Cache imagesCache,
+                       @Qualifier(ImagInConfiguration.CACHE_THUMBNAILS) Cache thCache,
+                       @Qualifier(ImagInConfiguration.CACHE_IMAGE_FULL_SIZE) Cache imagesCache,
                        TaskService taskService,
                        PersistenceService persistenceService) {
         this.thumbnailGenerator = thumbnailGenerator;
@@ -147,7 +147,7 @@ public class MediaLoader {
         return thumbnail;
     }
 
-    @Cacheable(cacheNames = ImagInConfiguration.IMAGE_FULL_SIZE, unless = "#result == null")
+    @Cacheable(cacheNames = ImagInConfiguration.CACHE_IMAGE_FULL_SIZE, unless = "#result == null")
     public Image loadImage(MediaFile mediaFile) {
         if (mediaFile == null) {
             return null;

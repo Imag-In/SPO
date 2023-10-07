@@ -80,6 +80,7 @@ public class DetailsView implements FxView<VBox> {
         tabs.getStyleClass().add(atlantafx.base.theme.Styles.DENSE);
         tabs.getSelectionModel().selectFirst();
         tabs.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> selectTab(newValue));
+        tabs.setFocusTraversable(false);
 
         VBox.setVgrow(tabs, Priority.ALWAYS);
         root.getChildren().add(tabs);

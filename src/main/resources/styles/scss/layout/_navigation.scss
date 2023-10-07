@@ -28,6 +28,16 @@
       }
     }
   }
+
+  .v-navigation {
+    -fx-border-color: -color-border-default;
+    -fx-border-width: 0 0 1px 0;
+  }
+
+  .v-status {
+    -fx-border-color: -color-border-default;
+    -fx-border-width: 1px 0 0 0;
+  }
 }
 
 

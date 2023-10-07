@@ -9,10 +9,12 @@ import com.drew.metadata.exif.ExifDirectoryBase;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
+import org.icroco.picture.config.ImagInConfiguration;
 import org.icroco.picture.model.Dimension;
 import org.icroco.picture.views.util.Collections;
 import org.jooq.lambda.Unchecked;
 import org.slf4j.Logger;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -33,11 +35,11 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 
     public static final  LocalDateTime EPOCH_0 = Instant.ofEpochMilli(0).atZone(ZoneId.systemDefault()).toLocalDateTime();
     private static final Logger        log     = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
-
     private static final Supplier<Integer> DEFAULT_ORIENTATION = () -> 0;
 
 
     @Override
+    @Cacheable(cacheNames = ImagInConfiguration.CACHE_IMAGE_HEADER, unless = "#result != null")
     public Map<String, Object> getAllInformation(Path path) {
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
