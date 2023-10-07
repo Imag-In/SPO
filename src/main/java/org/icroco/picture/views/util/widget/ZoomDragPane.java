@@ -161,8 +161,12 @@ public class ZoomDragPane extends BorderPane {
 
     public void zoom(MouseEvent event) {
 //        zoomLevel = 20;
-        zoomInCentredToLevel(10);
+        zoom();
 //        zoom(Zoom.ZOOM_IN, event.getX(), event.getY());
+    }
+
+    public void zoom() {
+        zoomInCentredToLevel(10);
     }
 
     public void noZoom() {

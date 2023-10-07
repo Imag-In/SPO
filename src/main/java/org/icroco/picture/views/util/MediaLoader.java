@@ -187,7 +187,7 @@ public class MediaLoader {
                                                                    0,
                                                                    true,
                                                                    false,
-                                                                   true);
+                                                                   false);
                                              var future = taskService.sendEvent(ImageLoadingdEvent.builder()
                                                                                                   .mediaFile(mediaFile)
                                                                                                   .progress(image.progressProperty())
@@ -203,12 +203,11 @@ public class MediaLoader {
                                              var futureImage = getValue();
                                              // To make sure ImageLoadedEvent come after ImageLoadingdEvent.
                                              futureImage.future
-                                                     .thenRun(() ->
-                                                                      taskService.sendEvent(ImageLoadedEvent.builder()
-                                                                                                            .mediaFile(mediaFile)
-                                                                                                            .image(futureImage.image)
-                                                                                                            .source(MediaLoader.this)
-                                                                                                            .build()));
+                                                     .thenRun(() -> taskService.sendEvent(ImageLoadedEvent.builder()
+                                                                                                          .mediaFile(mediaFile)
+                                                                                                          .image(futureImage.image)
+                                                                                                          .source(MediaLoader.this)
+                                                                                                          .build()));
                                          }
                                      }, false);
                                  });

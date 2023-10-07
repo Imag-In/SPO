@@ -6,7 +6,6 @@ import javafx.scene.control.ListView;
 import javafx.util.Callback;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.event.CarouselEvent;
 import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.task.TaskService;
@@ -34,7 +33,7 @@ public class MediaFileListCellFactory implements Callback<ListView<MediaFile>, L
                                                         .source(this)
                                                         .build());
             } else if (t.getClickCount() == 2) {
-                taskService.sendEvent(CarouselEvent.builder().mediaFile(mf).eventType(CarouselEvent.EventType.HIDE).source(this).build());
+//                taskService.sendEvent(CarouselEvent.builder().mediaFile(mf).eventType(CarouselEvent.EventType.HIDE).source(this).build());
             }
             t.consume();
         });

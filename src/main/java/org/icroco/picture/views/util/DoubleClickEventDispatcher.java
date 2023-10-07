@@ -7,9 +7,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.util.Duration;
 
 public class DoubleClickEventDispatcher implements EventDispatcher {
-    public interface CustomMouseEvent {
-        EventType<MouseEvent> MOUSE_DOUBLE_CLICKED = new EventType<>(MouseEvent.ANY, "MOUSE_DBL_CLICKED");
-    }
 
     /**
      * Default delay to fire a double click event in milliseconds.

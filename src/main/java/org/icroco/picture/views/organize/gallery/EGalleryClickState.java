@@ -16,6 +16,13 @@ public enum EGalleryClickState {
     ZOOM() {
         @Override
         EGalleryClickState next() {
+            return IMAGE_BACK;
+        }
+    },
+
+    IMAGE_BACK() {
+        @Override
+        EGalleryClickState next() {
             return GALLERY;
         }
     };

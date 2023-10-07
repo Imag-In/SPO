@@ -19,6 +19,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.util.Pair;
 import javafx.util.StringConverter;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
@@ -33,6 +34,7 @@ import org.icroco.picture.persistence.CollectionRepository;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.FileUtil;
 import org.icroco.picture.views.FxEventListener;
+import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.task.AbstractTask;
 import org.icroco.picture.views.task.TaskService;
@@ -79,6 +81,9 @@ public class CollectionView implements FxView<VBox> {
     private final CollectionTreeItem       rootTreeItem     = new CollectionTreeItem(new CollectionNode(Path.of("Files"), -1));
     private final TreeView<CollectionNode> treeView         = new TreeView<>(rootTreeItem);
 
+    @Getter
+    private final SimpleObjectProperty<PathSelection> pathSelectionProperty = new SimpleObjectProperty<>();
+
     public record CollectionNode(Path path, int id) {
         public CollectionNode(Path path) {
             this(path, -1);
@@ -97,30 +102,23 @@ public class CollectionView implements FxView<VBox> {
         treeView.setMinHeight(250);
         treeView.setShowRoot(false);
         treeView.setEditable(false);
+        treeView.getSelectionModel().selectedItemProperty().addListener(this::treeItemSelectionChanged);
         treeView.setCellFactory(param -> {
             var cell = new CollectionTreeCell(taskService);
-
             cell.getRoot().addEventHandler(MouseEvent.ANY, event -> {
-                if (event.getClickCount() == 1 && event.getButton().equals(MouseButton.PRIMARY)) {
-//                if (event.getEventType().equals(MouseEvent.MOUSE_CLICKED)) {
-                    log.info("Clicked: {}", event);
-                    taskService.sendEvent(CollectionSubPathSelectedEvent.builder()
-                                                                        .collectionId(findMainCollectionNode(treeView.getSelectionModel()
-                                                                                                                     .getSelectedItem())
-                                                                                              .getValue()
-                                                                                              .id)
-                                                                        .entry(treeView.getSelectionModel().getSelectedItem().getValue()
-                                                                                       .path())
-                                                                        .source(this)
-                                                                        .build());
-//                }
-
-//                    event.consume();
+                if (event.getClickCount() == 1
+                    && event.getButton().equals(MouseButton.PRIMARY)
+                    && event.getEventType()
+                            .getName()
+                            .equals("MOUSE_CLICKED")) {
+                    var old = pathSelectionProperty.get();
+                    if (old != null) {
+                        pathSelectionProperty.set(new PathSelection(old.mediaCollectionId(), old.subPath()));
+                    }
                 }
             });
             return cell;
         });
-        treeView.getSelectionModel().selectedItemProperty().addListener(this::treeItemSelectionChanged);
         atlantafx.base.theme.Styles.toggleStyleClass(treeView, Tweaks.EDGE_TO_EDGE);
 
         collectionHeader.setAlignment(Pos.BASELINE_LEFT);
@@ -183,13 +181,15 @@ public class CollectionView implements FxView<VBox> {
                                           TreeItem<CollectionNode> newValue) {
         if (newValue != null) {
             log.trace("Tree view selected: {} ", newValue.getValue());
+            pathSelectionProperty.set(new PathSelection(findMainCollectionNode(newValue).getValue().id(),
+                                                        newValue.getValue().path, 0D));
 //            pref.getUserPreference().setLastViewed(newValue.getValue().id, newValue.getValue().path);
 
-            taskService.sendEvent(CollectionSubPathSelectedEvent.builder()
-                                                                .collectionId(findMainCollectionNode(newValue).getValue().id())
-                                                                .entry(newValue.getValue().path)
-                                                                .source(CollectionView.this)
-                                                                .build());
+//            taskService.sendEvent(CollectionSubPathSelectedEvent.builder()
+//                                                                .collectionId(findMainCollectionNode(newValue).getValue().id())
+//                                                                .entry(newValue.getValue().path)
+//                                                                .source(CollectionView.this)
+//                                                                .build());
         }
     }
 
