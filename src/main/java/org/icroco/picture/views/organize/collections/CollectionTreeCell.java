@@ -119,7 +119,7 @@ public class CollectionTreeCell extends TreeCell<CollectionView.CollectionNode> 
             setGraphic(root);
 
             titleLabel.setText(nav.path().getFileName().toString());
-            if (nav.isRootCollection()) {
+            if (nav.isColTopLevel()) {
                 flatMenuBtn.setManaged(true);
                 flatMenuBtn.setVisible(true);
                 mediaCollectionId = nav.id();

@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.function.Consumer;
@@ -46,6 +47,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 
             return Collections.toStream(metadata.getDirectories())
                               .flatMap(d -> d.getTags().stream())
+                              .filter(Objects::nonNull)
                               .collect(Collectors.toMap(Tag::getTagName, Tag::getDescription, (o, o2) -> {
                                   log.warn("File: '{}', Duplicate metadata values: {} <-> {}", path, o, o2);
                                   return o2;

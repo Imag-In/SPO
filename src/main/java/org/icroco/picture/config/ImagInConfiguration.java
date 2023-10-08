@@ -79,7 +79,7 @@ public class ImagInConfiguration {
 
     @Bean(name = CACHE_IMAGE_HEADER)
     public CaffeineCache catalogImageHeader() {
-        return new CaffeineCache(CACHE_CATALOG,
+        return new CaffeineCache(CACHE_IMAGE_HEADER,
                                  Caffeine.newBuilder()
                                          .recordStats()
                                          .maximumSize(200) // TODO: Compute this at runtime, based on RAM and -Xmx.

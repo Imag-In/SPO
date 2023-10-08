@@ -13,6 +13,7 @@ import org.controlsfx.control.GridView;
 import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.task.TaskService;
+import org.springframework.lang.Nullable;
 
 import java.util.HashSet;
 import java.util.Optional;
@@ -188,6 +189,16 @@ public class CustomGridView<T> extends GridView<T> {
         selectedRow = getItems().indexOf(node.getItem()) / getItemsInRow();
     }
 
+    public Optional<Cell<?>> getFirstVisible() {
+        VirtualFlow<?> flow = (VirtualFlow<?>) ((GridViewSkin<?>) this.getSkin()).getChildren().get(0);
+        if (flow.getCellCount() > 0) {
+            return Optional.ofNullable(flow.getFirstVisibleCell());
+        } else {
+            return Optional.empty();
+        }
+    }
+
+
     public void ensureVisible(T item) {
         // Gross workaround. Couldn't find any other solution
         for (Node n : getChildren()) {
@@ -213,20 +224,23 @@ public class CustomGridView<T> extends GridView<T> {
         private final TaskService          taskService;
         private final Set<Cell<MediaFile>> selection = new HashSet<>();
 
-        public void add(Cell<MediaFile> node) {
-            selection.add(node);
-            node.updateSelected(true);
-            updateSelectedRow(node);
-            taskService.sendEvent(PhotoSelectedEvent.builder()
-                                                    .mf(node.getItem())
-                                                    .type(PhotoSelectedEvent.ESelectionType.SELECTED)
-                                                    .source(this)
-                                                    .build());
+        public void add(@Nullable Cell<MediaFile> node) {
+            if (node != null) {
+                selection.add(node);
+                node.updateSelected(true);
+                updateSelectedRow(node);
+                taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                        .mf(node.getItem())
+                                                        .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+                                                        .source(this)
+                                                        .build());
+            }
         }
 
         Optional<Cell<MediaFile>> get() {
             return selection.stream().findFirst();
         }
+
 
         public void set(Cell<MediaFile> node) {
             selection.forEach(c -> c.updateSelected(false));

@@ -1,10 +1,12 @@
 package org.icroco.picture.views.pref;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.util.PathSerializer;
 
 import java.nio.file.Path;
 
@@ -31,8 +33,9 @@ public class UserPreference {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Collection {
-        Integer lastViewed;
-        Path    lastPath;
+        private Integer lastViewed;
+        @JsonSerialize(using = PathSerializer.class)
+        private Path    lastPath;
     }
 
     @Setter
@@ -40,13 +43,14 @@ public class UserPreference {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Gallery {
-        Integer cellWidth = 128;
-        Integer cellHeight = 128;
+        private Integer cellWidth  = 128;
+        private Integer cellHeight = 128;
+        private Integer gridZoomFactor;
     }
 
     private MainWindow mainWindow = new MainWindow(0D, 0D, 800D, 600D);
     private Collection collection = new Collection(-1, null);
-    private Gallery grid = new Gallery(128, 128);
+    private Gallery    grid       = new Gallery(128, 128, 0);
 
     public void setLastViewed(int id, Path path) {
         log.info("Saved last view, id: {}, path: {}", id, path);

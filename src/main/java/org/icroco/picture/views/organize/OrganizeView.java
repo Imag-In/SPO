@@ -28,7 +28,7 @@ public class OrganizeView implements FxView<BorderPane> {
         root.setCenter(galleryView.getRootContent());
         root.setRight(detailsView.getRootContent());
 
-        collectionView.getPathSelectionProperty().addListener(galleryView::CollectionPathChange);
+        collectionView.getPathSelectionProperty().addListener(galleryView::collectionPathChange);
     }
 
     @Override

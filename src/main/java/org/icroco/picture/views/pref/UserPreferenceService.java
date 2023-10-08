@@ -1,5 +1,6 @@
 package org.icroco.picture.views.pref;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -36,6 +37,7 @@ public class UserPreferenceService {
     public UserPreferenceService() {
         this.mapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .setSerializationInclusion(JsonInclude.Include.NON_NULL);
         ;
 
         readConf(FILENAME);
@@ -52,8 +54,7 @@ public class UserPreferenceService {
             try {
                 userPreference = mapper.readValue(fileName, UserPreference.class);
                 //mapper.readerForUpdating(this).readValue(f);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 log.error("Failed to parse config file: {}, message: {}", fileName, e.getLocalizedMessage());
             }
         }
@@ -69,8 +70,7 @@ public class UserPreferenceService {
         try (FileOutputStream out = new FileOutputStream(FILENAME, false)) {
             mapper.writerWithDefaultPrettyPrinter().writeValue(out, getUserPreference());
             log.info("Configuration saved into: {}", FILENAME);
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             log.error("Failed to serialized configuration: {}", FILENAME, ex);
         }
     }
