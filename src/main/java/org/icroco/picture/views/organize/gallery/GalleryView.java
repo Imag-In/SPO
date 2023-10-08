@@ -84,8 +84,8 @@ public class GalleryView implements FxView<StackPane> {
     private final ObservableList<MediaFile>             images         = FXCollections.observableArrayList(MediaFile.extractor());
     private final FilteredList<MediaFile>               filteredImages = new FilteredList<>(images);
     private final SortedList<MediaFile>                 sortedImages   = new SortedList<>(filteredImages);
-    //    private       double                                gridCellWidth;
-//    private       double                                gridCellHeight;
+    private       double                                gridCellWidth;
+    //    private       double                                gridCellHeight;
     private       int                                   zoomLevel      = 0;
     private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
     private       EGalleryClickState                    dblCickState   = EGalleryClickState.GALLERY;
@@ -108,6 +108,10 @@ public class GalleryView implements FxView<StackPane> {
 //        gridCellHeight = Optional.ofNullable(pref.getUserPreference().getGrid().getCellHeight()).orElse((int)gridView.getCellHeight());
 //        gridCellWidth = 128; //gridView.getCellWidth() * 2;
 //        gridCellHeight = 128; //gridView.getCellHeight() * 2;
+        gridView.cellWidthProperty().addListener((observable, oldValue, newValue) -> log.info("Grid Cell Width: {}", newValue));
+
+        gridView.setCellWidth(128);
+        gridView.setCellHeight(128);
         gridView.setCache(true);
         gridView.setCacheHint(CacheHint.SPEED);
         applyGridCellWidthFactor(pref.getUserPreference().getGrid().getGridZoomFactor());
@@ -165,6 +169,7 @@ public class GalleryView implements FxView<StackPane> {
         HBox bar = new HBox();
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().setAll("tool-bar");
+        bar.setId("gallery-toolbar");
 
         Label expand = new Label();
         expand.setPrefHeight(10D);
@@ -178,6 +183,7 @@ public class GalleryView implements FxView<StackPane> {
 //        zoomThumbnails.getStyleClass().add(Styles.SMALL);
         zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
         zoomThumbnails.setValue(pref.getUserPreference().getGrid().getGridZoomFactor());
+        zoomThumbnails.setBlockIncrement(1);
         zoomThumbnails.valueProperty()
                       .addListener((ObservableValue<? extends Number> ov, Number oldValue, Number newValue) -> {
                           zoomLevel = newValue.intValue();
@@ -198,7 +204,7 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void applyGridCellWidthFactor(int value) {
-        var width = 128 + 10D * value;
+        var width = 128 + 10D * Math.max(0, value);
         gridView.setCellWidth(width);
         gridView.setCellHeight(width);
     }
@@ -289,15 +295,26 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void stageReady(StageReadyEvent event) {
-        var width = Math.max((int) gridView.getCellWidth(), (int) root.getWidth() / gridView.getItemsInRow());
+        var width = Math.max(gridView.getCellWidth(), (root.getWidth() - 100) / (gridView.getItemsInRow() - 1));
+        width = Math.max(128, root.getWidth() / 8);
+
         log.info("Parent width: {}, nbColumn: {}, currentWidth: {}, newWidth: {}",
                  gridView.getWidth(),
                  gridView.getItemsInRow(),
                  gridView.getCellWidth(),
                  width);
+//        gridView.cellWidthProperty().bind(Bindings.max(128, Bindings.divide(root.widthProperty(), 8)));
+
+//        root.widthProperty().addListener((observable, oldValue, newValue) -> {
+//            gridCellWidth = Math.max(128, newValue.doubleValue() / 8);
+////            log.info("Parent width: {}, cell width: {}", newValue, gridCellWidth);
+////            gridView.setCellHeight(gridCellWidth);
+////            gridView.setCellWidth(gridCellWidth);
+//        });
+
 //        gridCellHeight = gridCellWidth = width;
-        gridView.setCellHeight(width);
-        gridView.setCellWidth(width);
+//        gridView.setCellWidth(width);
+//        gridView.setCellHeight(width);
         gridView.requestFocus();
     }
 

@@ -53,7 +53,6 @@ public class UserPreference {
     private Gallery    grid       = new Gallery(128, 128, 0);
 
     public void setLastViewed(int id, Path path) {
-        log.info("Saved last view, id: {}, path: {}", id, path);
         collection.setLastViewed(id);
         collection.setLastPath(path);
     }

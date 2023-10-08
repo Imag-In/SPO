@@ -68,7 +68,6 @@ public class DetailsView implements FxView<VBox> {
         root.getStyleClass().add("v-details");
         root.setVisible(false);
         root.setMinWidth(200);
-        root.setPadding(new Insets(10, 10, 10, 10));
 
 //        var infoTab = createTabLabel("Info", createInfo());
 //        var detailsTab = createTabLabel("Details");
@@ -109,6 +108,7 @@ public class DetailsView implements FxView<VBox> {
     private Node createFullDetails() {
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.TOP_LEFT);
+        grid.setPadding(new Insets(10, 10, 10, 10));
 
         maskerPane.setContent(grid);
         return maskerPane.getRootContent();
@@ -116,6 +116,7 @@ public class DetailsView implements FxView<VBox> {
 
     private GridPane createInfo() {
         GridPane grid = new GridPane();
+        grid.setPadding(new Insets(10, 10, 10, 10));
         grid.add(FontIcon.of(FontAwesomeRegular.FILE), 0, 0);
         grid.add(name, 1, 0);
         txtDbId.getStyleClass().add(Styles.TEXT_SMALL);
