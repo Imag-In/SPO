@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.metadata.IMetadataExtractor;
+import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.EThumbnailType;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.util.FxView;
@@ -31,7 +32,9 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -201,7 +204,10 @@ public class DetailsView implements FxView<VBox> {
             }
             size.setText(Objects.toString(mf.getDimension()));
             root.setVisible(true);
-            orientation.setText(String.valueOf(mf.getOrientation()));
+            orientation.setText(Arrays.stream(ERotation.fromOrientation(mf.getOrientation()))
+                                      .sorted()
+                                      .map(Objects::toString)
+                                      .collect(Collectors.joining(",")));
             path = mf.getFullPath();
         } else {
             root.setVisible(false);

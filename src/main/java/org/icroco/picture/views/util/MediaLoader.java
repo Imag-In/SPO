@@ -200,11 +200,12 @@ public class MediaLoader {
                                          @Override
                                          protected FutureImage call() throws Exception {
                                              var image = new Image(mediaFile.getFullPath().toUri().toString(),
-                                                                   MediaLoader.PRIMARY_SCREEN_WIDTH,
+                                                                   0,
                                                                    0,
                                                                    true,
                                                                    false,
                                                                    false);
+//                                             var image = imageLoader.loadImage(mediaFile);
                                              var future = taskService.sendEvent(ImageLoadingdEvent.builder()
                                                                                                   .mediaFile(mediaFile)
                                                                                                   .progress(image.progressProperty())

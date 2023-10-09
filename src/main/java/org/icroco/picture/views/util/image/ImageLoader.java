@@ -25,7 +25,7 @@ public class ImageLoader {
         var orientation = metadataExtractor.orientation(mediaFile.getFullPath()).orElse(1);
 
 //        var image = new Image(mediaFile.getFullPath().toUri().toString(), MediaLoader.PRIMARY_SCREEN_WIDTH, 0, true, true);
-        var image = new Image(mediaFile.getFullPath().toUri().toString(), MediaLoader.PRIMARY_SCREEN_WIDTH, 0, true, true, true);
+        var image = new Image(mediaFile.getFullPath().toUri().toString(), MediaLoader.PRIMARY_SCREEN_WIDTH, 0, true, true, false);
 //        image.setRotate(90);
         if (progressIndicator != null) {
             progressIndicator.bind(image.progressProperty());

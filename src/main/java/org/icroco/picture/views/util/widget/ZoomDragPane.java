@@ -73,12 +73,6 @@ public class ZoomDragPane extends BorderPane {
          */
         rotation90scale = Math.min(imageWidth, imageHeight) / Math.max(imageWidth, imageHeight);
 
-        view.fitWidthProperty().bind(maskerPane.getRootContent().widthProperty());
-        view.fitHeightProperty().bind(maskerPane.getRootContent().heightProperty());
-
-//        view.fitWidthProperty().bind(widthProperty());
-//        view.fitHeightProperty().bind(heightProperty());
-
         setMouseDraggedEventHandler();
         view.setOnScroll(this::zoom);
         view.setOnZoom(this::zoom);
@@ -88,16 +82,9 @@ public class ZoomDragPane extends BorderPane {
         zoomLevel = 0;
         view.setRotate(0);
         this.mediaFile = mediaFile;
+        view.fitWidthProperty().unbind();
+        view.fitHeightProperty().unbind();
         if (image != null) {
-            log.info("imageFile: {}/{}, parent: {}/{}, parentMax: {}/{}",
-                     image.getWidth(),
-                     image.getWidth(),
-                     getWidth(),
-                     getHeight(),
-                     getMaxWidth(),
-                     getMaxHeight());
-            view.maxHeight(getHeight());
-            view.maxWidth(getWidth());
             view.setVisible(true);
             view.setImage(image);
             rotate(mediaFile.orientation());
@@ -115,18 +102,29 @@ public class ZoomDragPane extends BorderPane {
 
     private void rotate(short orientation) {
         ERotation[] rotates = ERotation.fromOrientation(orientation);
+        view.fitWidthProperty().bind(widthProperty());
+        view.fitHeightProperty().bind(heightProperty());
         for (ERotation r : rotates) {
             switch (r) {
                 case CW_90 -> {
+//                    view.getTransforms().add(new Rotate(90));
                     view.setRotate(90);
+                    view.fitWidthProperty().bind(heightProperty());
+                    view.fitHeightProperty().bind(widthProperty());
                 }
                 case CW_180 -> {
+//                    view.getTransforms().add(new Rotate(180));
                     view.setRotate(180);
                 }
                 case CW_270 -> {
+//                    view.getTransforms().add(new Rotate(270));
                     view.setRotate(270);
+                    view.fitWidthProperty().bind(heightProperty());
+                    view.fitHeightProperty().bind(widthProperty());
                 }
-                default -> log.warn("Not Supported: {}", r);
+                default -> {
+                    log.warn("Not Supported: {}", r);
+                }
                 // TODO
 //                case FLIP_HORZ -> view.(270);
 //                case FLIP_VERT -> view.setRotate(270);

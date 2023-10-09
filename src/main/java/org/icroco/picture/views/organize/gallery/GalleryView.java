@@ -35,7 +35,6 @@ import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.views.FxEventListener;
-import org.icroco.picture.views.organize.OrganizeConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.task.TaskService;
@@ -45,7 +44,6 @@ import org.icroco.picture.views.util.widget.ZoomDragPane;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
 import org.slf4j.Logger;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -68,8 +66,8 @@ public class GalleryView implements FxView<StackPane> {
     private final MediaLoader           mediaLoader;
     private final UserPreferenceService pref;
     private final TaskService           taskService;
-    @Qualifier(OrganizeConfiguration.GALLERY_ZOOM)
-    private final ZoomDragPane          photo;
+    //    @Qualifier(OrganizeConfiguration.GALLERY_ZOOM)
+    private       ZoomDragPane          photo;
     private final PersistenceService    persistenceService;
 
     private final StackPane                             root           = new StackPane();
@@ -114,7 +112,7 @@ public class GalleryView implements FxView<StackPane> {
         gridView.setCellHeight(128);
         gridView.setCache(true);
         gridView.setCacheHint(CacheHint.SPEED);
-        applyGridCellWidthFactor(pref.getUserPreference().getGrid().getGridZoomFactor());
+        Optional.ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(this::applyGridCellWidthFactor);
         gridView.setHorizontalCellSpacing(0D);
         gridView.setVerticalCellSpacing(0D);
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService, expandCell, this::cellDoubleClick));
@@ -126,6 +124,7 @@ public class GalleryView implements FxView<StackPane> {
 
 //        carousel.maxHeightProperty().bind(root.heightProperty());
 //        carousel.maxWidthProperty().bind(root.widthProperty());
+        photo = new ZoomDragPane(mediaLoader);
         carousel.setCenter(photo);
         photo.maxHeightProperty().bind(carousel.heightProperty());
         photo.maxWidthProperty().bind(carousel.widthProperty());
@@ -192,7 +191,7 @@ public class GalleryView implements FxView<StackPane> {
 
 //        zoomThumbnails.getStyleClass().add(Styles.SMALL);
         zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
-        zoomThumbnails.setValue(pref.getUserPreference().getGrid().getGridZoomFactor());
+        Optional.ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(zoomThumbnails::setValue);
         zoomThumbnails.setBlockIncrement(1);
         zoomThumbnails.valueProperty()
                       .addListener((ObservableValue<? extends Number> ov, Number oldValue, Number newValue) -> {
