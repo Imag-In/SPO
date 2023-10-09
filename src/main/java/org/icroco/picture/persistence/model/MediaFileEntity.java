@@ -61,12 +61,15 @@ public class MediaFileEntity {
     private EThumbnailType thumbnailType = EThumbnailType.ABSENT;
 
     @NotNull
-    @Builder.Default
-    private DimensionEntity dimension = DimensionEntity.EMPTY_DIM;
+    private DimensionEntity dimension;
 
+    @NotNull
     private GeoLocationEntity geoLocation;
 
     @Builder.Default
     @Column(name = "orientation")
-    private Short orientation = 1;
+    private Short orientation = 0;
+
+    @NotNull
+    private CameraEntity camera;
 }

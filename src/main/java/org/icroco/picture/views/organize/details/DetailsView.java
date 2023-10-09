@@ -19,14 +19,17 @@ import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.EThumbnailType;
+import org.icroco.picture.util.Env;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
-import org.icroco.picture.views.util.Styles;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignK;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -48,9 +51,10 @@ public class DetailsView implements FxView<VBox> {
 //    private final UserPreferenceService pref;
     private final       IMetadataExtractor metadataExtractor;
 
-    private final MediaLoader mediaLoader;
+    private final MediaLoader          mediaLoader;
+    private final Env                  env;
     private       MaskerPane<GridPane> maskerPane = new MaskerPane<>(true);
-    private       VBox        root       = new VBox();
+    private       VBox                 root       = new VBox();
 
     private final Label   name          = createLabel();
     private final Label   txtDbId       = new Label("Id: ");
@@ -61,6 +65,8 @@ public class DetailsView implements FxView<VBox> {
     private final Label   thumbnailType = createLabel();
     private final Label   thumbnailSize = createLabel();
     private final Label   orientation   = createLabel();
+    private final Label   cameraMake    = createLabel();
+    private final Label   cameraModel   = createLabel();
     private       TabPane tabs;
     DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
@@ -120,31 +126,47 @@ public class DetailsView implements FxView<VBox> {
     private GridPane createInfo() {
         GridPane grid = new GridPane();
         grid.setPadding(new Insets(10, 10, 10, 10));
-        grid.add(FontIcon.of(FontAwesomeRegular.FILE), 0, 0);
-        grid.add(name, 1, 0);
-        txtDbId.getStyleClass().add(Styles.TEXT_SMALL);
-        txtDbId.setVisible(false);
-
-        int rowIdx = 0;
-        grid.add(txtDbId, 2, rowIdx);
-        grid.add(dbId, 3, rowIdx);
         grid.setHgap(10);
         grid.setVgap(10);
-        dbId.getStyleClass().add(Styles.TEXT_SMALL);
 
+        // Stsrt filling the grid:
+        int rowIdx = 0;
+
+        if (env.isDev()) {
+//            txtDbId.getStyleClass().add(Styles.TEXT_SMALL);
+//            txtDbId.setVisible(false);mdi2k-key-outline
+            grid.add(FontIcon.of(MaterialDesignK.KEY_OUTLINE), 0, rowIdx);
+//            dbId.getStyleClass().add(Styles.TEXT_SMALL);
+
+//            grid.add(txtDbId, 2, rowIdx);
+            grid.add(dbId, 1, rowIdx);
+            rowIdx++;
+        }
+        grid.add(FontIcon.of(FontAwesomeRegular.FILE), 0, rowIdx);
+        grid.add(name, 1, rowIdx);
         rowIdx += 1;
-        grid.add(size, 1, rowIdx);
 
+        grid.add(size, 1, rowIdx);
         rowIdx += 2;
+
         grid.add(FontIcon.of(FontAwesomeRegular.CALENDAR), 0, rowIdx);
         grid.add(creationDate, 1, rowIdx);
-
         rowIdx += 2;
+
         grid.add(FontIcon.of(FontAwesomeSolid.LOCATION_ARROW), 0, rowIdx);
         grid.add(gps, 1, rowIdx);
-
         rowIdx += 2;
-        grid.add(FontIcon.of(FontAwesomeRegular.THUMBS_UP), 0, rowIdx);
+
+
+        grid.add(FontIcon.of(MaterialDesignC.CAMERA_OUTLINE), 0, rowIdx);
+        grid.add(cameraMake, 1, rowIdx);
+        rowIdx++;
+        grid.add(cameraModel, 1, rowIdx);
+
+        rowIdx += 1;
+
+        //FontAwesomeRegular.THUMBS_UP
+        grid.add(FontIcon.of(MaterialDesignP.PHONE_ROTATE_LANDSCAPE), 0, rowIdx);
         grid.add(orientation, 1, rowIdx);
 
         grid.setAlignment(Pos.TOP_RIGHT);
@@ -164,6 +186,7 @@ public class DetailsView implements FxView<VBox> {
         if (prefWidth > 0) {
             l.setPrefWidth(prefWidth);
         }
+        l.setWrapText(true);
 
         return l;
     }
@@ -199,7 +222,7 @@ public class DetailsView implements FxView<VBox> {
             dbId.setText(Long.toString(mf.getId()));
             name.setText(mf.getFileName());
             creationDate.setText(dateTimeFormatter.format(mf.originalDate()));
-            if (mf.getGeoLocation() != IMetadataExtractor.NO_WHERE) {
+            if (mf.getGeoLocation().isSomewhere()) {
                 gps.setText(mf.getGeoLocation().toDMSString());
             }
             size.setText(Objects.toString(mf.getDimension()));
@@ -208,6 +231,8 @@ public class DetailsView implements FxView<VBox> {
                                       .sorted()
                                       .map(Objects::toString)
                                       .collect(Collectors.joining(",")));
+            cameraMake.setText(mf.camera().make());
+            cameraModel.setText(mf.camera().model());
             path = mf.getFullPath();
         } else {
             root.setVisible(false);
@@ -216,6 +241,9 @@ public class DetailsView implements FxView<VBox> {
             size.setText("");
             gps.setText("");
             orientation.setText("");
+            orientation.setText("");
+            cameraMake.setText("");
+            cameraModel.setText("");
             maskerPane.getContent().getChildren().clear();
         }
     }

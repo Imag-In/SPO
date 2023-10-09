@@ -8,6 +8,7 @@ import org.icroco.picture.event.CollectionsLoadedEvent;
 import org.icroco.picture.event.FilesChangesDetectedEvent;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.metadata.MetadataHeader;
+import org.icroco.picture.model.Camera;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.PersistenceService;
@@ -113,6 +114,7 @@ public class CollectionManager {
                 .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN))
                 .hashDate(now)
                 .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))
+                        .camera(h.map(MetadataHeader::camera).orElse(Camera.UNKWOWN_CAMERA))
                 .build();
     }
 

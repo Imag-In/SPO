@@ -20,4 +20,6 @@ public interface IMediaFile {
     Dimension dimension();
 
     Short orientation();
+
+    Camera camera();
 }

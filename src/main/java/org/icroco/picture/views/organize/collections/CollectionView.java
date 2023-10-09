@@ -432,6 +432,7 @@ public class CollectionView implements FxView<VBox> {
             builder.dimension(header.size())
                    .orientation(header.orientation())
                    .geoLocation(header.geoLocation())
+                   .camera(header.camera())
                    .originalDate(header.orginalDate());
         });
 

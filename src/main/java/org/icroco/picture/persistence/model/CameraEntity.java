@@ -10,10 +10,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString
-public class GeoLocationEntity {
-    @Column(name = "latitude", scale = 10)
-    private double latitude;
-    @Column(name = "longitude", scale = 10)
-    private double longitude;
+public class CameraEntity {
+    @Column(name = "make")
+    private String make;
+    @Column(name = "model")
+    private String model;
 }

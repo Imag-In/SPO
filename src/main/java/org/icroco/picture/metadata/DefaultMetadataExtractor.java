@@ -9,7 +9,9 @@ import com.drew.metadata.exif.ExifDirectoryBase;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
+import com.drew.metadata.iptc.IptcDirectory;
 import org.icroco.picture.config.ImagInConfiguration;
+import org.icroco.picture.model.Camera;
 import org.icroco.picture.model.Dimension;
 import org.icroco.picture.views.util.Collections;
 import org.jooq.lambda.Unchecked;
@@ -30,6 +32,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import static java.util.Optional.ofNullable;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class DefaultMetadataExtractor implements IMetadataExtractor {
@@ -63,13 +67,13 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     public Optional<Integer> orientation(InputStream input) {
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(input, input.available());
-            return extractTag(metadata,
-                              ExifIFD0Directory.class,
-                              ExifIFD0Directory.TAG_ORIENTATION,
-                              d -> getTagAsInt(Optional.of(d),
-                                               ExifDirectoryBase.TAG_ORIENTATION,
-                                               DEFAULT_ORIENTATION,
-                                               t -> log.warn("Cannot read orientation")));
+            return readdAllHeaders(metadata,
+                                   ExifIFD0Directory.class,
+                                   ExifIFD0Directory.TAG_ORIENTATION,
+                                   d -> getTagAsInt(Optional.of(d),
+                                                    ExifDirectoryBase.TAG_ORIENTATION,
+                                                    DEFAULT_ORIENTATION,
+                                                    t -> log.warn("Cannot read orientation")));
         } catch (Throwable ex) {
             log.warn("Cannot read orientation, message: {}", ex.getLocalizedMessage());
         }
@@ -91,17 +95,17 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 //                    System.out.printf("   Tag: %s (%d/%s): %s%n", tag.getTagName(), tag.getTagType(), tag.getTagTypeHex(), tag.getDescription());
 //                }
 //            }
-            var edb = Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
+            var                         edb                    = ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
+            Optional<ExifIFD0Directory> firstExifIFD0Directory = ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class));
             return Optional.of(MetadataHeader.builder()
                                              .orginalDate(originalDateTime(path, metadata).orElse(EPOCH_0))
-                                             .orientation(extractOrientation(path,
-                                                                             Optional.ofNullable(metadata.getFirstDirectoryOfType(
-                                                                                     ExifIFD0Directory.class))))
+                                             .orientation(extractOrientation(path, firstExifIFD0Directory))
                                              .geoLocation(gps(path,
                                                               metadata).map(gl -> new org.icroco.picture.model.GeoLocation(gl.getLatitude(),
                                                                                                                            gl.getLongitude()))
                                                                        .orElse(NO_WHERE))
                                              .size(extractSize(path, edb))
+                                             .camera(extractCamera(path, firstExifIFD0Directory))
                                              .build());
         } catch (Throwable ex) {
             log.warn("Cannot read header for Path: {}, message: {}", path, ex.getLocalizedMessage());
@@ -109,7 +113,29 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
         }
     }
 
-    private static <T extends Directory, R> Optional<R> extractTag(Metadata metadata, Class<T> type, int tagId, Function<T, R> extrator) {
+    private Camera extractCamera(Path path, Optional<ExifIFD0Directory> firstExifIFD0Directory) {
+        return firstExifIFD0Directory.map(d -> new Camera(getTagAsString(firstExifIFD0Directory,
+                                                                         ExifDirectoryBase.TAG_MAKE,
+                                                                         () -> "_",
+                                                                         t -> log.warn("'{}' Cannot read camera make", path)),
+                                                          getTagAsString(firstExifIFD0Directory,
+                                                                         ExifDirectoryBase.TAG_MODEL,
+                                                                         () -> "_",
+                                                                         t -> log.warn("'{}' Cannot read camera model", path))))
+                                     .orElse(Camera.UNKWOWN_CAMERA);
+    }
+
+
+    public void extractTags(Metadata metadata) {
+        var    directory  = metadata.getFirstDirectoryOfType(IptcDirectory.class);
+        String keywords[] = directory.getStringArray(IptcDirectory.TAG_KEYWORDS);
+    }
+
+
+    private static <T extends Directory, R> Optional<R> readdAllHeaders(Metadata metadata,
+                                                                        Class<T> type,
+                                                                        int tagId,
+                                                                        Function<T, R> extrator) {
         return StreamSupport.stream(metadata.getDirectories().spliterator(), false)
                             .filter(type::isInstance)
                             .map(type::cast)
@@ -118,8 +144,8 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     }
 
     private Optional<GeoLocation> gps(Path path, Metadata metadata) {
-        return Optional.ofNullable(metadata.getFirstDirectoryOfType(GpsDirectory.class))
-                       .map(GpsDirectory::getGeoLocation);
+        return ofNullable(metadata.getFirstDirectoryOfType(GpsDirectory.class))
+                .map(GpsDirectory::getGeoLocation);
 
     }
 
@@ -150,8 +176,8 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     }
 
     public Optional<LocalDateTime> originalDateTime(Path path, Metadata metadata) {
-        return Optional.ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class))
-                       .map(Unchecked.function(this::getDateTime, throwable -> log.warn("'{}' Cannot read original date time", path)));
+        return ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class))
+                .map(Unchecked.function(this::getDateTime, throwable -> log.warn("'{}' Cannot read original date time", path)));
     }
 
 //    Integer getOrientation(Directory directory) {
@@ -169,6 +195,15 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                                                  Consumer<Throwable> errorConsummer) {
         return directory.filter(d -> d.containsTag(tagId))
                         .map(d -> Unchecked.function(d::getInt, errorConsummer).apply(tagId))
+                        .orElseGet(defaultValueSupplier);
+    }
+
+    static <T extends Directory> String getTagAsString(Optional<T> directory,
+                                                       int tagId,
+                                                       Supplier<String> defaultValueSupplier,
+                                                       Consumer<Throwable> errorConsummer) {
+        return directory.filter(d -> d.containsTag(tagId))
+                        .map(d -> Unchecked.<Integer, String>function(d::getString, errorConsummer).apply(tagId))
                         .orElseGet(defaultValueSupplier);
     }
 
