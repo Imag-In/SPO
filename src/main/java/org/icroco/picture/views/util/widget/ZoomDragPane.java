@@ -11,7 +11,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.GestureEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.Pane;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.ERotation;
@@ -48,11 +47,14 @@ public class ZoomDragPane extends BorderPane {
     private       double      imageWidth;
     private       double      imageHeight;
     private final double      rotation90scale;
+    @Getter
+    private       MediaFile   mediaFile = null;
 
     @Getter
     private final MaskerPane<ImageView> maskerPane = new MaskerPane<>(false);
 
     public ZoomDragPane(MediaLoader mediaLoader) {
+        setId("zoomDragPane");
         this.mediaLoader = mediaLoader;
         //        setStyle("-fx-background-color: LIGHTGREY");
 
@@ -61,46 +63,47 @@ public class ZoomDragPane extends BorderPane {
         view.setSmooth(true);
         view.setCache(true);
         view.setPickOnBounds(true);
-        maskerPane.setContent(view);
 
         setCenter(maskerPane.getRootContent());
-        setImage(null, null);
+        maskerPane.setContent(view);
+        setImage(null, null, false);
 
         /*
          * Unless its square, the Image must be scaled when rotated through 90 (or 270) degrees...
          */
         rotation90scale = Math.min(imageWidth, imageHeight) / Math.max(imageWidth, imageHeight);
 
-        view.fitWidthProperty().bind(widthProperty());
-        view.fitHeightProperty().bind(heightProperty());
+        view.fitWidthProperty().bind(maskerPane.getRootContent().widthProperty());
+        view.fitHeightProperty().bind(maskerPane.getRootContent().heightProperty());
+
+//        view.fitWidthProperty().bind(widthProperty());
+//        view.fitHeightProperty().bind(heightProperty());
 
         setMouseDraggedEventHandler();
         view.setOnScroll(this::zoom);
         view.setOnZoom(this::zoom);
     }
 
-    /**
-     * Create a
-     * {@link  Pane}
-     * container for an
-     * {@link  ImageView}
-     * which encapsulates all the Zoom, Drag & Rotation logic for an Image.
-     */
-    public ZoomDragPane(MediaLoader mediaLoader, Pane parent) {
-        this(mediaLoader);
-        prefHeightProperty().bind(parent.heightProperty());
-        prefWidthProperty().bind(parent.widthProperty());
-    }
-
-    public final void setImage(MediaFile mediaFile, @Nullable Image image) {
+    public final void setImage(MediaFile mediaFile, @Nullable Image image, boolean fromCache) {
         zoomLevel = 0;
         view.setRotate(0);
+        this.mediaFile = mediaFile;
         if (image != null) {
+            log.info("imageFile: {}/{}, parent: {}/{}, parentMax: {}/{}",
+                     image.getWidth(),
+                     image.getWidth(),
+                     getWidth(),
+                     getHeight(),
+                     getMaxWidth(),
+                     getMaxHeight());
+            view.maxHeight(getHeight());
+            view.maxWidth(getWidth());
             view.setVisible(true);
             view.setImage(image);
             rotate(mediaFile.orientation());
             imageWidth = image.getWidth();
             imageHeight = image.getHeight();
+            view.requestFocus();
             view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
         } else {
             view.setViewport(null);
@@ -124,6 +127,7 @@ public class ZoomDragPane extends BorderPane {
                     view.setRotate(270);
                 }
                 default -> log.warn("Not Supported: {}", r);
+                // TODO
 //                case FLIP_HORZ -> view.(270);
 //                case FLIP_VERT -> view.setRotate(270);
             }

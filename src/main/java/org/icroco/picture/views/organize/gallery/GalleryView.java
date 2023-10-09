@@ -14,7 +14,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
-import javafx.concurrent.Task;
 import javafx.geometry.Pos;
 import javafx.scene.CacheHint;
 import javafx.scene.Node;
@@ -40,7 +39,6 @@ import org.icroco.picture.views.organize.OrganizeConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.task.TaskService;
-import org.icroco.picture.views.util.Collections;
 import org.icroco.picture.views.util.*;
 import org.icroco.picture.views.util.widget.Zoom;
 import org.icroco.picture.views.util.widget.ZoomDragPane;
@@ -52,7 +50,8 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static javafx.application.Platform.runLater;
@@ -79,7 +78,7 @@ public class GalleryView implements FxView<StackPane> {
     private final Slider                                zoomThumbnails = createTickSlider();
     private final Breadcrumbs<Path>                     breadCrumbBar  = new Breadcrumbs<>();
     private       CustomGridView<MediaFile>             gridView;
-    private final StackPane                             photoContainer = new StackPane();
+    //    private final StackPane                             photoContainer = new StackPane();
     private final BooleanProperty                       expandCell     = new SimpleBooleanProperty(true);
     private final ObservableList<MediaFile>             images         = FXCollections.observableArrayList(MediaFile.extractor());
     private final FilteredList<MediaFile>               filteredImages = new FilteredList<>(images);
@@ -89,6 +88,7 @@ public class GalleryView implements FxView<StackPane> {
     private       int                                   zoomLevel      = 0;
     private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
     private       EGalleryClickState                    dblCickState   = EGalleryClickState.GALLERY;
+
 
     @PostConstruct
     protected void postConstruct() {
@@ -120,13 +120,22 @@ public class GalleryView implements FxView<StackPane> {
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService, expandCell, this::cellDoubleClick));
         gridView.setOnZoom(this::zoomOnGrid);
         currentCatalog.addListener(this::collectionChanged);
-        photoContainer.addEventHandler(CustomMouseEvent.MOUSE_DOUBLE_CLICKED, this::onImageClick);
-        photoContainer.getChildren().add(photo);
+        carousel.addEventHandler(CustomMouseEvent.MOUSE_DOUBLE_CLICKED, this::onImageClick);
+        carousel.setId("Carousel");
+//        photoContainer.getChildren().add(photo);
 
-        carousel.setCenter(photoContainer);
+//        carousel.maxHeightProperty().bind(root.heightProperty());
+//        carousel.maxWidthProperty().bind(root.widthProperty());
+        carousel.setCenter(photo);
+        photo.maxHeightProperty().bind(carousel.heightProperty());
+        photo.maxWidthProperty().bind(carousel.widthProperty());
 //        carousel.setBottom(carouselIcons);
 
         addInputMap(carousel, sequence(consume(keyPressed(KeyCode.ESCAPE), this::escapePressed)));
+        addInputMap(carousel, sequence(consume(keyPressed(KeyCode.LEFT), this::leftPressed)));
+        addInputMap(carousel, sequence(consume(keyPressed(KeyCode.RIGHT), this::rightPressed)));
+        addInputMap(carousel, sequence(consume(keyPressed(KeyCode.UP), this::skipPressed)));
+        addInputMap(carousel, sequence(consume(keyPressed(KeyCode.DOWN), this::skipPressed)));
 
 //        photo.fitHeightProperty().bind(photoContainer.heightProperty().subtract(10));
 //        photo.fitWidthProperty().bind(photoContainer.widthProperty().subtract(10));
@@ -143,6 +152,7 @@ public class GalleryView implements FxView<StackPane> {
         carousel.setVisible(false);
         root.getChildren().addAll(gallery, carousel);
     }
+
 
     private static Node bcbDividerFactory(Breadcrumbs.BreadCrumbItem<Path> item) {
         if (item == null) {
@@ -247,17 +257,12 @@ public class GalleryView implements FxView<StackPane> {
         EGalleryClickState prev = dblCickState;
         dblCickState = dblCickState.next();
         switch (dblCickState) {
-            case GALLERY -> {
-                gallery.requestFocus();
-                Animations.fadeOut(carousel, Duration.millis(1000)).playFromStart();
-                gallery.setVisible(true);
-                carousel.setVisible(false);
-            }
+            case GALLERY -> displayGallery(mf);
             case IMAGE, IMAGE_BACK -> {
                 photo.requestFocus();
                 if (prev == EGalleryClickState.GALLERY) {
                     gallery.setVisible(false);
-                    photo.setImage(null, null);
+                    photo.setImage(null, null, false);
                     carousel.setVisible(true);
                     mediaLoader.getOrLoadImage(mf);
                 } else {
@@ -271,7 +276,17 @@ public class GalleryView implements FxView<StackPane> {
                 photo.zoom();
             }
         }
-        ;
+    }
+
+    private void displayGallery(MediaFile mf) {
+        gallery.requestFocus();
+        Animations.fadeOut(carousel, Duration.millis(1000)).playFromStart();
+        gallery.setVisible(true);
+        carousel.setVisible(false);
+        if (mf != null) {
+            gridView.ensureVisible(mf);
+//            gridView.getSelectionModel().set();
+        }
     }
 
     private void zoomOnGrid(ZoomEvent event) {
@@ -357,9 +372,7 @@ public class GalleryView implements FxView<StackPane> {
         log.info("MediaCollection subpath selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
         dblCickState = EGalleryClickState.GALLERY;
         if (newValue.equalsNoSeed(oldValue)) {
-            gallery.requestFocus();
-            carousel.setVisible(false);
-            gallery.setVisible(true);
+            displayGallery(null);
 //            gallery.setOpacity(0);
 //             Animations.fadeIn(gallery, Duration.millis(1000)).playFromStart();
         } else {
@@ -368,8 +381,7 @@ public class GalleryView implements FxView<StackPane> {
             final var path = getCurrentCatalog().path().resolve(newValue.subPath());
             filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);
-            gridView.getSelectionModel().clear();
-//            gridView.getFirstVisible().ifPresent(cell -> gridView.getSelectionModel().add((Cell<MediaFile>) cell));
+//            gridView.getFirstVisible().ifPresent(mediaFileCell -> gridView.getSelectionModel().set(mediaFileCell));
         }
     }
 
@@ -409,82 +421,16 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void imageLoading(ImageLoadingdEvent event) {
-//        photo.setImage(null, null);
-        photo.getMaskerPane().start(event.getProgress());
+//        photo.getMaskerPane().start(event.getProgress());
     }
 
     @FxEventListener
     public void imageLoaded(ImageLoadedEvent event) {
-        photo.setImage(event.getMediaFile(), event.getImage());
-        photo.getMaskerPane().stop();
-    }
-
-    Task<List<MediaFile>> fillGallery(final List<MediaFile> files) {
-        return new Task<>() {
-//            StopWatch w = new StopWatch("Load Task");
-
-            @Override
-            protected List<MediaFile> call() throws Exception {
-                var size          = files.size();
-                var imagesResults = new ArrayList<>(files);
-//                w.start("Build Thumbnail");
-                updateMessage("Loading '" + size + " images");
-                updateProgress(0, size);
-
-                for (int i = 0, filesSize = files.size(); i < filesSize; i++) {
-                    MediaFile mediaFile = files.get(i);
-//                    mediaLoader.loadThumbnail(mediaFile);
-//                    if (!mediaFile.thumbnail().isLoaded()) {
-//                        if (mediaFile.thumbnail().getImage() == null) {
-//                            mediaFile.thumbnail().setImage(mediaLoader.loadThumbnail(mediaFile.fullPath()));
-//                        } else {
-//                            mediaLoader.updateCache(mediaFile.fullPath(), mediaFile.thumbnail().getImage());
-//                        }
-//                    }
-                    updateProgress(i, size);
-                }
-
-
-//                for (int i = 0; i < size; i++) {
-//                    final var mf = files.get(i);
-//                    imagesResults.add(mf);
-//                    mf.thumbnail().setLoaded(true);
-//                    mf.thumbnail().setImage(mediaLoader.loadThumbnail(mf.fullPath()));
-//
-////                    imagesResults.add(new MediaFile(mf.id(),
-////                                                    mf.fullPath(),
-////                                                    mf.fileName(),
-////                                                    mf.originalDate(),
-////                                                    mf.tags(),
-////                                                    new Thumbnail(mediaLoader.loadThumbnail(mf.fullPath()), true)));
-//                    updateProgress(i, size);
-//                }
-//                w.stop();
-//                w.start("Save Task into DB");
-//                persistenceService.saveMediaFiles(imagesResults);
-//                w.stop();
-//                log.info("PERF: {}", w.prettyPrint());
-
-                return imagesResults;
-            }
-
-            @Override
-            protected void succeeded() {
-                images.addAll(getValue()
-                                      .stream()
-                                      .filter(Objects::nonNull)
-                                      .toList());
-            }
-
-            @Override
-            protected void failed() {
-                try {
-                    throw getException();
-                } catch (Throwable e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
+        photo.setImage(event.getMediaFile(), event.getImage(), event.isFromCache());
+//        if (!event.isFromCache()) {
+//            photo.getMaskerPane().stop();
+//        }
+//        gridView.getLeftAndRight(event.getMediaFile()).forEach(mediaLoader::warmCache);
     }
 
     private void resetBcbModel(@Nullable final Path entry) {
@@ -503,13 +449,34 @@ public class GalleryView implements FxView<StackPane> {
         breadCrumbBar.setSelectedCrumb(model);
     }
 
-    private void escapePressed(KeyEvent event) {
+    private void escapePressed(KeyEvent keyEvent) {
         log.info("Carousel Escape");
         if (dblCickState == EGalleryClickState.ZOOM) {
-            displayNext(null);
+            displayNext(photo.getMediaFile());
+        } else if (dblCickState.isImage()) {
+            displayGallery(photo.getMediaFile());
         }
-        event.consume();
+        keyEvent.consume();
     }
+
+    private void leftPressed(KeyEvent keyEvent) {
+        if (dblCickState.isImage() && photo.getMediaFile() != null) {
+            gridView.getLeft(photo.getMediaFile()).ifPresent(mediaLoader::getOrLoadImage);
+        }
+        keyEvent.consume();
+    }
+
+    private void rightPressed(KeyEvent keyEvent) {
+        if (dblCickState.isImage() && photo.getMediaFile() != null) {
+            gridView.getRight(photo.getMediaFile()).ifPresent(mediaLoader::getOrLoadImage);
+        }
+        keyEvent.consume();
+    }
+
+    private void skipPressed(KeyEvent keyEvent) {
+        keyEvent.consume();
+    }
+
 
     public void expandGridCell(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 1) {

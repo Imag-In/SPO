@@ -4,6 +4,7 @@ import impl.org.controlsfx.skin.GridViewSkin;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.control.Cell;
+import javafx.scene.control.IndexedCell;
 import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.input.KeyEvent;
 import lombok.Getter;
@@ -13,9 +14,11 @@ import org.controlsfx.control.GridView;
 import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.task.TaskService;
+import org.jooq.lambda.Seq;
 import org.springframework.lang.Nullable;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -36,7 +39,7 @@ public class CustomGridView<T> extends GridView<T> {
 //        this.addEventFilter(ScrollEvent.ANY, e-> System.out.println("*** scroll event fired ***"));
 
         // add UP and DOWN arrow key listener, to set scroll position
-        this.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+        addEventHandler(KeyEvent.KEY_PRESSED, e -> {
             switch (e.getCode()) {
                 case UP -> oneRowUp();
                 case DOWN -> oneRowDown();
@@ -59,7 +62,7 @@ public class CustomGridView<T> extends GridView<T> {
 //    }
 
     public boolean isCellVisible(Node input) {
-        VirtualFlow<?> vf  = (VirtualFlow<?>) getChildrenUnmodifiable().get(0);
+        VirtualFlow<?> vf = getVirtualFlow();
         boolean        ret = false;
         if (vf.getFirstVisibleCell() == null) {
             return false;
@@ -78,7 +81,7 @@ public class CustomGridView<T> extends GridView<T> {
         return ret;
     }
 
-    Optional<Cell<T>> findItem(VirtualFlow<?> vf, T mf) {
+    Optional<Cell<T>> findItem(VirtualFlow<? extends IndexedCell<T>> vf, T mf) {
 
         if (vf.getFirstVisibleCell() == null) {
             return Optional.empty();
@@ -102,12 +105,24 @@ public class CustomGridView<T> extends GridView<T> {
         return Optional.empty();
     }
 
+    private VirtualFlow<? extends IndexedCell<T>> getVirtualFlow() {
+        return (VirtualFlow<? extends IndexedCell<T>>) getChildrenUnmodifiable().get(0);
+    }
+
+    public Optional<Cell<T>> findFirstItem() {
+        if (getItems().isEmpty()) {
+            return Optional.empty();
+        }
+
+        return findItem(getVirtualFlow(), getItems().get(0));
+    }
+
 
     private void oneRowUp() {
 //        log.info("*** KeyEvent before oneRowUp: {}  ***", selectedRow);
 
         // get the underlying VirtualFlow object
-        VirtualFlow<?> flow = (VirtualFlow<?>) ((GridViewSkin<?>) this.getSkin()).getChildren().get(0);
+        VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
         if (flow.getCellCount() == 0) {
             return; // check that rows exist
         }
@@ -124,7 +139,7 @@ public class CustomGridView<T> extends GridView<T> {
             getSelectionModel().get().ifPresent(cell -> {
                 var idx = getItems().indexOf(cell.getItem()) - getItemsInRow();
                 if (idx >= 0) {
-                    findItem(flow, (T) getItems().get(idx))
+                    findItem(flow, getItems().get(idx))
                             .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
                 }
             });
@@ -134,7 +149,7 @@ public class CustomGridView<T> extends GridView<T> {
     private void oneRowDown() {
 //        log.info("*** KeyEvent before oneRowDown: {}  ***", selectedRow);
         // get the underlying VirtualFlow object
-        VirtualFlow<?> flow = (VirtualFlow<?>) ((GridViewSkin<?>) this.getSkin()).getChildren().get(0);
+        VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
         if (flow.getCellCount() == 0) {
             return; // check that rows exist
         }
@@ -148,21 +163,52 @@ public class CustomGridView<T> extends GridView<T> {
             getSelectionModel().get().ifPresent(cell -> {
                 var idx = getItems().indexOf(cell.getItem()) + getItemsInRow();
                 if (idx < getItems().size()) {
-                    findItem(flow, (T) getItems().get(idx))
+                    findItem(flow, getItems().get(idx))
                             .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
                 }
             });
         }
     }
 
-    private void oneRowLeft() {
-        VirtualFlow<?> flow = (VirtualFlow<?>) ((GridViewSkin<?>) this.getSkin()).getChildren().get(0);
+    public Optional<T> getLeft(T mediaFile) {
+        return getLeftIndex(getIndex(mediaFile));
+    }
+
+    Optional<T> getLeftIndex(int idx) {
+        if (idx > 0) {
+            return Optional.of((T) getItems().get(--idx));
+        }
+        return Optional.empty();
+    }
+
+    public Optional<T> getRight(T mediaFile) {
+        return getRightIndex(getIndex(mediaFile));
+    }
+
+    Optional<T> getRightIndex(int idx) {
+        if (idx < getItems().size() - 1) {
+            return Optional.of(getItems().get(++idx));
+        }
+        return Optional.empty();
+    }
+
+    private int getIndex(T mediaFile) {
+        return getItems().indexOf(mediaFile);
+    }
+
+    public List<T> getLeftAndRight(T mediaFile) {
+        var idx = getIndex(mediaFile);
+
+        return Seq.concat(getLeftIndex(idx), getRightIndex(idx), getLeftIndex(idx - 1), getRightIndex(idx + 1)).toList();
+    }
+
+    public void oneRowLeft() {
+        VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
         if (flow.getCellCount() == 0) {
             return; // check that rows exist
         }
         getSelectionModel().get().ifPresent(cell -> {
-            var idx      = getItems().indexOf(cell.getItem());
-            var idxInRow = idx % getItemsInRow();
+            var idx = getItems().indexOf(cell.getItem());
             if (idx > 0) {
                 findItem(flow, getItems().get(--idx))
                         .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
@@ -170,14 +216,14 @@ public class CustomGridView<T> extends GridView<T> {
         });
     }
 
-    private void oneRowRight() {
-        VirtualFlow<?> flow = (VirtualFlow<?>) ((GridViewSkin<?>) this.getSkin()).getChildren().get(0);
+
+    public void oneRowRight() {
+        VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
         if (flow.getCellCount() == 0) {
             return; // check that rows exist
         }
         getSelectionModel().get().ifPresent(cell -> {
-            var idx      = getItems().indexOf(cell.getItem());
-            var idxInRow = idx % getItemsInRow();
+            var idx = getItems().indexOf(cell.getItem());
             if (idx + 1 < getItems().size()) {
                 findItem(flow, getItems().get(++idx))
                         .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
@@ -189,8 +235,8 @@ public class CustomGridView<T> extends GridView<T> {
         selectedRow = getItems().indexOf(node.getItem()) / getItemsInRow();
     }
 
-    public Optional<Cell<?>> getFirstVisible() {
-        VirtualFlow<?> flow = (VirtualFlow<?>) ((GridViewSkin<?>) this.getSkin()).getChildren().get(0);
+    public Optional<Cell<T>> getFirstVisible() {
+        VirtualFlow<?> flow = getVirtualFlow();
         if (flow.getCellCount() > 0) {
             return Optional.ofNullable(flow.getFirstVisibleCell());
         } else {

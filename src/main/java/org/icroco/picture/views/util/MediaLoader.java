@@ -169,6 +169,22 @@ public class MediaLoader {
         return Optional.ofNullable(imagesCache.get(mediaFile, Image.class));
     }
 
+    public void warmCache(final MediaFile mediaFile) {
+        taskService.supply(() -> {
+            getCachedImage(mediaFile)
+                    .orElseGet(() -> {
+                        var image = new Image(mediaFile.getFullPath().toUri().toString(),
+                                              MediaLoader.PRIMARY_SCREEN_WIDTH,
+                                              0,
+                                              true,
+                                              false,
+                                              false);
+                        imagesCache.put(mediaFile, image);
+                        return image;
+                    });
+        });
+    }
+
     public void getOrLoadImage(final MediaFile mediaFile) {
         record FutureImage(Image image, CompletableFuture<?> future) {
         }
@@ -176,6 +192,7 @@ public class MediaLoader {
                 .ifPresentOrElse(image -> taskService.sendEvent(ImageLoadedEvent.builder()
                                                                                 .mediaFile(mediaFile)
                                                                                 .image(image)
+                                                                                .fromCache(true)
                                                                                 .source(MediaLoader.this)
                                                                                 .build()),
                                  () -> {
@@ -206,6 +223,7 @@ public class MediaLoader {
                                                      .thenRun(() -> taskService.sendEvent(ImageLoadedEvent.builder()
                                                                                                           .mediaFile(mediaFile)
                                                                                                           .image(futureImage.image)
+                                                                                                          .fromCache(false)
                                                                                                           .source(MediaLoader.this)
                                                                                                           .build()));
                                          }

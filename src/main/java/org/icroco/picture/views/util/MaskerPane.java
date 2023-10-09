@@ -25,6 +25,8 @@ public class MaskerPane<T extends Node> {
     public MaskerPane(boolean wrapIntoScrollPane) {
         progressPane = createMasker();
         rootContent.getChildren().add(progressPane);
+        rootContent.setId("maskerRootPane");
+
         wrapSp = wrapIntoScrollPane;
     }
 

@@ -12,4 +12,5 @@ import org.icroco.picture.model.MediaFile;
 public class ImageLoadedEvent extends IiEvent {
     private final MediaFile mediaFile;
     private final Image     image;
+    private final boolean   fromCache;
 }

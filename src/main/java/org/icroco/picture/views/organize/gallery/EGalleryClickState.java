@@ -23,9 +23,13 @@ public enum EGalleryClickState {
     IMAGE_BACK() {
         @Override
         EGalleryClickState next() {
-            return GALLERY;
+            return ZOOM;
         }
     };
 
     abstract EGalleryClickState next();
+
+    public boolean isImage() {
+        return this == IMAGE || this == IMAGE_BACK;
+    }
 }
