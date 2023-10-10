@@ -81,7 +81,7 @@ public class TaskService {
      */
     public CompletableFuture<Void> sendEvent(final ApplicationEvent event) {
         return CompletableFuture.runAsync(() -> {
-            log.info("Send Event from source: {}, event: {}", event.getSource().getClass().getSimpleName(), event);
+            log.debug("Send Event from source: {}, event: {}", event.getSource().getClass().getSimpleName(), event);
             eventBus.multicastEvent(event);
         });
     }

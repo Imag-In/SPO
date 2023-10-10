@@ -4,19 +4,24 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import one.util.streamex.EntryStream;
+import org.icroco.picture.event.CollectionEvent;
 import org.icroco.picture.event.CollectionsLoadedEvent;
+import org.icroco.picture.event.ExtractThumbnailEvent;
 import org.icroco.picture.event.FilesChangesDetectedEvent;
+import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.metadata.IMetadataExtractor;
-import org.icroco.picture.metadata.MetadataHeader;
-import org.icroco.picture.model.Camera;
 import org.icroco.picture.model.MediaCollection;
+import org.icroco.picture.model.MediaCollectionEntry;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.PersistenceService;
+import org.icroco.picture.util.FileUtil;
 import org.icroco.picture.views.task.AbstractTask;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Constant;
 import org.icroco.picture.views.util.DirectoryWatcher;
 import org.springframework.context.event.EventListener;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -35,6 +40,7 @@ public class CollectionManager {
     private final TaskService        taskService;
     private final DirectoryWatcher   directoryWatcher;
     private final PersistenceService persistenceService;
+    private final IHashGenerator     hashGenerator;
 
     @EventListener(CollectionsLoadedEvent.class)
     public void collectionLoaded(CollectionsLoadedEvent event) {
@@ -83,7 +89,10 @@ public class CollectionManager {
         }
     }
 
-    public void updateCollection(int collectionId, Collection<Path> toBeAdded, Collection<Path> toBeDeleted, Collection<Path> hasBeenModified) {
+    public void updateCollection(int collectionId,
+                                 Collection<Path> toBeAdded,
+                                 Collection<Path> toBeDeleted,
+                                 Collection<Path> hasBeenModified) {
         var now = LocalDate.now();
         persistenceService.updateCollection(collectionId,
                                             toBeAdded.stream().map(p -> create(now, p)).toList(),
@@ -98,24 +107,29 @@ public class CollectionManager {
                          .map(Path::normalize)
                          .filter(Constant::isSupportedExtension)
                          .toList();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.error("Cannot walk through directory: '{}'", rootPath);
             return Collections.emptyList();
         }
     }
 
-    private MediaFile create(LocalDate now, Path p) {
-        final var h = metadataExtractor.header(p);
+    MediaFile create(LocalDate now, Path p) {
+        var builder = MediaFile.builder()
+                               .fullPath(p)
+                               .fileName(p.getFileName().toString())
+                               .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN))
+                               .hash(hashGenerator.compute(p).orElse(""))
+                               .hashDate(now);
 
-        return MediaFile.builder()
-                .fullPath(p)
-                .fileName(p.getFileName().toString())
-                .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN))
-                .hashDate(now)
-                .originalDate(h.map(MetadataHeader::orginalDate).orElse(LocalDateTime.now()))
-                        .camera(h.map(MetadataHeader::camera).orElse(Camera.UNKWOWN_CAMERA))
-                .build();
+        metadataExtractor.header(p)
+                         .ifPresent(header -> builder.dimension(header.size())
+                                                     .orientation(header.orientation())
+                                                     .geoLocation(header.geoLocation())
+                                                     .camera(header.camera())
+                                                     .originalDate(header.orginalDate())
+                         );
+
+        return builder.build();
     }
 
 
@@ -137,7 +151,8 @@ public class CollectionManager {
     }
 
     private Map<MediaCollection, List<Path>> groupByCollection(Collection<Path> files) {
-        record PathAndCollection(Path path, MediaCollection mediaCollection) {}
+        record PathAndCollection(Path path, MediaCollection mediaCollection) {
+        }
 
         return files.stream()
                     .map(path -> new PathAndCollection(path, persistenceService.findMediaCollectionForFile(path).orElse(null)))
@@ -145,4 +160,106 @@ public class CollectionManager {
                     .collect(Collectors.groupingBy(pathAndCollection -> pathAndCollection.mediaCollection,
                                                    Collectors.mapping(PathAndCollection::path, Collectors.toList())));
     }
+
+    Task<MediaCollection> newCollection(@NonNull Path selectedDirectory) {
+        var task = scanDirectory(selectedDirectory);
+        taskService.supply(task);
+        return task;
+    }
+
+    private Task<MediaCollection> scanDirectory(Path rootPath) {
+        return new AbstractTask<>() {
+            @Override
+            protected MediaCollection call() throws Exception {
+                updateTitle("Scanning directory: " + rootPath.getFileName());
+                updateMessage("%s: scanning".formatted(rootPath));
+                Set<MediaCollectionEntry> children;
+                var                       now = LocalDate.now();
+                try (var s = Files.walk(rootPath)) {
+                    children = s.filter(Files::isDirectory)
+                                .map(Path::normalize)
+                                .filter(p -> !p.equals(rootPath))
+                                .filter(FileUtil::isLastDir)
+                                .map(p -> MediaCollectionEntry.builder().name(p).build())
+                                .collect(Collectors.toSet());
+                }
+                try (var images = Files.walk(rootPath)) {
+                    final var filteredImages = images.filter(p -> !Files.isDirectory(p))   // not a directory
+                                                     .map(Path::normalize)
+                                                     .filter(Constant::isSupportedExtension)
+                                                     .toList();
+                    final var size = filteredImages.size();
+                    updateProgress(0, size);
+                    var mc = MediaCollection.builder().path(rootPath)
+                                            .subPaths(children)
+                                            .medias(EntryStream.of(filteredImages)
+                                                               .peek(i -> updateProgress(i.getKey(), size))
+                                                               .map(i -> create(now, i.getValue()))
+                                                               .collect(Collectors.toSet()))
+                                            .build();
+                    mc = persistenceService.saveCollection(mc);
+                    taskService.sendEvent(ExtractThumbnailEvent.builder()
+                                                               .mediaCollection(mc)
+                                                               .source(this)
+                                                               .build());
+                    directoryWatcher.registerAll(mc.path());
+                    return mc;
+                }
+            }
+
+            @Override
+            protected void succeeded() {
+                var catalog = getValue();
+                log.info("Collections entries: {}, time: {}", catalog.medias().size(), System.currentTimeMillis() - start);
+            }
+
+            @Override
+            protected void failed() {
+                log.error("While scanning dir: '{}'", rootPath, getException());
+                super.failed();
+            }
+        };
+    }
+
+
+    void deleteCollection(final MediaCollection entry) {
+        taskService.supply(() -> {
+            persistenceService.deleteMediaCollection(entry.id());
+            taskService.sendEvent(CollectionEvent.builder()
+                                                 .mediaCollection(entry)
+                                                 .type(CollectionEvent.EventType.DELETED)
+                                                 .source(this)
+                                                 .build());
+        });
+    }
+
+    // TODO: move outside of this class, like collectionmanager.
+    private Task<List<MediaFile>> hashFiles(final List<MediaFile> mediaFiles, final int batchId, final int nbBatches) {
+        return new AbstractTask<>() {
+            @Override
+            protected List<MediaFile> call() throws Exception {
+                var size = mediaFiles.size();
+                updateTitle("Hashing %s files. %d/%d ".formatted(size, batchId, nbBatches));
+                updateProgress(0, size);
+//                updateMessage("%s: scanning".formatted(rootPath));
+                for (int i = 0; i < size; i++) {
+                    var mf = mediaFiles.get(i);
+                    updateProgress(i, size);
+                    updateMessage("Hashing: " + mf.getFullPath().getFileName());
+                    mf.setHash(hashGenerator.compute(mf.getFullPath()).orElse(null));
+                }
+                return mediaFiles;
+            }
+
+            @Override
+            protected void succeeded() {
+                log.info("'{}' files hashing time: {}", mediaFiles.size(), System.currentTimeMillis() - start);
+//            // We do not expand now, we're waiting thumbnails creation.
+//            createTreeView(mediaCollection);
+//            disablePathActions.set(false);
+//            taskService.notifyLater(new ExtractThumbnailEvent(mediaCollection, this));
+            }
+        };
+    }
+
 }

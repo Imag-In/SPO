@@ -8,7 +8,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
-import javafx.concurrent.Task;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
@@ -22,14 +21,14 @@ import javafx.util.StringConverter;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import one.util.streamex.EntryStream;
-import org.icroco.picture.event.*;
+import org.icroco.picture.event.CollectionEvent;
 import org.icroco.picture.event.CollectionEvent.EventType;
-import org.icroco.picture.hash.IHashGenerator;
+import org.icroco.picture.event.CollectionUpdatedEvent;
+import org.icroco.picture.event.CollectionsLoadedEvent;
+import org.icroco.picture.event.DeleteCollectionEvent;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaCollectionEntry;
-import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.CollectionRepository;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.FileUtil;
@@ -37,9 +36,7 @@ import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.pref.UserPreference;
 import org.icroco.picture.views.pref.UserPreferenceService;
-import org.icroco.picture.views.task.AbstractTask;
 import org.icroco.picture.views.task.TaskService;
-import org.icroco.picture.views.util.Constant;
 import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.Styles;
 import org.icroco.picture.views.util.widget.FxUtil;
@@ -50,29 +47,20 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-
-import static javafx.application.Platform.runLater;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class CollectionView implements FxView<VBox> {
-    private final CollectionRepository collectionRepository;
+    private final CollectionRepository  collectionRepository;
     private final TaskService           taskService;
     private final PersistenceService    persistenceService;
     private final UserPreferenceService pref;
     private final IMetadataExtractor    metadataExtractor;
-    private final IHashGenerator        hashGenerator;
+    private final CollectionManager     collectionManager;
     private final BooleanProperty       disablePathActions = new SimpleBooleanProperty(false);
     private final SimpleIntegerProperty catalogSizeProp    = new SimpleIntegerProperty(0);
 
@@ -111,9 +99,7 @@ public class CollectionView implements FxView<VBox> {
             cell.getRoot().addEventHandler(MouseEvent.ANY, event -> {
                 if (event.getClickCount() == 1
                     && event.getButton().equals(MouseButton.PRIMARY)
-                    && event.getEventType()
-                            .getName()
-                            .equals("MOUSE_CLICKED")) {
+                    && event.getEventType().getName().equals("MOUSE_CLICKED")) {
                     var path = pathSelectionProperty.get();
                     if (path != null) {
                         pathSelectionProperty.set(new PathSelection(path.mediaCollectionId(), path.subPath()));
@@ -251,6 +237,7 @@ public class CollectionView implements FxView<VBox> {
 //            Node source = (Node) mouseEvent.getSource();
 //            Nodes.getFirstParent(source, TitledPane.class)
 //                 .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
+        // TODO: Create Task (can takes times);
         persistenceService.findMediaCollection(event.getMcId())
                           .ifPresent(mc -> {
                               final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, "");
@@ -268,22 +255,22 @@ public class CollectionView implements FxView<VBox> {
                               dlg.resultProperty()
                                  .addListener(o -> {
                                      if (dlg.getResult() == ButtonType.OK) {
+                                         collectionManager.deleteCollection(mc);
                                          catalogSizeProp.set(catalogSizeProp.get() - mc.medias().size());
-                                         deleteCollection(mc);
                                      }
                                  });
                           });
 //    }
     }
 
-    private void deleteCollection(MediaCollection entry) {
-        taskService.supply(() -> {
-            rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path.equals(entry.path()));
-            persistenceService.deleteMediaCollection(entry.id());
-            taskService.sendEvent(CollectionEvent.builder().mediaCollection(entry).type(EventType.DELETED).source(this).build());
-            // TODO: Clean Thumbnail Cache and DB.
-        });
-    }
+//    private void deleteCollection(MediaCollection entry) {
+//        taskService.supply(() -> {
+//            rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path.equals(entry.path()));
+//            persistenceService.deleteMediaCollection(entry.id());
+//            taskService.sendEvent(CollectionEvent.builder().mediaCollection(entry).type(EventType.DELETED).source(this).build());
+//            // TODO: Clean Thumbnail Cache and DB.
+//        });
+//    }
 
     //    @FXML
     private void newCollection(MouseEvent event) {
@@ -306,137 +293,16 @@ public class CollectionView implements FxView<VBox> {
                         .filter(treeItem -> rootPath.startsWith(persistenceService.getMediaCollection(treeItem.getValue().id()).path()))
                         .findFirst()
                         .map(treeItem -> persistenceService.getMediaCollection(treeItem.getValue().id()))
-                        .ifPresent(this::deleteCollection); // TODO: Ask user confirmation.
+                        .ifPresent(collectionManager::deleteCollection); // TODO: Ask user confirmation.
 
             disablePathActions.set(true);
-
-            record CatalogAndTask(MediaCollection mediaCollection, CompletableFuture<?>[] futures) {
-            }
-
-            taskService.supply(scanDirectory(rootPath))
-                       // TODO: generate hash only at the end of collection creation.
-//                       .thenApplyAsync(catalog -> {
-//                           final var allFiles   = new ArrayBlockingQueue<MediaFile>(catalog.medias().size());
-//                           final var mediaFiles = List.copyOf(catalog.medias());
-//                           final var result     = Collections.splitByCoreWithIdx(mediaFiles);
-//                           final var futures = result.values()
-//                                                     .map(batchMf -> taskService.supply(hashFiles(batchMf.getValue(),
-//                                                                                                  batchMf.getKey(),
-//                                                                                                  result.splitCount()))
-//                                                                                .thenApply(allFiles::addAll))
-//                                                     .toArray(new CompletableFuture[0]);
-//                           return new CatalogAndTask(catalog, futures);
-//                       })
-//                       .thenApplyAsync(catalogAndTask -> {
-//                           CompletableFuture.allOf(catalogAndTask.futures);
-//                           return catalogAndTask.mediaCollection;
-//                       })
-                       .thenApplyAsync(persistenceService::saveCollection)
-                       .thenAccept(mediaCollection -> runLater(() -> {
-                           createTreeView(mediaCollection);
-                           taskService.sendEvent(ExtractThumbnailEvent.builder()
-                                                                      .mediaCollection(mediaCollection)
-                                                                      .source(this)
-                                                                      .build());
-                       }));
+            var task = collectionManager.newCollection(rootPath);
+            task.setOnSucceeded(evt -> {
+                disablePathActions.set(false);
+                createTreeView(task.getValue());
+            });
+            task.setOnFailed(evt -> disablePathActions.set(false));
         }
-    }
-
-    private Task<MediaCollection> scanDirectory(Path rootPath) {
-        return new AbstractTask<>() {
-            @Override
-            protected MediaCollection call() throws Exception {
-                updateTitle("Scanning directory: " + rootPath.getFileName());
-                updateMessage("%s: scanning".formatted(rootPath));
-                Set<MediaCollectionEntry> children;
-                var                       now = LocalDate.now();
-                try (var s = Files.walk(rootPath)) {
-                    children = s.filter(Files::isDirectory)
-                                .map(Path::normalize)
-                                .filter(p -> !p.equals(rootPath))
-                                .filter(FileUtil::isLastDir)
-                                .map(p -> MediaCollectionEntry.builder().name(p).build())
-                                .collect(Collectors.toSet());
-                }
-                try (var images = Files.walk(rootPath)) {
-                    final var filteredImages = images.filter(p -> !Files.isDirectory(p))   // not a directory
-                                                     .map(Path::normalize)
-                                                     .filter(Constant::isSupportedExtension)
-                                                     .toList();
-                    final var size = filteredImages.size();
-                    updateProgress(0, size);
-                    return MediaCollection.builder().path(rootPath)
-                                          .subPaths(children)
-                                          .medias(EntryStream.of(filteredImages)
-                                                             .peek(i -> updateProgress(i.getKey(), size))
-                                                             .map(i -> create(now, i.getValue()))
-                                                             .collect(Collectors.toSet()))
-                                          .build();
-                }
-            }
-
-            @Override
-            protected void succeeded() {
-                var catalog = getValue();
-                log.info("Collections entries: {}, time: {}", catalog.medias().size(), System.currentTimeMillis() - start);
-                disablePathActions.set(false);
-            }
-
-            @Override
-            protected void failed() {
-                disablePathActions.set(false);
-                log.error("While scanning dir: '{}'", rootPath, getException());
-                super.failed();
-            }
-        };
-    }
-
-    // TODO: move outside of this class, like collectionmanager.
-    private Task<List<MediaFile>> hashFiles(final List<MediaFile> mediaFiles, final int batchId, final int nbBatches) {
-        return new AbstractTask<>() {
-            @Override
-            protected List<MediaFile> call() throws Exception {
-                var size = mediaFiles.size();
-                updateTitle("Hashing %s files. %d/%d ".formatted(size, batchId, nbBatches));
-                updateProgress(0, size);
-//                updateMessage("%s: scanning".formatted(rootPath));
-                for (int i = 0; i < size; i++) {
-                    var mf = mediaFiles.get(i);
-                    updateProgress(i, size);
-                    updateMessage("Hashing: " + mf.getFullPath().getFileName());
-                    mf.setHash(hashGenerator.compute(mf.getFullPath()).orElse(null));
-                }
-                return mediaFiles;
-            }
-
-            @Override
-            protected void succeeded() {
-                log.info("'{}' files hashing time: {}", mediaFiles.size(), System.currentTimeMillis() - start);
-//            // We do not expand now, we're waiting thumbnails creation.
-//            createTreeView(mediaCollection);
-//            disablePathActions.set(false);
-//            taskService.notifyLater(new ExtractThumbnailEvent(mediaCollection, this));
-            }
-        };
-    }
-
-    private MediaFile create(LocalDate now, Path p) {
-        final var h = metadataExtractor.header(p);
-
-        var builder = MediaFile.builder()
-                               .fullPath(p)
-                               .fileName(p.getFileName().toString())
-                               .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN));
-
-        h.ifPresent(header -> {
-            builder.dimension(header.size())
-                   .orientation(header.orientation())
-                   .geoLocation(header.geoLocation())
-                   .camera(header.camera())
-                   .originalDate(header.orginalDate());
-        });
-
-        return builder.build();
     }
 
 
@@ -503,6 +369,9 @@ public class CollectionView implements FxView<VBox> {
                             treeItem.setExpanded(true);
                             treeView.getSelectionModel().select(treeItem);
                         });
+        } else if (Objects.requireNonNull(event.getType()) == EventType.DELETED) {
+            catalogSizeProp.set(catalogSizeProp.get() - event.getMediaCollection().medias().size());
+            rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path.equals(event.getMediaCollection().path()));
         }
 //        else if (EventType.SELECTED == event.getType()) {
 //            treeView.getSelectionModel().clearSelection();

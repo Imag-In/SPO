@@ -368,13 +368,14 @@ public class GalleryView implements FxView<StackPane> {
 
 
     public void collectionPathChange(ObservableValue<? extends PathSelection> observable, PathSelection oldValue, PathSelection newValue) {
-        log.info("MediaCollection subpath selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
         dblCickState = EGalleryClickState.GALLERY;
         if (newValue.equalsNoSeed(oldValue)) {
+            log.info("MediaCollection subpath re-selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
             displayGallery(null);
 //            gallery.setOpacity(0);
 //             Animations.fadeIn(gallery, Duration.millis(1000)).playFromStart();
         } else {
+            log.info("MediaCollection subpath selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
             currentCatalog.setValue(persistenceService.getMediaCollection(newValue.mediaCollectionId()));
             resetBcbModel(newValue.subPath());
             final var path = getCurrentCatalog().path().resolve(newValue.subPath());
@@ -420,16 +421,16 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void imageLoading(ImageLoadingdEvent event) {
-//        photo.getMaskerPane().start(event.getProgress());
+        photo.getMaskerPane().start(event.getProgress());
     }
 
     @FxEventListener
     public void imageLoaded(ImageLoadedEvent event) {
         photo.setImage(event.getMediaFile(), event.getImage(), event.isFromCache());
-//        if (!event.isFromCache()) {
-//            photo.getMaskerPane().stop();
-//        }
-//        gridView.getLeftAndRight(event.getMediaFile()).forEach(mediaLoader::warmCache);
+        if (!event.isFromCache()) {
+            photo.getMaskerPane().stop();
+        }
+        gridView.getLeftAndRight(event.getMediaFile()).forEach(mediaLoader::warmCache);
     }
 
     private void resetBcbModel(@Nullable final Path entry) {
@@ -460,14 +461,31 @@ public class GalleryView implements FxView<StackPane> {
 
     private void leftPressed(KeyEvent keyEvent) {
         if (dblCickState.isImage() && photo.getMediaFile() != null) {
-            gridView.getLeft(photo.getMediaFile()).ifPresent(mediaLoader::getOrLoadImage);
+            gridView.getLeft(photo.getMediaFile()).ifPresent(mf -> {
+                // TODO: Test by adding to selection ?
+                taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                        .mf(mf)
+                                                        .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+                                                        .source(this)
+                                                        .build());
+                mediaLoader.getOrLoadImage(mf);
+            });
         }
         keyEvent.consume();
     }
 
     private void rightPressed(KeyEvent keyEvent) {
         if (dblCickState.isImage() && photo.getMediaFile() != null) {
-            gridView.getRight(photo.getMediaFile()).ifPresent(mediaLoader::getOrLoadImage);
+            gridView.getRight(photo.getMediaFile())
+                    .ifPresent(mf -> {
+                        // TODO: Test by adding to selection ?
+                        taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                                .mf(mf)
+                                                                .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+                                                                .source(this)
+                                                                .build());
+                        mediaLoader.getOrLoadImage(mf);
+                    });
         }
         keyEvent.consume();
     }

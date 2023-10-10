@@ -28,7 +28,7 @@ logging:
     root: INFO
     "org.icroco.javafx": INFO
     "org.icroco.picture.views.task": INFO
-    "org.icroco.picture.views.util": INFO
+    "org.icroco.picture.views.util": DEBUG
     "org.icroco.picture.views.gallery": INFO
 
   pattern:
