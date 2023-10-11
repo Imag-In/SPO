@@ -8,6 +8,8 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import lombok.extern.slf4j.Slf4j;
+import net.codecrete.usb.USB;
+import net.codecrete.usb.USBDevice;
 import org.controlsfx.dialog.ExceptionDialog;
 import org.icroco.javafx.StageReadyEvent;
 import org.icroco.picture.util.Error;
@@ -119,10 +121,17 @@ public class ImagInApp extends Application {
             primaryStage.setOnCloseRequest(this::closeRequest);
             Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));
             Platform.runLater(primaryStage::show);
+            USB.setOnDeviceConnected((device) -> printDetails(device, "Connected"));
+            USB.setOnDeviceDisconnected((device) -> printDetails(device, "Disconnected"));
         }
         catch (Exception ex) {
             log.error("Unexpected error while starting", ex);
         }
+    }
+
+    private static void printDetails(USBDevice device, String event) {
+        System.out.printf("%-14s", event + ":");
+        System.out.println(device.toString());
     }
 
     @Override

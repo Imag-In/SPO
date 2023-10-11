@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.icroco</groupId>
     <artifactId>imag-in</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
 
     <properties>
         <caffeine.version>3.1.6</caffeine.version>
@@ -43,6 +43,8 @@
         <scenicview.version>17.0.2</scenicview.version>
         <jsr305.version>3.0.2</jsr305.version>
         <cssfx.version>11.5.1</cssfx.version>
+        <usbdrivedetector.version>2.2.1</usbdrivedetector.version>
+        <java-does-usb.version>0.6.1</java-does-usb.version>
     </properties>
 
     <dependencyManagement>
@@ -66,6 +68,16 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>net.codecrete.usb</groupId>
+            <artifactId>java-does-usb</artifactId>
+            <version>${java-does-usb.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.samuelcampos</groupId>
+            <artifactId>usbdrivedetector</artifactId>
+            <version>${usbdrivedetector.version}</version>
+        </dependency>
         <dependency>
             <groupId>fr.brouillard.oss</groupId>
             <artifactId>cssfx</artifactId>
@@ -356,6 +368,7 @@
                     <release>${java.version}</release>
                     <showWarnings>true</showWarnings>
                     <compilerArgs>
+                        <arg>--enable-preview</arg>
                         <arg>-parameters</arg>
                         <arg>-Amapstruct.suppressGeneratorTimestamp=true</arg>
                         <arg>-Amapstruct.suppressGeneratorVersionInfoComment=true</arg>

@@ -3,6 +3,9 @@ package org.icroco.picture.config;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
+import net.samuelcampos.usbdrivedetector.USBDeviceDetectorManager;
+import net.samuelcampos.usbdrivedetector.events.DeviceEventType;
+import org.icroco.picture.event.UsbStorageDeviceEvent;
 import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.hash.JdkHashGenerator;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
@@ -11,6 +14,7 @@ import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.thumbnail.IThumbnailGenerator;
 import org.icroco.picture.thumbnail.ImgscalrGenerator;
+import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Constant;
 import org.icroco.picture.views.util.FxPlatformExecutor;
 import org.springframework.cache.annotation.EnableCaching;
@@ -111,6 +115,22 @@ public class ImagInConfiguration {
         executor.initialize();
 
         return executor;
+    }
+
+    @Bean(destroyMethod = "close")
+    USBDeviceDetectorManager createUsbDriveDetector(TaskService taskService) {
+        var usbDetector = new USBDeviceDetectorManager();
+        usbDetector.addDriveListener(evt -> {
+            log.info("USB detected: {}", evt);
+            if (evt.getEventType() == DeviceEventType.CONNECTED) {
+                taskService.sendEvent(UsbStorageDeviceEvent.builder()
+                                                           .deviceName(evt.getStorageDevice().getDeviceName())
+                                                           .rootDirectory(evt.getStorageDevice().getRootDirectory().toPath())
+                                                           .source(ImagInConfiguration.this)
+                                                           .build());
+            }
+        });
+        return usbDetector;
     }
 
     @Bean(name = DIRECTORY_WATCHER, destroyMethod = "shutdownNow")
