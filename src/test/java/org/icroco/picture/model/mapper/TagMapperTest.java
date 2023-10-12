@@ -3,6 +3,7 @@ package org.icroco.picture.model.mapper;
 import org.assertj.core.api.Assertions;
 import org.icroco.picture.model.Tag;
 import org.icroco.picture.model.TagTest;
+import org.icroco.picture.persistence.mapper.TagMapper;
 import org.junit.jupiter.api.Test;
 
 

@@ -1,4 +1,4 @@
-package org.icroco.picture.model.mapper;
+package org.icroco.picture.persistence.mapper;
 
 import org.mapstruct.MapperConfig;
 

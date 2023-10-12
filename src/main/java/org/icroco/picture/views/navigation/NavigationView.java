@@ -4,6 +4,7 @@ import atlantafx.base.controls.Spacer;
 import atlantafx.base.theme.Styles;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -13,10 +14,12 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.widget.FxUtil;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2OutlinedMZ;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 
@@ -25,15 +28,21 @@ import org.springframework.stereotype.Component;
 public class NavigationView implements FxView<HBox> {
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
 
+    private final SimpleStringProperty currentView;
+
     private final HBox  root        = new HBox();
     private final Label importLbl   = new Label();
     private final Label organizeLbl = new Label();
+    private final Label repairLbl   = new Label();
     private final Label peopleLbl   = new Label();
     private final Label exportLbl   = new Label();
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
 
-    public NavigationView() {
-        root.getStyleClass().add("v-navigation");
+    public NavigationView(@Qualifier(ViewConfiguration.CURRENT_VIEW)
+                          SimpleStringProperty currentView) {
+        this.currentView = currentView;
+        root.setId(ViewConfiguration.V_NAVIGATION);
+        root.getStyleClass().add(ViewConfiguration.V_NAVIGATION);
         root.getStyleClass().add("tabs");
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(0, 0, 10, 0));
@@ -41,7 +50,8 @@ public class NavigationView implements FxView<HBox> {
         organizeLbl.setText("Organize");
         importLbl.setDisable(false);
         importLbl.setText("Import");
-        importLbl.setDisable(true);
+        repairLbl.setText("Repair");
+        repairLbl.setDisable(true);
         peopleLbl.setText("People");
         peopleLbl.setDisable(true);
         exportLbl.setText("Export");
@@ -51,6 +61,7 @@ public class NavigationView implements FxView<HBox> {
 
         initTabLabel(importLbl);
         initTabLabel(organizeLbl);
+        initTabLabel(repairLbl);
         initTabLabel(peopleLbl);
         initTabLabel(exportLbl);
 
@@ -62,6 +73,11 @@ public class NavigationView implements FxView<HBox> {
 //                stateToggle.setDisable(false);
 //                content.getChildren().setAll(preview);
 //            }
+            if (val == importLbl) {
+                currentView.set(ViewConfiguration.V_IMPORT);
+            } else if (val == organizeLbl) {
+                currentView.set(ViewConfiguration.V_ORGANIZE);
+            }
 
             if (old != null) {
                 old.pseudoClassStateChanged(SELECTED, false);
@@ -79,7 +95,7 @@ public class NavigationView implements FxView<HBox> {
         settings.setTooltip(new Tooltip("Settings"));
         FxUtil.styleCircleButton(settings).setOnAction(this::openSettings);
 
-        root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, peopleLbl, exportLbl, new Spacer(), settings);
+        root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, repairLbl, peopleLbl, exportLbl, new Spacer(), settings);
 
     }
 

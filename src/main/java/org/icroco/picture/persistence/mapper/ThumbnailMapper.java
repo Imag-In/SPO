@@ -1,4 +1,4 @@
-package org.icroco.picture.model.mapper;
+package org.icroco.picture.persistence.mapper;
 
 import javafx.scene.image.Image;
 import org.icroco.picture.model.Thumbnail;

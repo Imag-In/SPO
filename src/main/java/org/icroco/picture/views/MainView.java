@@ -6,6 +6,9 @@ import atlantafx.base.util.Animations;
 import jakarta.annotation.PostConstruct;
 import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
+import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -19,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.javafx.SceneReadyEvent;
 import org.icroco.picture.event.UsbStorageDeviceEvent;
 import org.icroco.picture.util.Resources;
+import org.icroco.picture.views.ext_import.ImportView;
 import org.icroco.picture.views.navigation.NavigationView;
 import org.icroco.picture.views.organize.OrganizeView;
 import org.icroco.picture.views.status.StatusBarView;
@@ -26,33 +30,63 @@ import org.icroco.picture.views.util.FxView;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.scenicview.ScenicView;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.prefs.BackingStoreException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @RequiredArgsConstructor
 @Component
 public class MainView implements FxView<StackPane> {
 
-    private final StackPane root = new StackPane();
-    private final NavigationView navView;
-    private final StatusBarView  statusView;
-    private final OrganizeView   organizeView;
+    private final NavigationView       navView;
+    private final StatusBarView        statusView;
+    private final OrganizeView         organizeView;
+    private final ImportView           importView;
+    @Qualifier(ViewConfiguration.CURRENT_VIEW)
+    private final SimpleStringProperty currentView;
+
+    private final StackPane root       = new StackPane();
+    private final StackPane centerView = new StackPane();
+
+    private final Map<String, FxView<?>> views = new HashMap<>(10);
 
     @PostConstruct
     protected void initializedOnce() {
         log.info("Primary screen: {}", Screen.getPrimary());
-        Screen.getScreens().forEach(screen -> {
-            log.info("Screen: {}", screen);
-        });
+        Screen.getScreens().forEach(screen -> log.info("Screen: {}", screen));
         root.getStyleClass().add("v-main");
         var borderPane = new BorderPane();
         borderPane.setTop(navView.getRootContent());
         borderPane.setBottom(statusView.getRootContent());
-        borderPane.setCenter(organizeView.getRootContent());
+
+        views.putAll(Stream.<FxView<?>>of(importView, organizeView)
+                           .collect(Collectors.toMap(fxView -> fxView.getRootContent().getId(), Function.identity())));
+
+        centerView.getChildren().addAll(views.values()
+                                             .stream()
+                                             .peek(fxView -> fxView.getRootContent().setVisible(false))
+                                             .map(FxView::getRootContent).toList());
+        currentView.addListener(this::currentViewListener);
+
+        borderPane.setCenter(centerView);
         root.getChildren().add(borderPane);
+        Platform.runLater(() -> currentViewListener(null, null, currentView.get()));
+    }
+
+    private void currentViewListener(ObservableValue<? extends String> observableValue, String oldView, String newView) {
+        if (oldView != null) {
+            Optional.ofNullable(views.get(oldView)).ifPresent(v -> v.getRootContent().setVisible(false));
+        }
+        Optional.ofNullable(views.get(newView)).ifPresent(v -> v.getRootContent().setVisible(true));
     }
 
     @EventListener(SceneReadyEvent.class)

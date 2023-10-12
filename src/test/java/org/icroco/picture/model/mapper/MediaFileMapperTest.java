@@ -2,6 +2,9 @@ package org.icroco.picture.model.mapper;
 
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.MediaFileTest;
+import org.icroco.picture.persistence.mapper.GeoLocationMapper;
+import org.icroco.picture.persistence.mapper.MediaFileMapper;
+import org.icroco.picture.persistence.mapper.TagMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;

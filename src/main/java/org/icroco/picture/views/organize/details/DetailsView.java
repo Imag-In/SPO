@@ -9,7 +9,6 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -20,8 +19,9 @@ import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.EThumbnailType;
 import org.icroco.picture.util.Env;
+import org.icroco.picture.views.AbstractView;
 import org.icroco.picture.views.FxEventListener;
-import org.icroco.picture.views.util.FxView;
+import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 @Component
-public class DetailsView implements FxView<VBox> {
+public class DetailsView extends AbstractView<VBox> {
     public static final String             FILE_NOT_FOUND         = "File Not Found";
     public static final String             IMAGE_METADATA_DETAILS = "imageMetadataDetails";
     //    private final PersistenceService    persistenceService;
@@ -74,7 +74,7 @@ public class DetailsView implements FxView<VBox> {
 
     @PostConstruct
     private void postConstruct() {
-        root.getStyleClass().add("v-details");
+        root.getStyleClass().add(ViewConfiguration.V_DETAILS);
         root.setVisible(false);
         root.setMinWidth(200);
 
@@ -174,39 +174,6 @@ public class DetailsView implements FxView<VBox> {
         return grid;
     }
 
-    static Label createLabel() {
-        return createLabel(150, 200);
-    }
-
-    static Label createLabel(String text, int minWidth, int prefWidth) {
-        Label l = new Label(text);
-        if (minWidth > 0) {
-            l.setMinWidth(minWidth);
-        }
-        if (prefWidth > 0) {
-            l.setPrefWidth(prefWidth);
-        }
-        l.setWrapText(true);
-
-        return l;
-    }
-
-    static TextField createTextField(String text, int minWidth, int prefWidth) {
-        TextField l = new TextField(text);
-        l.setEditable(false);
-        if (minWidth > 0) {
-            l.setMinWidth(minWidth);
-        }
-        if (prefWidth > 0) {
-            l.setPrefWidth(prefWidth);
-        }
-
-        return l;
-    }
-
-    static Label createLabel(int minWidth, int prefWidth) {
-        return createLabel(null, minWidth, prefWidth);
-    }
 
     @FxEventListener
     public void updatePhotoSelected(PhotoSelectedEvent event) {

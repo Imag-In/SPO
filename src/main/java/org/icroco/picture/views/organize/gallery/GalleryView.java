@@ -35,6 +35,7 @@ import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.views.FxEventListener;
+import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.task.TaskService;
@@ -90,11 +91,13 @@ public class GalleryView implements FxView<StackPane> {
 
     @PostConstruct
     protected void postConstruct() {
-        root.getStyleClass().add("v-gallery");
-        root.setId("gallery");
+        root.getStyleClass().add(ViewConfiguration.V_GALLERY);
+        root.setId(ViewConfiguration.V_GALLERY);
         gridView = new CustomGridView<>(taskService, FXCollections.emptyObservableList());
         gridView.addScrollAndKeyhandler();
         root.setMinSize(350, 250);
+        root.setEventDispatcher(new DoubleClickEventDispatcher(root.getEventDispatcher()));
+
         log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
                  gridView.getCellWidth(),
                  gridView.getCellHeight(),

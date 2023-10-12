@@ -8,7 +8,6 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import lombok.extern.slf4j.Slf4j;
-import net.codecrete.usb.USB;
 import net.codecrete.usb.USBDevice;
 import org.controlsfx.dialog.ExceptionDialog;
 import org.icroco.javafx.StageReadyEvent;
@@ -16,7 +15,6 @@ import org.icroco.picture.util.Error;
 import org.icroco.picture.util.Resources;
 import org.icroco.picture.views.MainView;
 import org.icroco.picture.views.pref.UserPreferenceService;
-import org.icroco.picture.views.util.DoubleClickEventDispatcher;
 import org.icroco.picture.views.util.ImageUtils;
 import org.icroco.picture.views.util.Nodes;
 import org.scenicview.ScenicView;
@@ -93,11 +91,10 @@ public class ImagInApp extends Application {
         try {
             log.debug("Init: {}", getClass().getSimpleName());
             ApplicationContextInitializer<GenericApplicationContext> initializer = genericApplicationContext -> {
-                genericApplicationContext.registerBean(Application.class, () -> this);
+                genericApplicationContext.registerBean(Application.class, () -> ImagInApp.this);
                 genericApplicationContext.registerBean(Parameters.class, this::getParameters);
                 genericApplicationContext.registerBean(HostServices.class, this::getHostServices);
             };
-
             applicationContext = new SpringApplicationBuilder().sources(getClass())
                                                                .bannerMode(Banner.Mode.OFF)
                                                                .headless(false)
@@ -105,8 +102,7 @@ public class ImagInApp extends Application {
                                                                .build()
                                                                .run(getParameters().getRaw().toArray(new String[0]));
 
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             log.error("Unexpected error while init", ex);
         }
     }
@@ -121,17 +117,15 @@ public class ImagInApp extends Application {
             primaryStage.setOnCloseRequest(this::closeRequest);
             Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));
             Platform.runLater(primaryStage::show);
-            USB.setOnDeviceConnected((device) -> printDetails(device, "Connected"));
-            USB.setOnDeviceDisconnected((device) -> printDetails(device, "Disconnected"));
-        }
-        catch (Exception ex) {
+//            USB.setOnDeviceConnected((device) -> printDetails(device, "Connected"));
+//            USB.setOnDeviceDisconnected((device) -> printDetails(device, "Disconnected"));
+        } catch (Exception ex) {
             log.error("Unexpected error while starting", ex);
         }
     }
 
     private static void printDetails(USBDevice device, String event) {
-        System.out.printf("%-14s", event + ":");
-        System.out.println(device.toString());
+        log.info("{}: {}", event, device.toString());
     }
 
     @Override
@@ -148,7 +142,6 @@ public class ImagInApp extends Application {
     }
 
 
-
     protected void preStart(final Stage primaryStage) {
 //        System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Image'In");
 //        System.setProperty("apple.laf.useScreenMenuBar", "true");
@@ -160,7 +153,9 @@ public class ImagInApp extends Application {
             var taskbar = Taskbar.getTaskbar();
             if (taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) {
                 final Toolkit defaultToolkit = Toolkit.getDefaultToolkit();
-                var           dockIcon       = defaultToolkit.getImage(getClass().getResource(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG));
+                var
+                        dockIcon =
+                        defaultToolkit.getImage(getClass().getResource(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG));
                 taskbar.setIconImage(dockIcon);
             }
         }
@@ -177,7 +172,6 @@ public class ImagInApp extends Application {
                                  userPref.getUserPreference().getMainWindow().getWidth(),
                                  userPref.getUserPreference().getMainWindow().getHeight());
         primaryStage.setScene(scene);
-        scene.setEventDispatcher(new DoubleClickEventDispatcher(scene.getEventDispatcher()));
 
         scene.getStylesheets().addAll(Resources.resolve("/styles/index.css"));
         if (Boolean.getBoolean("SCENIC")) {

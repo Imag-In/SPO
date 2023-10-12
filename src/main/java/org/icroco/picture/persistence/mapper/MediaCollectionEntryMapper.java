@@ -1,4 +1,4 @@
-package org.icroco.picture.model.mapper;
+package org.icroco.picture.persistence.mapper;
 
 import org.icroco.picture.model.MediaCollectionEntry;
 import org.icroco.picture.persistence.model.MediaCollectionEntryEntity;
