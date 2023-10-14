@@ -127,6 +127,7 @@ public class CollectionManager {
                                                      .geoLocation(header.geoLocation())
                                                      .camera(header.camera())
                                                      .originalDate(header.orginalDate())
+                                                     .keywords(header.keywords())
                          );
 
         return builder.build();

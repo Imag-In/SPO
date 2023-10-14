@@ -13,7 +13,7 @@ public interface IMediaFile {
 
     LocalDateTime originalDate();
 
-    Set<Tag> tags();
+    Set<Keyword> tags();
 
     GeoLocation geoLocation();
 

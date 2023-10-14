@@ -3,6 +3,7 @@ package org.icroco.picture.thumbnail;
 import org.icroco.picture.hash.JdkHashGenerator;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.IMetadataExtractor;
+import org.icroco.picture.metadata.TagManagerTest;
 import org.icroco.picture.model.Dimension;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -24,7 +25,8 @@ import java.util.concurrent.TimeUnit;
 public class ThumbnailGeneratorBenchmark {
 
     List<Path>             paths;
-    IMetadataExtractor     metadataExtractor      = new DefaultMetadataExtractor();
+
+    IMetadataExtractor metadataExtractor = new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER);
     ImgscalrGenerator      imgscalrGenerator      = new ImgscalrGenerator(new JdkHashGenerator(), metadataExtractor);
     ThumbnailatorGenerator thumbnailatorGenerator = new ThumbnailatorGenerator();
 

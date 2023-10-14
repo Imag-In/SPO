@@ -9,6 +9,7 @@ import org.icroco.picture.event.UsbStorageDeviceEvent;
 import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.hash.JdkHashGenerator;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
+import org.icroco.picture.metadata.IKeywordManager;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
@@ -41,6 +42,7 @@ public class ImagInConfiguration {
     public static final String CACHE_IMAGE_HEADER    = "imageHeader";
 
     public static final String CACHE_CATALOG = "catalog";
+    public static final String CACHE_KEYWORD = "keyword";
     public static final String DIRECTORY_WATCHER = "DirWatch";
     public static final String FX_EXECUTOR       = "FX_EXECUTOR";
     public static final String IMAG_IN_EXECUTOR  = "IMAG_IN_EXEC";
@@ -87,6 +89,13 @@ public class ImagInConfiguration {
                                  Caffeine.newBuilder()
                                          .recordStats()
                                          .maximumSize(200) // TODO: Compute this at runtime, based on RAM and -Xmx.
+                                         .build());
+    }
+
+    @Bean(name = CACHE_KEYWORD)
+    public CaffeineCache tagCache() {
+        return new CaffeineCache(CACHE_KEYWORD,
+                                 Caffeine.newBuilder()
                                          .build());
     }
 
@@ -139,8 +148,8 @@ public class ImagInConfiguration {
     }
 
     @Bean
-    public IMetadataExtractor metadataExtractor() {
-        return new DefaultMetadataExtractor();
+    public IMetadataExtractor metadataExtractor(IKeywordManager tagManager) {
+        return new DefaultMetadataExtractor(tagManager);
     }
 
     @Bean

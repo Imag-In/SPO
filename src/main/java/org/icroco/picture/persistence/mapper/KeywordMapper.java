@@ -1,15 +1,15 @@
 package org.icroco.picture.persistence.mapper;
 
-import org.icroco.picture.model.Tag;
-import org.icroco.picture.persistence.model.TagEntity;
+import org.icroco.picture.model.Keyword;
+import org.icroco.picture.persistence.model.KeywordEntity;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 
 @Mapper
-public interface TagMapper {
+public interface KeywordMapper {
     //    @Mapping(target = "manufacturer", source = "make")
-    Tag toDomain(TagEntity mediaFile);
+    Keyword toDomain(KeywordEntity mediaFile);
 
     @InheritInverseConfiguration
-    TagEntity toEntity(Tag tag);
+    KeywordEntity toEntity(Keyword keyword);
 }

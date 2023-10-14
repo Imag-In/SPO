@@ -10,9 +10,11 @@ import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
 import com.drew.metadata.iptc.IptcDirectory;
+import lombok.RequiredArgsConstructor;
 import org.icroco.picture.config.ImagInConfiguration;
 import org.icroco.picture.model.Camera;
 import org.icroco.picture.model.Dimension;
+import org.icroco.picture.model.Keyword;
 import org.icroco.picture.views.util.Collections;
 import org.jooq.lambda.Unchecked;
 import org.slf4j.Logger;
@@ -23,10 +25,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -36,11 +35,14 @@ import java.util.stream.StreamSupport;
 import static java.util.Optional.ofNullable;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+@RequiredArgsConstructor
 public class DefaultMetadataExtractor implements IMetadataExtractor {
 
-    public static final  LocalDateTime EPOCH_0 = Instant.ofEpochMilli(0).atZone(ZoneId.systemDefault()).toLocalDateTime();
-    private static final Logger        log     = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
+    public static final  LocalDateTime     EPOCH_0             = Instant.ofEpochMilli(0).atZone(ZoneId.systemDefault()).toLocalDateTime();
+    private static final Logger            log                 = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
     private static final Supplier<Integer> DEFAULT_ORIENTATION = () -> 0;
+
+    private final IKeywordManager tagManager;
 
 
     @Override
@@ -106,6 +108,8 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                                                                        .orElse(NO_WHERE))
                                              .size(extractSize(path, edb))
                                              .camera(extractCamera(path, firstExifIFD0Directory))
+                                             .keywords(extractKeywords(path,
+                                                                       ofNullable(metadata.getFirstDirectoryOfType(IptcDirectory.class))))
                                              .build());
         } catch (Throwable ex) {
             log.warn("Cannot read header for Path: {}, message: {}", path, ex.getLocalizedMessage());
@@ -126,9 +130,19 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     }
 
 
-    public void extractTags(Metadata metadata) {
-        var    directory  = metadata.getFirstDirectoryOfType(IptcDirectory.class);
-        String keywords[] = directory.getStringArray(IptcDirectory.TAG_KEYWORDS);
+    public Set<Keyword> extractKeywords(Path path, Optional<IptcDirectory> firstIptcDirectory) {
+        return firstIptcDirectory.map(directory -> {
+                                     var keywords = directory.getStringArray(IptcDirectory.TAG_KEYWORDS);
+
+                                     if (keywords == null || keywords.length == 0) {
+                                         return java.util.Collections.<Keyword>emptySet();
+                                     }
+
+                                     return Arrays.stream(keywords)
+                                                  .map(tagManager::findOrCreateTag)
+                                                  .collect(Collectors.toSet());
+                                 })
+                                 .orElse(java.util.Collections.emptySet());
     }
 
 

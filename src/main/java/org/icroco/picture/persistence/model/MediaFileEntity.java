@@ -51,9 +51,14 @@ public class MediaFileEntity {
     @Column(name = "collection_id")
     private Integer collectionId;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @JoinColumn(name = "tag_id")
-    private Set<TagEntity> tags;
+    //    @ManyToMany(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER, mappedBy = "entities")
+//    @JoinTable(name = "MF_TAGS", joinColumns = @JoinColumn(name = "tag_id"))
+//    @JoinColumn(name = "tag_id", referencedColumnName = "id")
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "mf_keywords",
+               joinColumns = @JoinColumn(name = "mf_id"),
+               inverseJoinColumns = @JoinColumn(name = "kw_id"))
+    private Set<KeywordEntity> keywords;
 
     @NonNull
     @Enumerated(EnumType.STRING)

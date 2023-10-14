@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class IMetadataExtractorBenchmark {
 
-    DefaultMetadataExtractor defaultMetadataExtractor = new DefaultMetadataExtractor();
+    DefaultMetadataExtractor defaultMetadataExtractor = new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER);
     Path                     path                     = Paths.get("src/test/resources/images/benchmark/Corse 2015-24072015-275.jpg");
 
     @Benchmark

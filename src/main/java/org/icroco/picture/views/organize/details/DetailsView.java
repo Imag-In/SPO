@@ -18,6 +18,7 @@ import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.EThumbnailType;
+import org.icroco.picture.model.Keyword;
 import org.icroco.picture.util.Env;
 import org.icroco.picture.views.AbstractView;
 import org.icroco.picture.views.FxEventListener;
@@ -30,6 +31,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignK;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignT;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -67,6 +69,7 @@ public class DetailsView extends AbstractView<VBox> {
     private final Label   orientation   = createLabel();
     private final Label   cameraMake    = createLabel();
     private final Label   cameraModel   = createLabel();
+    private final Label   keywords      = createLabel();
     private       TabPane tabs;
     DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
@@ -162,12 +165,17 @@ public class DetailsView extends AbstractView<VBox> {
         grid.add(cameraMake, 1, rowIdx);
         rowIdx++;
         grid.add(cameraModel, 1, rowIdx);
-
         rowIdx += 1;
 
-        //FontAwesomeRegular.THUMBS_UP
-        grid.add(FontIcon.of(MaterialDesignP.PHONE_ROTATE_LANDSCAPE), 0, rowIdx);
-        grid.add(orientation, 1, rowIdx);
+        if (env.isDev()) {
+            grid.add(FontIcon.of(MaterialDesignP.PHONE_ROTATE_LANDSCAPE), 0, rowIdx);
+            grid.add(orientation, 1, rowIdx);
+            rowIdx += 2;
+        }
+
+        grid.add(FontIcon.of(MaterialDesignT.TAG_OUTLINE), 0, rowIdx);
+        grid.add(keywords, 1, rowIdx);
+
 
         grid.setAlignment(Pos.TOP_RIGHT);
 
@@ -193,7 +201,6 @@ public class DetailsView extends AbstractView<VBox> {
                 gps.setText(mf.getGeoLocation().toDMSString());
             }
             size.setText(Objects.toString(mf.getDimension()));
-            root.setVisible(true);
             orientation.setText(Arrays.stream(ERotation.fromOrientation(mf.getOrientation()))
                                       .sorted()
                                       .map(Objects::toString)
@@ -201,6 +208,8 @@ public class DetailsView extends AbstractView<VBox> {
             cameraMake.setText(mf.camera().make());
             cameraModel.setText(mf.camera().model());
             path = mf.getFullPath();
+            keywords.setText(mf.getKeywords().stream().map(Keyword::name).collect(Collectors.joining(",")));
+            root.setVisible(true);
         } else {
             root.setVisible(false);
             thumbnailType.setText(EThumbnailType.ABSENT.toString());
@@ -208,11 +217,11 @@ public class DetailsView extends AbstractView<VBox> {
             size.setText("");
             gps.setText("");
             orientation.setText("");
-            orientation.setText("");
             cameraMake.setText("");
             cameraModel.setText("");
-            maskerPane.getContent().getChildren().clear();
+            keywords.setText("");
         }
+        maskerPane.stop();
     }
 
     @Override

@@ -1,10 +1,7 @@
-package org.icroco.picture.model.mapper;
+package org.icroco.picture.persistence.mapper;
 
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.MediaFileTest;
-import org.icroco.picture.persistence.mapper.GeoLocationMapper;
-import org.icroco.picture.persistence.mapper.MediaFileMapper;
-import org.icroco.picture.persistence.mapper.TagMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +19,8 @@ class MediaFileMapperTest {
     @Configuration
     static class TagConfig {
         @Bean
-        public TagMapper createTagMapper() {
-            return new TagMapperImpl();
+        public KeywordMapper createTagMapper() {
+            return new KeywordMapperImpl();
         }
 
         @Bean

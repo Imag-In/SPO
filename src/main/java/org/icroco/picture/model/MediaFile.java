@@ -22,7 +22,7 @@ public class MediaFile implements IMediaFile {
     private Path          fullPath;
     private String        fileName;
     private LocalDateTime originalDate;
-    private Set<Tag>      tags;
+    private Set<Keyword>  keywords;
     private GeoLocation   geoLocation;
     private String        hash;
     private LocalDate     hashDate;
@@ -72,8 +72,8 @@ public class MediaFile implements IMediaFile {
     }
 
     @Override
-    public Set<Tag> tags() {
-        return getTags();
+    public Set<Keyword> tags() {
+        return getKeywords();
     }
 
     @Override
@@ -86,8 +86,8 @@ public class MediaFile implements IMediaFile {
         return getDimension();
     }
 
-    public Set<Tag> getTags() {
-        return tags == null ? Collections.emptySet() : tags;
+    public Set<Keyword> getKeywords() {
+        return keywords == null ? Collections.emptySet() : keywords;
     }
 
     @Override

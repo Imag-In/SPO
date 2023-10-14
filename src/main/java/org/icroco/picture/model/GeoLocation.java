@@ -5,7 +5,16 @@ import lombok.Builder;
 
 @Builder
 public record GeoLocation(double latitude, double longitude) {
-    public static GeoLocation EMPTY_GEO_LOC = new GeoLocation(Double.MIN_VALUE, Double.MIN_VALUE);
+    public static GeoLocation EMPTY_GEO_LOC = new GeoLocation(190, 190);
+
+    public GeoLocation {
+        if (Math.abs(latitude) > 180D) {
+            latitude = 190D;
+        }
+        if (Math.abs(longitude) > 180D) {
+            longitude = 190D;
+        }
+    }
 
     @NotNull
     public String toDMSString() {
@@ -23,7 +32,7 @@ public record GeoLocation(double latitude, double longitude) {
     }
 
     public boolean isNowhere() {
-        return latitude == Double.MIN_VALUE && longitude == Double.MAX_VALUE;
+        return Math.abs(latitude) > 180D || Math.abs(longitude) > 180D;
     }
 
     public boolean isSomewhere() {

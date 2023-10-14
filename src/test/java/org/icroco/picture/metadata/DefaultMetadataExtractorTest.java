@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 @Slf4j
 class DefaultMetadataExtractorTest {
 
-    IMetadataExtractor extractor = new DefaultMetadataExtractor();
+    IMetadataExtractor extractor = new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER);
 
     @Test
 //    @Disabled
@@ -30,9 +30,10 @@ class DefaultMetadataExtractorTest {
 
     @Test
     void printAllByDirectory() throws ImageProcessingException, IOException {
+        //Users/christophe/Pictures/foo/test/Espagne-25072017-138.jpg
         Metadata
                 metadata =
-                ImageMetadataReader.readMetadata(Paths.get("/Users/christophe/Pictures/foo/test/Espagne-25072017-138.jpg").toFile());
+                ImageMetadataReader.readMetadata(Paths.get("/Users/christophe/Pictures/foo/json/IMGP8950.JPG").toFile());
 
         Collections.toStream(metadata.getDirectories())
                    .forEach(d -> {
