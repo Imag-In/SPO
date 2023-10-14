@@ -51,7 +51,7 @@ public class PersistenceService {
             rLock.lock();
             Collection<MediaCollection> mediaCollections = collectionRepo.findAll()
                                                                          .stream()
-                                                                         .map(colMapper::map)
+                                                                         .map(colMapper::toDomain)
                                                                          .peek(c -> mcCache.put(c.id(), c))
                                                                          .toList();
             taskService.sendEvent(CollectionsLoadedEvent.builder().mediaCollections(mediaCollections).source(this).build());
@@ -99,9 +99,9 @@ public class PersistenceService {
 
             log.info("Save collection: {}", mediaCollection);
 
-            var entity            = colMapper.map(mediaCollection);
+            var entity            = colMapper.toEntity(mediaCollection);
             var entitySaved       = collectionRepo.saveAndFlush(entity);
-            var updatedCollection = colMapper.map(entitySaved);
+            var updatedCollection = colMapper.toDomain(entitySaved);
 
             mcCache.put(updatedCollection.id(), updatedCollection);
             log.info("Collection entitySaved, id: '{}', path: '{}'", updatedCollection.id(), updatedCollection.path());
@@ -120,10 +120,10 @@ public class PersistenceService {
 
             log.info("Save mediaFile: {}, collectionId: {}", mf, mediaCollectionId);
 
-            var entity = mfMapper.mapToEntity(mf);
+            var entity = mfMapper.toEntity(mf);
             entity.setCollectionId(mediaCollectionId);
             var entitySaved = mfRepo.saveAndFlush(entity);
-            var updatedMf   = mfMapper.mapToDomain(entitySaved);
+            var updatedMf   = mfMapper.toDomain(entitySaved);
 
             findMediaCollection(mediaCollectionId).ifPresent(mcCache -> {
                 mcCache.medias().remove(updatedMf);
@@ -138,7 +138,7 @@ public class PersistenceService {
 
     @Transactional
     public void saveMediaFiles(Collection<MediaFile> files) {
-        mfRepo.saveAll(files.stream().map(mfMapper::mapToEntity).toList());
+        mfRepo.saveAll(files.stream().map(mfMapper::toEntity).toList());
     }
 
     @Transactional
@@ -172,19 +172,19 @@ public class PersistenceService {
 
     public List<Thumbnail> saveAll(Collection<Thumbnail> thumbnails) {
         return thumbRepo.saveAllAndFlush(thumbnails.stream()
-                                                   .map(thMapper::map)
+                                                   .map(thMapper::toEntity)
                                                    .toList())
                         .stream()
-                        .map(thMapper::map)
+                        .map(thMapper::toDomain)
                         .toList();
     }
 
     public List<MediaFile> saveAllMediaFiles(Collection<MediaFile> mediaFiles) {
         return mfRepo.saveAllAndFlush(mediaFiles.stream()
-                                                .map(mfMapper::mapToEntity)
+                                                .map(mfMapper::toEntity)
                                                 .toList())
                      .stream()
-                     .map(mfMapper::mapToDomain)
+                     .map(mfMapper::toDomain)
                      .toList();
     }
 
@@ -201,7 +201,7 @@ public class PersistenceService {
         return thumbRepo.findById(mediaFile.getId())
 //        return thumbRepo.findByFullPath(mediaFile.fullPath())
 //                        .orElseGet(() -> thumbRepo.findById(mediaFile.getId()))
-                        .map(thMapper::map);
+                        .map(thMapper::toDomain);
     }
 
 //    @Transactional
@@ -263,13 +263,13 @@ public class PersistenceService {
             mediaFiles.removeIf(toBeDeleted::contains);
 
             var mfEntities = toBeAdded.stream()
-                                      .map(mfMapper::mapToEntity)
+                                      .map(mfMapper::toEntity)
                                       .peek(dbMf -> dbMf.setCollectionId(mc.id()))
                                       .toList();
 
             mfEntities = mfRepo.saveAllAndFlush(mfEntities);
             mediaFiles.removeAll(toBeAdded);
-            var toBeAddedSaved = mfEntities.stream().map(mfMapper::mapToDomain).toList();
+            var toBeAddedSaved = mfEntities.stream().map(mfMapper::toDomain).toList();
             mediaFiles.addAll(toBeAddedSaved);
 
 //            var newUpdated = mc.medias().stream()

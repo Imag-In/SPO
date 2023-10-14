@@ -8,8 +8,8 @@ import org.mapstruct.Mapper;
 @Mapper
 public interface DimensionMapper {
     //    @Mapping(target = "manufacturer", source = "make")
-    Dimension map(DimensionEntity dimension);
+    Dimension toDomain(DimensionEntity dimension);
 
     @InheritInverseConfiguration
-    DimensionEntity map(Dimension dimension);
+    DimensionEntity toEntity(Dimension dimension);
 }

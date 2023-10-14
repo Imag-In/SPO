@@ -16,6 +16,6 @@ public class TagEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Integer id;
 
-    @Column(length = 64, unique = true)
+    @Column(name = "name", length = 64, unique = true)
     private String name;
 }

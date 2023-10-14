@@ -7,9 +7,9 @@ import org.mapstruct.Mapper;
 
 @Mapper
 public interface TagMapper {
-//    @Mapping(target = "manufacturer", source = "make")
-Tag map(TagEntity mediaFile);
+    //    @Mapping(target = "manufacturer", source = "make")
+    Tag toDomain(TagEntity mediaFile);
 
     @InheritInverseConfiguration
-    TagEntity map(Tag tag);
+    TagEntity toEntity(Tag tag);
 }

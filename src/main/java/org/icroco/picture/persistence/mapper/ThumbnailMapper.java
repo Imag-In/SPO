@@ -11,10 +11,10 @@ import org.mapstruct.Mapper;
 public abstract class ThumbnailMapper {
 
     //    @Mapping(target = "manufacturer", source = "make")
-    public abstract Thumbnail map(ThumbnailEntity thumbnail);
+    public abstract Thumbnail toDomain(ThumbnailEntity thumbnail);
 
     @InheritInverseConfiguration
-    public abstract ThumbnailEntity map(Thumbnail thumbnail);
+    public abstract ThumbnailEntity toEntity(Thumbnail thumbnail);
 
 //    public final SimpleObjectProperty<EThumbnailType> map(EThumbnailType status) {
 //        return new SimpleObjectProperty<>(status);

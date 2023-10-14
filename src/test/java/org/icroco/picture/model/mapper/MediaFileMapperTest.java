@@ -42,7 +42,7 @@ class MediaFileMapperTest {
     void should_map_and_back() {
         MediaFile mediaFile = MediaFileTest.DUMMY;
 
-        MediaFile copy = mapper.mapToDomain(mapper.mapToEntity(mediaFile));
+        MediaFile copy = mapper.toDomain(mapper.toEntity(mediaFile));
 
         assertThat(copy).isEqualTo(mediaFile);
         assertThat(copy.tags()).hasSize(2);

@@ -10,10 +10,10 @@ import org.mapstruct.Mapper;
 public interface MediaFileMapper {
 
     //    @Mapping(target = "manufacturer", source = "make")
-    MediaFile mapToDomain(MediaFileEntity mediaFile);
+    MediaFile toDomain(MediaFileEntity mediaFile);
 
     @InheritInverseConfiguration
-    MediaFileEntity mapToEntity(MediaFile mediaFile);
+    MediaFileEntity toEntity(MediaFile mediaFile);
 
 
 }

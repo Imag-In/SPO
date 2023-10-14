@@ -8,8 +8,8 @@ import org.mapstruct.Mapper;
 @Mapper
 public interface GeoLocationMapper {
     //    @Mapping(target = "manufacturer", source = "make")
-    GeoLocation map(GeoLocationEntity geoLocation);
+    GeoLocation toDomain(GeoLocationEntity geoLocation);
 
     @InheritInverseConfiguration
-    GeoLocationEntity map(GeoLocation geoLocation);
+    GeoLocationEntity toEntity(GeoLocation geoLocation);
 }

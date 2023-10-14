@@ -14,7 +14,7 @@ class TagMapperTest {
     void should_map_from_db() {
         Tag tag = TagTest.DUMMY;
 
-        Tag copy = mapper.map(mapper.map(tag));
+        Tag copy = mapper.toDomain(mapper.toEntity(tag));
 
         Assertions.assertThat(copy).isEqualTo(tag);
     }

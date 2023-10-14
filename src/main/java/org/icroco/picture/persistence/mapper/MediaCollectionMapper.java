@@ -8,8 +8,8 @@ import org.mapstruct.Mapper;
 @Mapper(uses = { MediaCollectionEntryMapper.class, MediaFileMapper.class })
 public interface MediaCollectionMapper {
     //    @Mapping(target = "manufacturer", source = "make")
-    MediaCollection map(MediaCollectionEntity catalog);
+    MediaCollection toDomain(MediaCollectionEntity catalog);
 
     @InheritInverseConfiguration
-    MediaCollectionEntity map(MediaCollection mediaCollection);
+    MediaCollectionEntity toEntity(MediaCollection mediaCollection);
 }
