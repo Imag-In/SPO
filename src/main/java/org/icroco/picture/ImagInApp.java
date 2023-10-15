@@ -86,6 +86,7 @@ public class ImagInApp extends Application {
         Application.launch(args);
     }
 
+
     @Override
     public final void init() {
         try {
@@ -104,6 +105,7 @@ public class ImagInApp extends Application {
 
         } catch (Exception ex) {
             log.error("Unexpected error while init", ex);
+            throw ex;
         }
     }
 

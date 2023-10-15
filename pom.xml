@@ -45,6 +45,7 @@
         <cssfx.version>11.5.1</cssfx.version>
         <usbdrivedetector.version>2.2.1</usbdrivedetector.version>
         <java-does-usb.version>0.6.1</java-does-usb.version>
+        <oshi-core.version>6.4.6</oshi-core.version>
     </properties>
 
     <dependencyManagement>
@@ -68,6 +69,16 @@
     </dependencyManagement>
 
     <dependencies>
+        <!--        <dependency>-->
+        <!--            <groupId>com.github.oshi</groupId>-->
+        <!--            <artifactId>oshi-core</artifactId>-->
+        <!--            <version>${oshi-core.version}</version>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.github.oshi</groupId>-->
+        <!--            <artifactId>oshi-demo</artifactId>-->
+        <!--            <version>${oshi-core.version}</version>-->
+        <!--        </dependency>-->
         <dependency>
             <groupId>net.codecrete.usb</groupId>
             <artifactId>java-does-usb</artifactId>
