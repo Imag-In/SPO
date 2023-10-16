@@ -211,12 +211,13 @@ public class CollectionView implements FxView<VBox> {
     }
 
     private void addSubDir(TreeItem<CollectionNode> current, Path path, int id) {
-        current.getChildren().sort(Comparator.comparing(ti -> ti.getValue().path.getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
         for (int i = 0; i < path.getNameCount(); i++) {
             var child = new TreeItem<>(new CollectionNode(path.subpath(0, i + 1), id));
             if (current.getChildren().stream().noneMatch(pathTreeItem -> pathTreeItem.getValue().equals(child.getValue()))) {
                 current.getChildren().add(child);
             }
+            current.getChildren()
+                   .sort(Comparator.comparing(ti -> ti.getValue().path.getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
             current = child;
         }
     }
@@ -284,6 +285,7 @@ public class CollectionView implements FxView<VBox> {
             detectParentCollection(newColPath);
 
             disablePathActions.set(true);
+            // TODO: Ask question if newCollection is on a network volume or if @item is > 1000 ?
             var task = collectionManager.newCollection(newColPath);
             task.setOnSucceeded(evt -> {
                 disablePathActions.set(false);
@@ -294,13 +296,12 @@ public class CollectionView implements FxView<VBox> {
     }
 
     private void detectParentCollection(Path newColPath) {
+        // Do something smarter (do not delete everytinh then recreate all files with thumbnails, ...)
         rootTreeItem.getChildren()
                     .stream()
-                    .filter(treeItem -> newColPath.startsWith(persistenceService.getMediaCollection(treeItem.getValue().id()).path()))
-                    .map(treeItem -> persistenceService.getMediaCollection(treeItem.getValue().id()))
-                    .forEach(mediaCollection -> {
-
-                    });
+                    .map(ti -> persistenceService.getMediaCollection(ti.getValue().id))
+                    .filter(mc -> mc.path().startsWith(newColPath))
+                    .forEach(collectionManager::deleteCollection);
 //                    .ifPresent(collectionManager::deleteCollection); // TODO: Ask user confirmation.
     }
 
