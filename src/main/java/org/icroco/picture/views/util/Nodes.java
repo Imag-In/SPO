@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @UtilityClass
 @Slf4j
@@ -219,6 +220,66 @@ public class Nodes {
 
         return last;
     }
+
+    public <T> Optional<TreeItem<T>> searchTreeItem(TreeItem<T> treeNode, T value) {
+        if (value == null) {
+            return Optional.empty();
+        }
+
+        if (treeNode.getValue().equals(value)) {
+            return Optional.of(treeNode);
+        }
+
+        // Loop through each child node.
+        for (TreeItem<T> node : treeNode.getChildren()) {
+            // If the current node has children then check them.
+            var found = searchTreeItem(node, value);
+            if (found.isPresent()) {
+                return found;
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    public <T> Optional<TreeItem<T>> searchTreeItem(TreeItem<T> treeItem, Predicate<T> predicate) {
+        if (predicate.test(treeItem.getValue())) {
+            return Optional.of(treeItem);
+        }
+
+        // Loop through each child node.
+        for (TreeItem<T> node : treeItem.getChildren()) {
+            // If the current node has children then check them.
+            var found = searchTreeItem(node, predicate);
+            if (found.isPresent()) {
+                return found;
+            }
+        }
+
+        return Optional.empty();
+    }
+
+//    @Nullable
+//    private TreeItem<CollectionView.CollectionNode> searchTreeItem(@NonNull TreeItem<CollectionView.CollectionNode> item, @Nullable Path path) {
+//        if (path == null) {
+//            return null;
+//        }
+//
+//        if (item.getValue().path().equals(path)) {
+//            return item; // hit!
+//        }
+//
+//        // continue on the children:
+//        TreeItem<CollectionView.CollectionNode> result = null;
+//        for (TreeItem<CollectionView.CollectionNode> child : item.getChildren()) {
+//            result = searchTreeItem(child, path);
+//            if (result != null) {
+//                return result; // hit!
+//            }
+//        }
+//        //no hit:
+//        return null;
+//    }
 
     public static Node pick(Node node, double sceneX, double sceneY) {
         Point2D p = node.sceneToLocal(sceneX, sceneY, true /* rootScene */);

@@ -118,10 +118,10 @@ public class CollectionManager {
                                .fullPath(p)
                                .fileName(p.getFileName().toString())
                                .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN))
-                               .hash(hashGenerator.compute(p).orElse(""))
-                               .hashDate(now);
+                               .hash(hashGenerator.compute(p).orElse("")) // TODO: Hash later.
+                               .hashDate(now); // TODO: Hash later.
 
-        metadataExtractor.header(p)
+        metadataExtractor.header(p) // TODO: Hash later ?
                          .ifPresent(header -> builder.dimension(header.size())
                                                      .orientation(header.orientation())
                                                      .geoLocation(header.geoLocation())

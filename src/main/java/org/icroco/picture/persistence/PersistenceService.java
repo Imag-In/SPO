@@ -148,44 +148,47 @@ public class PersistenceService {
         try {
             wLock.lock();
             log.info("MediaCollection delete, id: '{}'", mediaCollectionId);
-            Optional<MediaCollection> catalogById = findMediaCollection(mediaCollectionId);
-            log.info("thRepo size before: {}, thCache: {}",
-                     thumbRepo.findAll().size(),
-                     ((com.github.benmanes.caffeine.cache.Cache<?, ?>) thCache.getNativeCache()).asMap().size());
             collectionRepo.deleteById(mediaCollectionId);
             collectionRepo.flush();
             mcCache.evictIfPresent(mediaCollectionId);
-            catalogById.ifPresent(mc -> {
-//                thumbRepo.deleteAll();
-                log.info("Thumbnail Id to be deleted (10 first): {}", mc.medias().stream().map(MediaFile::getId).limit(10).toList());
+            findMediaCollection(mediaCollectionId).ifPresent(mc -> {
                 thumbRepo.deleteAllById(mc.medias().stream().map(MediaFile::getId).toList());
-                mc.medias().forEach(thCache::evict);
                 thumbRepo.flush();
+                mc.medias().forEach(thCache::evict);
             });
-            log.info("thRepo size after: {}, thCache: {}",
-                     thumbRepo.findAll().size(),
-                     ((com.github.benmanes.caffeine.cache.Cache<?, ?>) thCache.getNativeCache()).asMap().size());
         } finally {
             wLock.unlock();
         }
     }
 
     public List<Thumbnail> saveAll(Collection<Thumbnail> thumbnails) {
-        return thumbRepo.saveAllAndFlush(thumbnails.stream()
-                                                   .map(thMapper::toEntity)
-                                                   .toList())
-                        .stream()
-                        .map(thMapper::toDomain)
-                        .toList();
+        var wLock = mcLock.writeLock();
+        try {
+            wLock.lock();
+            return thumbRepo.saveAllAndFlush(thumbnails.stream()
+                                                       .map(thMapper::toEntity)
+                                                       .toList())
+                            .stream()
+                            .map(thMapper::toDomain)
+                            .toList();
+        } finally {
+            wLock.unlock();
+        }
     }
 
     public List<MediaFile> saveAllMediaFiles(Collection<MediaFile> mediaFiles) {
-        return mfRepo.saveAllAndFlush(mediaFiles.stream()
-                                                .map(mfMapper::toEntity)
-                                                .toList())
-                     .stream()
-                     .map(mfMapper::toDomain)
-                     .toList();
+        var wLock = mcLock.writeLock();
+        try {
+            wLock.lock();
+            return mfRepo.saveAllAndFlush(mediaFiles.stream()
+                                                    .map(mfMapper::toEntity)
+                                                    .toList())
+                         .stream()
+                         .map(mfMapper::toDomain)
+                         .toList();
+        } finally {
+            wLock.unlock();
+        }
     }
 
 //    public Optional<MediaFile> findByPath(Path p) {

@@ -26,10 +26,8 @@ import org.icroco.picture.event.CollectionEvent.EventType;
 import org.icroco.picture.event.CollectionUpdatedEvent;
 import org.icroco.picture.event.CollectionsLoadedEvent;
 import org.icroco.picture.event.DeleteCollectionEvent;
-import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaCollectionEntry;
-import org.icroco.picture.persistence.CollectionRepository;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.FileUtil;
 import org.icroco.picture.views.FxEventListener;
@@ -38,6 +36,7 @@ import org.icroco.picture.views.pref.UserPreference;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.FxView;
+import org.icroco.picture.views.util.Nodes;
 import org.icroco.picture.views.util.Styles;
 import org.icroco.picture.views.util.widget.FxUtil;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -50,23 +49,20 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class CollectionView implements FxView<VBox> {
-    private final CollectionRepository  collectionRepository;
     private final TaskService           taskService;
     private final PersistenceService    persistenceService;
     private final UserPreferenceService pref;
-    private final IMetadataExtractor    metadataExtractor;
     private final CollectionManager     collectionManager;
-    private final BooleanProperty       disablePathActions = new SimpleBooleanProperty(false);
-    private final SimpleIntegerProperty catalogSizeProp    = new SimpleIntegerProperty(0);
 
     private final VBox                     root             = new VBox();
     private final Label                    catalogSize      = new Label();
-    //    private final Accordion mediaCollections = new Accordion();
     private final Button                   addCollection    = new Button();
     private final HBox                     collectionHeader = new HBox();
     private final CollectionTreeItem       rootTreeItem     = new CollectionTreeItem(new CollectionNode(Path.of("Files"), -1, false));
@@ -74,6 +70,8 @@ public class CollectionView implements FxView<VBox> {
 
     @Getter
     private final SimpleObjectProperty<PathSelection> pathSelectionProperty = new SimpleObjectProperty<>();
+    private final BooleanProperty                     disablePathActions    = new SimpleBooleanProperty(false);
+    private final SimpleIntegerProperty               catalogSizeProp       = new SimpleIntegerProperty(0);
 
     public record CollectionNode(Path path, int id, boolean isColTopLevel) {
         public CollectionNode(Path path, int id) {
@@ -228,9 +226,6 @@ public class CollectionView implements FxView<VBox> {
         return root;
     }
 
-    record TitlePaneEntry(TitledPane titledPane, int mediaCollectionId) {
-    }
-
     @FxEventListener
     public void onDeleteCollection(DeleteCollectionEvent event) {
 //        if (mouseEvent.getClickCount() == 1) {
@@ -278,31 +273,49 @@ public class CollectionView implements FxView<VBox> {
         final File             selectedDirectory = directoryChooser.showDialog(root.getScene().getWindow());
 
         if (selectedDirectory != null) {
-            var rootPath = selectedDirectory.toPath().normalize();
-            rootTreeItem.getChildren()
-                        .stream()
-                        .filter(treeItem -> rootPath.startsWith(persistenceService.getMediaCollection(treeItem.getValue().id()).path()))
-                        .findFirst()
-                        .ifPresent(p -> {
-                            // TODO: Rather than getting an error, jump to that dir into the proper collection.
-                            throw new CollectionException("Path: '%s' is already included into collection item: '%s'".formatted(rootPath,
-                                                                                                                                p));
-                        });
-            rootTreeItem.getChildren()
-                        .stream()
-                        .filter(treeItem -> rootPath.startsWith(persistenceService.getMediaCollection(treeItem.getValue().id()).path()))
-                        .findFirst()
-                        .map(treeItem -> persistenceService.getMediaCollection(treeItem.getValue().id()))
-                        .ifPresent(collectionManager::deleteCollection); // TODO: Ask user confirmation.
+            var newColPath            = selectedDirectory.toPath().normalize();
+            var existingSubCollection = isSubCollection(newColPath);
+            if (existingSubCollection.isPresent()) {
+                treeView.getSelectionModel().select(existingSubCollection.get());
+                existingSubCollection.get().setExpanded(true);
+                return;
+            }
+
+            detectParentCollection(newColPath);
 
             disablePathActions.set(true);
-            var task = collectionManager.newCollection(rootPath);
+            var task = collectionManager.newCollection(newColPath);
             task.setOnSucceeded(evt -> {
                 disablePathActions.set(false);
                 createTreeView(task.getValue());
             });
             task.setOnFailed(evt -> disablePathActions.set(false));
         }
+    }
+
+    private void detectParentCollection(Path newColPath) {
+        rootTreeItem.getChildren()
+                    .stream()
+                    .filter(treeItem -> newColPath.startsWith(persistenceService.getMediaCollection(treeItem.getValue().id()).path()))
+                    .map(treeItem -> persistenceService.getMediaCollection(treeItem.getValue().id()))
+                    .forEach(mediaCollection -> {
+
+                    });
+//                    .ifPresent(collectionManager::deleteCollection); // TODO: Ask user confirmation.
+    }
+
+    private Optional<TreeItem<CollectionNode>> isSubCollection(Path rootPath) {
+        return rootTreeItem.getChildren()
+                           .stream()
+                           .filter(treeItem -> rootPath.startsWith(persistenceService.getMediaCollection(treeItem.getValue()
+                                                                                                                 .id())
+                                                                                     .path()))
+                           .findFirst()
+                           .flatMap(treeItem -> Nodes.searchTreeItem(treeItem,
+                                                                     (Predicate<CollectionNode>) cn -> cn.path.equals(
+                                                                             treeItem.getValue()
+                                                                                     .path()
+                                                                                     .relativize(rootPath))));
     }
 
 
