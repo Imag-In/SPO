@@ -20,12 +20,14 @@ import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.javafx.SceneReadyEvent;
+import org.icroco.picture.event.ImportDirectoryEvent;
 import org.icroco.picture.event.UsbStorageDeviceEvent;
 import org.icroco.picture.util.Resources;
 import org.icroco.picture.views.ext_import.ImportView;
 import org.icroco.picture.views.navigation.NavigationView;
 import org.icroco.picture.views.organize.OrganizeView;
 import org.icroco.picture.views.status.StatusBarView;
+import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.FxView;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -34,6 +36,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +54,7 @@ public class MainView implements FxView<StackPane> {
     private final StatusBarView        statusView;
     private final OrganizeView         organizeView;
     private final ImportView           importView;
+    private final TaskService          taskService;
     @Qualifier(ViewConfiguration.CURRENT_VIEW)
     private final SimpleStringProperty currentView;
 
@@ -112,38 +116,43 @@ public class MainView implements FxView<StackPane> {
 
     @FxEventListener
     public void listenEvent(UsbStorageDeviceEvent event) {
-        final var msg = new Notification("""
-                                                 USB Storage detected: '%s'"
-                                                   Do you want to import files ?
-                                                 """.formatted(event.getDeviceName()),
-                                         new FontIcon(FontAwesomeSolid.SD_CARD));
-        msg.getStyleClass().addAll(Styles.ACCENT, Styles.ELEVATED_1);
-        msg.setPrefHeight(Region.USE_PREF_SIZE);
-        msg.setMaxHeight(Region.USE_PREF_SIZE);
+        if (event.getType() == UsbStorageDeviceEvent.EventType.CONNECTED) {
+            final var msg = new Notification("""
+                                                     USB Storage detected: '%s'"
+                                                       Do you want to import files ?
+                                                     """.formatted(event.getDeviceName()),
+                                             new FontIcon(FontAwesomeSolid.SD_CARD));
+            msg.getStyleClass().addAll(Styles.ACCENT, Styles.ELEVATED_1);
+            msg.setPrefHeight(Region.USE_PREF_SIZE);
+            msg.setMaxHeight(Region.USE_PREF_SIZE);
 
-        var yesBtn = new Button("Yes");
-        yesBtn.setOnMouseClicked(event1 -> {
-            log.info("Yes inport into Image'in");
-            msg.setVisible(true);
-            // TODO: Send an event to Import view
-        });
+            var yesBtn = new Button("Yes");
+            yesBtn.setOnMouseClicked(event1 -> {
+                msg.setVisible(false);
+                var dcim = event.getRootDirectory().resolve("DCIM");
+                taskService.sendEvent(ImportDirectoryEvent.builder()
+                                                          .rootDirectory(Files.exists(dcim) ? dcim : event.getRootDirectory())
+                                                          .source(this)
+                                                          .build());
+            });
 
-        msg.setPrimaryActions(yesBtn);
+            msg.setPrimaryActions(yesBtn);
 
-        StackPane.setAlignment(msg, Pos.TOP_RIGHT);
-        StackPane.setMargin(msg, new Insets(10, 10, 0, 0));
+            StackPane.setAlignment(msg, Pos.TOP_RIGHT);
+            StackPane.setMargin(msg, new Insets(10, 10, 0, 0));
 
-        var out = Animations.slideOutUp(msg, Duration.millis(250));
-        out.setOnFinished(f -> root.getChildren().remove(msg));
+            var out = Animations.slideOutUp(msg, Duration.millis(250));
+            out.setOnFinished(f -> root.getChildren().remove(msg));
 
-        var in = Animations.slideInDown(msg, Duration.millis(250));
-        if (!root.getChildren().contains(msg)) {
-            root.getChildren().add(msg);
+            var in = Animations.slideInDown(msg, Duration.millis(250));
+            if (!root.getChildren().contains(msg)) {
+                root.getChildren().add(msg);
+            }
+
+            var seqTransition = new SequentialTransition(in,
+                                                         new PauseTransition(Duration.millis(5000)),
+                                                         out);
+            seqTransition.play();
         }
-
-        var seqTransition = new SequentialTransition(in,
-                                                     new PauseTransition(Duration.millis(5000)),
-                                                     out);
-        seqTransition.play();
     }
 }

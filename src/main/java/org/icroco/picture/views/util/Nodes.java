@@ -30,6 +30,23 @@ import java.util.function.Predicate;
 @UtilityClass
 @Slf4j
 public class Nodes {
+
+    public static <R> Optional<R> show(Dialog<R> alert, Scene scene) {
+        alert.initOwner(scene.getWindow());
+
+        // copy customized styles, like changed accent color etc
+        try {
+            for (var pc : scene.getRoot().getPseudoClassStates()) {
+                alert.getDialogPane().pseudoClassStateChanged(pc, true);
+            }
+            alert.getDialogPane().getStylesheets().addAll(scene.getRoot().getStylesheets());
+        } catch (Exception ignored) {
+            // yes, ignored
+        }
+
+        return alert.showAndWait();
+    }
+
     public static void hideNodeAfterTime(Node node, int timeInSec, boolean showInScene) {
         Platform.runLater(() -> {
             PauseTransition wait = new PauseTransition(Duration.seconds(timeInSec));

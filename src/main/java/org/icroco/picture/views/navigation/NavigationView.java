@@ -14,6 +14,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.event.ImportDirectoryEvent;
+import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.widget.FxUtil;
@@ -111,6 +113,11 @@ public class NavigationView implements FxView<HBox> {
         label.setPadding(new Insets(0, 10, 0, 10));
 
         return label;
+    }
+
+    @FxEventListener
+    public void importDir(ImportDirectoryEvent event) {
+        selectedTab.setValue(importLbl);
     }
 
     @Override

@@ -131,15 +131,21 @@ public class ImagInConfiguration {
         var usbDetector = new USBDeviceDetectorManager();
         usbDetector.addDriveListener(evt -> {
             log.info("USB detected: {}", evt);
-            if (evt.getEventType() == DeviceEventType.CONNECTED) {
-                taskService.sendEvent(UsbStorageDeviceEvent.builder()
-                                                           .deviceName(evt.getStorageDevice().getDeviceName())
-                                                           .rootDirectory(evt.getStorageDevice().getRootDirectory().toPath())
-                                                           .source(ImagInConfiguration.this)
-                                                           .build());
-            }
+            taskService.sendEvent(UsbStorageDeviceEvent.builder()
+                                                       .deviceName(evt.getStorageDevice().getDeviceName())
+                                                       .rootDirectory(evt.getStorageDevice().getRootDirectory().toPath())
+                                                       .type(map(evt.getEventType()))
+                                                       .source(ImagInConfiguration.this)
+                                                       .build());
         });
         return usbDetector;
+    }
+
+    private static UsbStorageDeviceEvent.EventType map(DeviceEventType eventType) {
+        return switch (eventType) {
+            case CONNECTED -> UsbStorageDeviceEvent.EventType.CONNECTED;
+            case null, default -> UsbStorageDeviceEvent.EventType.REMOVED;
+        };
     }
 
     @Bean(name = DIRECTORY_WATCHER, destroyMethod = "shutdownNow")

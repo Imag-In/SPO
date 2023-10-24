@@ -10,6 +10,7 @@ import org.icroco.picture.model.Dimension;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.EThumbnailType;
 import org.icroco.picture.model.Thumbnail;
+import org.icroco.picture.views.util.Constant;
 import org.icroco.picture.views.util.ImageUtils;
 import org.jooq.lambda.Unchecked;
 
@@ -26,32 +27,42 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Iterator;
+import java.util.concurrent.Semaphore;
 
 @Slf4j
 @RequiredArgsConstructor
 public class ImgscalrGenerator extends AbstractThumbnailGenerator {
     private final IHashGenerator     hashGenerator;
     private final IMetadataExtractor metadataExtractor;
+    private final Semaphore          semaphore = new Semaphore(Constant.NB_CORE);
 
     @Override
     public Thumbnail generate(Path path, Dimension dim) {
-//        return new Image(path.toUri().toString(), 600D, 0, true, true);
-        return Unchecked.supplier(() -> {
-            var orientation = metadataExtractor.orientation(path).orElse(1);
-            var img         = ImageIO.read(path.toFile()); // load image
+        semaphore.acquireUninterruptibly();
 
-            return Thumbnail.builder()
-                            .fullPath(path)
-                            .image(SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null))
-                            .origin(EThumbnailType.GENERATED)
-                            .lastUpdate(LocalDateTime.now())
-                            .build();
-        }, throwable -> log.error("Cannot generate thumbnail for: '{}'", path, throwable)).get();
+        try {
+//        return new Image(path.toUri().toString(), 600D, 0, true, true);
+            return Unchecked.supplier(() -> {
+                var orientation = metadataExtractor.orientation(path).orElse(1);
+                var img         = ImageIO.read(path.toFile()); // load image
+
+                return Thumbnail.builder()
+                                .fullPath(path)
+                                .image(SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null))
+                                .origin(EThumbnailType.GENERATED)
+                                .lastUpdate(LocalDateTime.now())
+                                .build();
+            }, throwable -> log.error("Cannot generate thumbnail for: '{}'", path, throwable)).get();
+        } finally {
+            semaphore.release();
+        }
     }
 
 
     @Override
     public Thumbnail extractThumbnail(Path path) {
+        semaphore.acquireUninterruptibly();
+
         try (ImageInputStream input = ImageIO.createImageInputStream(path.toFile())) {
             int orientation = metadataExtractor.orientation(path).orElse(0);
             // Get the reader
@@ -102,6 +113,8 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             }
         } catch (Throwable e) {
             log.error("Cannot extract thumbnail from: '{}', message: {}", path, e.getLocalizedMessage());
+        } finally {
+            semaphore.release();
         }
         return null;
     }
@@ -263,8 +276,8 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      * @since 3.0
      */
     public static final ConvolveOp OP_ANTIALIAS = new ConvolveOp(
-            new Kernel(3, 3, new float[]{.0f, .08f, .0f, .08f, .68f, .08f,
-                                         .0f, .08f, .0f}), ConvolveOp.EDGE_NO_OP, null);
+            new Kernel(3, 3, new float[] { .0f, .08f, .0f, .08f, .68f, .08f,
+                                           .0f, .08f, .0f }), ConvolveOp.EDGE_NO_OP, null);
 
     /**
      * A {@link RescaleOp} used to make any input image 10% darker.

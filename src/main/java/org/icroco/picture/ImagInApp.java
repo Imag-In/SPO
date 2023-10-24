@@ -1,6 +1,6 @@
 package org.icroco.picture;
 
-import atlantafx.base.theme.NordDark;
+import atlantafx.base.theme.PrimerLight;
 import javafx.application.*;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
@@ -162,7 +162,8 @@ public class ImagInApp extends Application {
             }
         }
         primaryStage.setTitle("Imag'In");
-        Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
+//        Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
+        Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
 
         var antialiasing = Platform.isSupported(ConditionalFeature.SCENE3D)
                            ? SceneAntialiasing.BALANCED

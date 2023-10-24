@@ -10,6 +10,12 @@ import java.nio.file.Path;
 @ToString
 @SuperBuilder
 public class UsbStorageDeviceEvent extends IiEvent {
-    private final Path   rootDirectory;
-    private final String deviceName;
+    public enum EventType {
+        REMOVED,
+        CONNECTED;
+    }
+
+    private final Path      rootDirectory;
+    private final String    deviceName;
+    private final EventType type;
 }

@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Slf4j
-public class CollectionTreeCell extends TreeCell<CollectionView.CollectionNode> {
+public class CollectionTreeCell extends TreeCell<CollectionNode> {
 
     private static final PseudoClass GROUP = PseudoClass.getPseudoClass("group");
     private final        TaskService taskService;
@@ -108,7 +108,7 @@ public class CollectionTreeCell extends TreeCell<CollectionView.CollectionNode> 
     }
 
     @Override
-    protected void updateItem(CollectionView.CollectionNode nav, boolean empty) {
+    protected void updateItem(CollectionNode nav, boolean empty) {
         super.updateItem(nav, empty);
 
         if (nav == null || empty) {

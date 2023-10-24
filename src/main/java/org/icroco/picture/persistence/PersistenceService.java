@@ -191,11 +191,6 @@ public class PersistenceService {
         }
     }
 
-//    public Optional<MediaFile> findByPath(Path p) {
-//        return mfRepo.findByFullPath(p).map(mfMapper::map);
-//        // TODO: Load thumbnail ?
-//    }
-
     public Optional<Thumbnail> getThumbnailFromCache(MediaFile mediaFile) {
         return Optional.ofNullable(thCache.get(mediaFile, Thumbnail.class));
     }

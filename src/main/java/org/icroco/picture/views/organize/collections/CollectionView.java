@@ -17,7 +17,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.util.Pair;
-import javafx.util.StringConverter;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,6 +64,7 @@ public class CollectionView implements FxView<VBox> {
     private final Label                    catalogSize      = new Label();
     private final Button                   addCollection    = new Button();
     private final HBox                     collectionHeader = new HBox();
+    @Getter
     private final CollectionTreeItem       rootTreeItem     = new CollectionTreeItem(new CollectionNode(Path.of("Files"), -1, false));
     private final TreeView<CollectionNode> treeView         = new TreeView<>(rootTreeItem);
 
@@ -72,16 +72,6 @@ public class CollectionView implements FxView<VBox> {
     private final SimpleObjectProperty<PathSelection> pathSelectionProperty = new SimpleObjectProperty<>();
     private final BooleanProperty                     disablePathActions    = new SimpleBooleanProperty(false);
     private final SimpleIntegerProperty               catalogSizeProp       = new SimpleIntegerProperty(0);
-
-    public record CollectionNode(Path path, int id, boolean isColTopLevel) {
-        public CollectionNode(Path path, int id) {
-            this(path, id, false);
-        }
-
-        boolean isRootCollection() {
-            return id >= 0;
-        }
-    }
 
     @PostConstruct
     protected void initializedOnce() {
@@ -148,28 +138,14 @@ public class CollectionView implements FxView<VBox> {
         return findMainCollectionNode(child.getParent());
     }
 
-    private static StringConverter<CollectionNode> getStringConverter() {
-        return new StringConverter<>() {
-            @Override
-            public String toString(CollectionNode object) {
-                return object.path.getFileName().toString();
-            }
-
-            @Override
-            public CollectionNode fromString(String string) {
-                return new CollectionNode(Path.of(string), -1, false);
-            }
-        };
-    }
-
     private void treeItemSelectionChanged(ObservableValue<? extends TreeItem<CollectionNode>> v,
                                           TreeItem<CollectionNode> oldValue,
                                           TreeItem<CollectionNode> newValue) {
         if (newValue != null) {
             log.trace("Tree view selected: {} ", newValue.getValue());
             pathSelectionProperty.set(new PathSelection(findMainCollectionNode(newValue).getValue().id(),
-                                                        newValue.getValue().path, 0D));
-            pref.getUserPreference().setLastViewed(newValue.getValue().id, newValue.getValue().path);
+                                                        newValue.getValue().path(), 0D));
+            pref.getUserPreference().setLastViewed(newValue.getValue().id(), newValue.getValue().path());
         }
     }
 
@@ -217,7 +193,7 @@ public class CollectionView implements FxView<VBox> {
                 current.getChildren().add(child);
             }
             current.getChildren()
-                   .sort(Comparator.comparing(ti -> ti.getValue().path.getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
+                   .sort(Comparator.comparing(ti -> ti.getValue().path().getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
             current = child;
         }
     }
@@ -275,7 +251,7 @@ public class CollectionView implements FxView<VBox> {
 
         if (selectedDirectory != null) {
             var newColPath            = selectedDirectory.toPath().normalize();
-            var existingSubCollection = isSubCollection(newColPath);
+            var existingSubCollection = isSameOrSubCollection(newColPath);
             if (existingSubCollection.isPresent()) {
                 treeView.getSelectionModel().select(existingSubCollection.get());
                 existingSubCollection.get().setExpanded(true);
@@ -296,16 +272,16 @@ public class CollectionView implements FxView<VBox> {
     }
 
     private void detectParentCollection(Path newColPath) {
-        // Do something smarter (do not delete everytinh then recreate all files with thumbnails, ...)
+        // TODO: Do something smarter (do not delete everytinh then recreate all files with thumbnails, ...)
         rootTreeItem.getChildren()
                     .stream()
-                    .map(ti -> persistenceService.getMediaCollection(ti.getValue().id))
+                    .map(ti -> persistenceService.getMediaCollection(ti.getValue().id()))
                     .filter(mc -> mc.path().startsWith(newColPath))
                     .forEach(collectionManager::deleteCollection);
-//                    .ifPresent(collectionManager::deleteCollection); // TODO: Ask user confirmation.
+//                    .ifPresent(collectionManager::deleteCollection); // TODO: Ask user confirmation ?
     }
 
-    private Optional<TreeItem<CollectionNode>> isSubCollection(Path rootPath) {
+    private Optional<TreeItem<CollectionNode>> isSameOrSubCollection(Path rootPath) {
         return rootTreeItem.getChildren()
                            .stream()
                            .filter(treeItem -> rootPath.startsWith(persistenceService.getMediaCollection(treeItem.getValue()
@@ -313,7 +289,8 @@ public class CollectionView implements FxView<VBox> {
                                                                                      .path()))
                            .findFirst()
                            .flatMap(treeItem -> Nodes.searchTreeItem(treeItem,
-                                                                     (Predicate<CollectionNode>) cn -> cn.path.equals(
+                                                                     (Predicate<CollectionNode>) cn -> rootPath.equals(cn.path())
+                                                                                                       || cn.path().equals(
                                                                              treeItem.getValue()
                                                                                      .path()
                                                                                      .relativize(rootPath))));
@@ -385,7 +362,7 @@ public class CollectionView implements FxView<VBox> {
                         });
         } else if (Objects.requireNonNull(event.getType()) == EventType.DELETED) {
             catalogSizeProp.set(catalogSizeProp.get() - event.getMediaCollection().medias().size());
-            rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path.equals(event.getMediaCollection().path()));
+            rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path().equals(event.getMediaCollection().path()));
         }
 //        else if (EventType.SELECTED == event.getType()) {
 //            treeView.getSelectionModel().clearSelection();
