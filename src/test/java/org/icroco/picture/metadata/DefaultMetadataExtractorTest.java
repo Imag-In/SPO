@@ -31,9 +31,14 @@ class DefaultMetadataExtractorTest {
     @Test
     void printAllByDirectory() throws ImageProcessingException, IOException {
         //Users/christophe/Pictures/foo/test/Espagne-25072017-138.jpg
+        //src/test/resources/images/IMG_20180527_160832.jpg
+//        Metadata
+//                metadata =
+//                ImageMetadataReader.readMetadata(Paths.get("/Users/christophe/Pictures/foo/json/IMGP8950.JPG").toFile());
+
         Metadata
                 metadata =
-                ImageMetadataReader.readMetadata(Paths.get("/Users/christophe/Pictures/foo/json/IMGP8950.JPG").toFile());
+                ImageMetadataReader.readMetadata(Paths.get("src/test/resources/images/IMG_20180527_160832.jpg").toFile());
 
         Collections.toStream(metadata.getDirectories())
                    .forEach(d -> {

@@ -6,6 +6,7 @@ import javafx.concurrent.Task;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.TaskProgressView;
+import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.util.FxView;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,7 @@ public class TaskView implements FxView<TaskProgressView<Task<?>>> {
 
     @PostConstruct
     void postConstruct() {
+        root.setId(ViewConfiguration.V_TASKS);
         root.setPrefWidth(400D);
         root.setPrefHeight(600D);
     }

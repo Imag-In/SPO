@@ -239,7 +239,7 @@ public class Nodes {
     }
 
     public <T> Optional<TreeItem<T>> searchTreeItem(TreeItem<T> treeNode, T value) {
-        if (value == null) {
+        if (value == null || treeNode == null) {
             return Optional.empty();
         }
 
@@ -259,7 +259,11 @@ public class Nodes {
         return Optional.empty();
     }
 
-    public <T> Optional<TreeItem<T>> searchTreeItem(TreeItem<T> treeItem, Predicate<T> predicate) {
+    public <T> Optional<TreeItem<T>> searchTreeItemByPredicate(TreeItem<T> treeItem, Predicate<T> predicate) {
+        if (treeItem == null || predicate == null) {
+            return Optional.empty();
+        }
+
         if (predicate.test(treeItem.getValue())) {
             return Optional.of(treeItem);
         }
@@ -267,7 +271,7 @@ public class Nodes {
         // Loop through each child node.
         for (TreeItem<T> node : treeItem.getChildren()) {
             // If the current node has children then check them.
-            var found = searchTreeItem(node, predicate);
+            var found = searchTreeItemByPredicate(node, predicate);
             if (found.isPresent()) {
                 return found;
             }

@@ -91,7 +91,8 @@ public class NavigationView implements FxView<HBox> {
 
         selectedTab.set(organizeLbl);
         FontIcon settingsIcon = new FontIcon(Material2OutlinedMZ.SETTINGS);
-        settingsIcon.setIconSize(24);
+        settingsIcon.getStyleClass().add(Styles.LARGE);
+//        settingsIcon.setIconSize(24);
 
         var settings = new Button(null, settingsIcon);
         settings.setTooltip(new Tooltip("Settings"));

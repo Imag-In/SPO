@@ -88,6 +88,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
         try {
 
             Metadata metadata = ImageMetadataReader.readMetadata(input, input.available());
+
 //            var tags = StreamSupport.stream(metadata.getDirectories().spliterator(), false)
 //                    .flatMap(directory -> directory.getTags().stream())
 //                    .collect(Collectors.toMap(Tag::getTagType, tag -> tag));
@@ -112,7 +113,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                                                                        ofNullable(metadata.getFirstDirectoryOfType(IptcDirectory.class))))
                                              .build());
         } catch (Throwable ex) {
-            log.warn("Cannot read header for Path: {}, message: {}", path, ex.getLocalizedMessage());
+            log.warn("Cannot read header for file: '{}', message: {}", path, ex.getLocalizedMessage());
             return Optional.empty();
         }
     }

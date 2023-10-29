@@ -19,7 +19,7 @@ public class MediaCollectionEntryEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(length = 64, nullable = false)
+    @Column(length = 1024, nullable = false)
     @Type(PathType.class)
     private Path name;
 }

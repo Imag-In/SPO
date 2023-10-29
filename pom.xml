@@ -115,6 +115,11 @@
             <version>${imageio-jpeg.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>org.fxmisc.wellbehaved</groupId>
             <artifactId>wellbehavedfx</artifactId>
             <version>${wellbehavedfx.version}</version>

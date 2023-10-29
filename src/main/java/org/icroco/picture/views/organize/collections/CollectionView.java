@@ -29,7 +29,9 @@ import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaCollectionEntry;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.FileUtil;
+import org.icroco.picture.views.CollectionManager;
 import org.icroco.picture.views.FxEventListener;
+import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.pref.UserPreference;
 import org.icroco.picture.views.pref.UserPreferenceService;
@@ -75,9 +77,11 @@ public class CollectionView implements FxView<VBox> {
 
     @PostConstruct
     protected void initializedOnce() {
+        root.setId(ViewConfiguration.V_MEDIA_COLLECTION);
         root.getStyleClass().add("v-collections");
         root.getStyleClass().add("header");
         rootTreeItem.setExpanded(true);
+        rootTreeItem.setValue(new CollectionNode(Path.of("/"), -1, false));
         treeView.setMinHeight(250);
         treeView.setShowRoot(false);
         treeView.setEditable(false);
@@ -155,7 +159,7 @@ public class CollectionView implements FxView<VBox> {
         catalogSizeProp.set(catalogSizeProp.get() + mediaCollection.medias().size());
         rootTreeItem.getChildren().add(pathTreeItem);
         mediaCollection.subPaths().forEach(c -> {
-            var p = mediaCollection.path().relativize(c.name());
+            var p = c.name();//mediaCollection.path().relativize(c.name());
             addSubDir(pathTreeItem, p, mediaCollection.id());
             log.debug("Path: {}", p);
         });
@@ -164,31 +168,22 @@ public class CollectionView implements FxView<VBox> {
         title.setUserData(mediaCollection.id());
         title.setTooltip(new Tooltip(mediaCollection.path() + " (id: " + mediaCollection.id() + ")"));
 
-//        FontIcon graphic = new FontIcon(FontAwesomeRegular.TRASH_ALT);
-//        graphic.setIconSize(12);
-//        graphic.setId("deleteCollection");
-//        Label label = new Label("", graphic);
-//        Nodes.addRightGraphic(title, label);
-//        label.setOnMouseClicked(this::onDeleteCollection);
-
-//        mediaCollections.getPanes().add(title);
-//        mediaCollections.getPanes().sort(Comparator.comparing(TitledPane::getText));
-
-
         return new Pair<>(mediaCollection, pathTreeItem);
     }
 
     private void updateTreeView(final TreeItem<CollectionNode> treeItem, final MediaCollection mediaCollection) {
-        mediaCollection.subPaths().forEach(c -> {
-            var p = mediaCollection.path().relativize(c.name());
-            addSubDir(treeItem, p, mediaCollection.id());
-            log.debug("Path: {}", p);
+        mediaCollection.subPaths().forEach(e -> {
+//            var p = mediaCollection.path().relativize(c.name());
+            addSubDir(treeItem, e.name(), mediaCollection.id());
+            log.debug("Path: {}", e.name());
         });
     }
 
     private void addSubDir(TreeItem<CollectionNode> current, Path path, int id) {
+        path = current.getValue().path().relativize(path);
         for (int i = 0; i < path.getNameCount(); i++) {
-            var child = new TreeItem<>(new CollectionNode(path.subpath(0, i + 1), id));
+            log.info("Current: {}, path: {}", current.getValue(), path);
+            var child = new TreeItem<>(new CollectionNode(current.getValue().path().resolve(path.subpath(0, i + 1)), id));
             if (current.getChildren().stream().noneMatch(pathTreeItem -> pathTreeItem.getValue().equals(child.getValue()))) {
                 current.getChildren().add(child);
             }
@@ -250,11 +245,15 @@ public class CollectionView implements FxView<VBox> {
         final File             selectedDirectory = directoryChooser.showDialog(root.getScene().getWindow());
 
         if (selectedDirectory != null) {
-            var newColPath            = selectedDirectory.toPath().normalize();
-            var existingSubCollection = isSameOrSubCollection(newColPath);
-            if (existingSubCollection.isPresent()) {
-                treeView.getSelectionModel().select(existingSubCollection.get());
-                existingSubCollection.get().setExpanded(true);
+            var newColPath = selectedDirectory.toPath().normalize();
+            var optPath    = collectionManager.isSameOrSubCollection(newColPath);
+            if (optPath.isPresent()) {
+                Nodes.searchTreeItemByPredicate(rootTreeItem, colNode -> colNode.path().equals(optPath.get()))
+                     .ifPresent(item -> {
+                         treeView.getSelectionModel().select(item);
+                         item.setExpanded(true);
+                         // TODO: Add visual notification.
+                     });
                 return;
             }
 
@@ -288,12 +287,12 @@ public class CollectionView implements FxView<VBox> {
                                                                                                                  .id())
                                                                                      .path()))
                            .findFirst()
-                           .flatMap(treeItem -> Nodes.searchTreeItem(treeItem,
-                                                                     (Predicate<CollectionNode>) cn -> rootPath.equals(cn.path())
-                                                                                                       || cn.path().equals(
-                                                                             treeItem.getValue()
-                                                                                     .path()
-                                                                                     .relativize(rootPath))));
+                           .flatMap(treeItem -> Nodes.searchTreeItemByPredicate(treeItem,
+                                                                                (Predicate<CollectionNode>) cn -> rootPath.equals(cn.path())
+                                                                                                                  || cn.path().equals(
+                                                                                        treeItem.getValue()
+                                                                                                .path()
+                                                                                                .relativize(rootPath))));
     }
 
 
@@ -386,6 +385,7 @@ public class CollectionView implements FxView<VBox> {
                                .toList();
         mc.subPaths().addAll(directories);
 
+        // TODO: Update raw by raw mediaCollectrion entries.
         var mcSaved = persistenceService.saveCollection(mc);
 
         rootTreeItem.getChildren()

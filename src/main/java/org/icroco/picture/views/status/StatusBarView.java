@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.PopOver;
 import org.icroco.picture.persistence.MediaFileRepository;
+import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.task.TaskView;
 import org.icroco.picture.views.util.FxView;
 import org.springframework.scheduling.TaskScheduler;
@@ -48,7 +49,8 @@ public class StatusBarView implements FxView<HBox> {
 
     @PostConstruct
     protected void initializedOnce() {
-        root.getStyleClass().add("v-status");
+        root.setId(ViewConfiguration.V_STATUSBAR);
+        root.getStyleClass().add(ViewConfiguration.V_STATUSBAR);
 
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(10, 10, 10, 10));

@@ -20,7 +20,6 @@ import javafx.scene.Node;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
-import javafx.scene.control.TreeItem;
 import javafx.scene.input.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -42,16 +41,19 @@ import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.*;
 import org.icroco.picture.views.util.widget.Zoom;
 import org.icroco.picture.views.util.widget.ZoomDragPane;
+import org.jooq.lambda.Unchecked;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
 import org.slf4j.Logger;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
+import java.awt.*;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import static javafx.application.Platform.runLater;
 import static org.fxmisc.wellbehaved.event.EventPattern.keyPressed;
@@ -144,7 +146,12 @@ public class GalleryView implements FxView<StackPane> {
 
         breadCrumbBar.setCrumbFactory(item -> new Hyperlink(item.getValue().getFileName().toString()));
         breadCrumbBar.setAutoNavigationEnabled(false);
-        breadCrumbBar.setOnCrumbAction(bae -> log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!"));
+        breadCrumbBar.setOnCrumbAction(bae -> {
+            log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!");
+            if (Desktop.isDesktopSupported()) {
+                Unchecked.runnable(() -> Desktop.getDesktop().browseFileDirectory(bae.getSelectedCrumb().getValue().toFile())).run();
+            }
+        });
         breadCrumbBar.setDividerFactory(GalleryView::bcbDividerFactory);
 
         expandCell.addListener((observable, oldValue, newValue) -> gridView.refreshItems());
@@ -413,9 +420,10 @@ public class GalleryView implements FxView<StackPane> {
                                    cache.map(Thumbnail::getOrigin).orElse(null)
                         );
             });
-            TreeItem<Path> root    = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
-            Path           subPath = root.getValue().relativize(mf.getFullPath());
-            resetBcbModel(subPath);
+//            TreeItem<Path> root = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
+//            log.info("root: {}, mv: {}", root, mf.getFullPath());
+//            Path           subPath = root.getValue().relativize(mf.getFullPath());
+            resetBcbModel(mf.getFullPath());
         } else {
 //            TreeItem<Path> root = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
 //            resetBcbModel(null);
@@ -436,19 +444,17 @@ public class GalleryView implements FxView<StackPane> {
         gridView.getLeftAndRight(event.getMediaFile()).forEach(mediaLoader::warmCache);
     }
 
-    private void resetBcbModel(@Nullable final Path entry) {
+    private void resetBcbModel(@Nullable Path entry) {
         log.debug("Reset CB: {}", entry);
-        Path[] paths;
-        if (getCurrentCatalog().path().equals(entry)) {
-            paths = new Path[] { getCurrentCatalog().path() };
-        } else {
-            paths = Stream.concat(Stream.of(getCurrentCatalog().path()),
-                                  entry == null
-                                  ? Stream.empty()
-                                  : Collections.toStream(entry.iterator()))
-                          .toArray(Path[]::new);
+        var        rootPath = getCurrentCatalog().path();
+        List<Path> paths    = new ArrayList<>(10);
+        while (entry != null && !rootPath.equals(entry)) {
+            paths.add(entry);
+            entry = entry.getParent();
         }
-        Breadcrumbs.BreadCrumbItem<Path> model = Breadcrumbs.buildTreeModel(paths);
+        paths = paths.reversed();
+        paths.addFirst(rootPath);
+        Breadcrumbs.BreadCrumbItem<Path> model = Breadcrumbs.buildTreeModel(paths.toArray(new Path[0]));
         breadCrumbBar.setSelectedCrumb(model);
     }
 

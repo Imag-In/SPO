@@ -5,9 +5,11 @@ import atlantafx.base.controls.ToggleSwitch;
 import atlantafx.base.layout.InputGroup;
 import atlantafx.base.theme.Styles;
 import jakarta.annotation.PostConstruct;
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -23,33 +25,38 @@ import javafx.stage.DirectoryChooser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.ImportDirectoryEvent;
+import org.icroco.picture.event.NotificationEvent;
 import org.icroco.picture.event.UsbStorageDeviceEvent;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.views.AbstractView;
+import org.icroco.picture.views.CollectionManager;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
-import org.icroco.picture.views.organize.collections.CollectionView;
+import org.icroco.picture.views.task.AbstractTask;
 import org.icroco.picture.views.task.TaskService;
-import org.icroco.picture.views.util.Constant;
 import org.icroco.picture.views.util.LangUtils;
 import org.icroco.picture.views.util.Nodes;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignI;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignR;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalTime;
 import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static javafx.beans.binding.Bindings.and;
 
@@ -60,27 +67,38 @@ public class ImportView extends AbstractView<StackPane> {
     public static final int                FIRST_COL_PREF_WIDTH = 400;
     private final       TaskService        taskService;
     private final       PersistenceService persistenceService;
-    private final       CollectionView     collectionView;
+    private final       CollectionManager  collectionManager;
     private final       StackPane          root                 = new StackPane();
     private final       CustomTextField    sourceDir            = new CustomTextField();
-    private             TextField          targetCollection;
-    private final       TextField          exampleTf            = new TextField();
+    private             TextField          targetCollectionTf;
+    private             TextField          tags;
+    private final       TextArea           exampleTf            = new TextArea();
     private final       CustomTextField    filePrefix           = new CustomTextField("");
-    private final       Label              filesCounter         = new Label("?");
+    private final       Label              filesCounter         = new Label("");
+    private final       Button             importBtn            = new Button("Import");
+    private final       ToggleSwitch       genThumbailsCb       = new ToggleSwitch("Generate high quality thumbnails");
+    private final       ToggleSwitch       deleteFilesCb        = new ToggleSwitch("Delete imported files");
 
-    private final Button runBtn = new Button("Run");
+    private final MediaFile[] fakeMf = new MediaFile[] { MediaFile.builder()
+                                                                  .originalDate(LocalDateTime.now())
+                                                                  .fullPath(Path.of("example.png"))
+                                                                 .build(),
+                                                         MediaFile.builder()
+                                                                  .originalDate(LocalDateTime.of(LocalDate.now(), LocalTime.of(15, 0, 0))
+                                                                                             .plusDays(1))
+                                                                  .fullPath(Path.of("luna.jpg"))
+                                                                 .build(),
+                                                         MediaFile.builder()
+                                                                  .originalDate(LocalDateTime.of(LocalDate.now(), LocalTime.of(15, 0, 0))
+                                                                                             .plusDays(1))
+                                                                  .fullPath(Path.of("luna.jpg"))
+                                                                 .build()
+    };
 
-    private MediaFile fakeMf = MediaFile.builder()
-                                        .originalDate(LocalDateTime.now())
-                                        .fullPath(Path.of("example.png"))
-                                        .build();
-
-    private final SimpleBooleanProperty canImport = new SimpleBooleanProperty(false);
-
-    private SimpleObjectProperty<Path> sourcePath = new SimpleObjectProperty<>(null);
-    private Path                       collection = null;
-    private Path                       subPath    = null;
-    private RenameSuffixStrategy       strategy   = new IncrSuffixStrategy();
+    private final SimpleBooleanProperty      isRunning      = new SimpleBooleanProperty(false);
+    private final SimpleObjectProperty<Path> sourcePath     = new SimpleObjectProperty<>(null);
+    private final ComboBox<ERenameStrategy>  renameStrategy = new ComboBox<>();
+    private       Path                       targetCollection;
 
     @PostConstruct
     private void postConstruct() {
@@ -88,51 +106,25 @@ public class ImportView extends AbstractView<StackPane> {
         root.getStyleClass().add(ViewConfiguration.V_IMPORT);
         root.getChildren().add(createForm());
 
-        sourcePath.addListener((observable, oldValue, newValue) -> updateExanple());
+        sourcePath.addListener((observable, oldValue, newValue) -> newSourcePath(newValue));
         sourceDir.textProperty().bind(sourcePath.map(Path::toString));
-        runBtn.disableProperty().bind(Bindings.not(and(Bindings.isNotNull(sourcePath),
-                                                       and(Bindings.isNotEmpty(targetCollection.textProperty()),
-                                                           Bindings.isNotEmpty(filePrefix.textProperty())))));
+        importBtn.disableProperty().bind(and(isRunning, Bindings.not(and(Bindings.isNotNull(sourcePath),
+                                                                         and(Bindings.isNotEmpty(targetCollectionTf.textProperty()),
+                                                                             Bindings.isNotEmpty(filePrefix.textProperty()))))));
     }
 
-    interface RenameSuffixStrategy {
-        default void reset() {
-        }
-
-        String computeNewFileName(MediaFile mediaFile);
-    }
-
-    class IncrSuffixStrategy implements RenameSuffixStrategy {
-        private int index = 0;
-
-        @Override
-        public void reset() {
-            index = 0;
-        }
-
-        @Override
-        public String computeNewFileName(MediaFile mediaFile) {
-            return String.valueOf(++index);
+    private void newSourcePath(Path newValue) {
+        filesCounter.setText("");
+        if (newValue != null && Files.exists(newValue)) {
+            final var task = collectionManager.scanDirectory(newValue, false);
+            task.setOnSucceeded(event -> {
+                filesCounter.setText("'" + task.getValue().size() + "' files found.");
+                updateExanple();
+            });
+            task.setOnFailed(unused -> updateExanple());
+            taskService.supply(task);
         }
     }
-
-    class DateSuffixStrategy implements RenameSuffixStrategy {
-        private DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
-        private Set<String>       cache  = new HashSet<>();
-
-        @Override
-        public String computeNewFileName(MediaFile mediaFile) {
-            var valueOriginal = format.format(mediaFile.getOriginalDate());
-            var value         = valueOriginal;
-
-            int idx = 0;
-            while (cache.contains(value)) {
-                value = valueOriginal + "-" + (++idx);
-            }
-            return value;
-        }
-    }
-
 
     private Node createForm() {
         GridPane grid = new GridPane();
@@ -161,23 +153,24 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(sourceDir, 1, rowIdx);
 
         rowIdx += 1;
-        var countGrp = new InputGroup(filesCounter, new Label("files found."));
-        grid.add(countGrp, 1, rowIdx);
+//        var countGrp = new InputGroup(filesCounter, new Label("files found."));
+        HBox.setHgrow(filesCounter, Priority.ALWAYS);
+        grid.add(filesCounter, 1, rowIdx, 2, 1);
 
         rowIdx += 1;
         grid.add(createLabel("Target collection:", 100, 150), 0, rowIdx);
-        targetCollection = createCustomText(false, new FontIcon(MaterialDesignF.FOLDER_OPEN_OUTLINE), this::chooseCollectionPath);
-        targetCollection.setEditable(false);
-        grid.add(targetCollection, 1, rowIdx);
+        targetCollectionTf = createCustomText(false, new FontIcon(MaterialDesignF.FOLDER_OPEN_OUTLINE), this::chooseCollectionPath);
+        targetCollectionTf.setEditable(false);
+        grid.add(targetCollectionTf, 1, rowIdx);
 
         rowIdx += 1;
-        grid.add(createLabel("New directory", 100, 150), 0, rowIdx);
+        grid.add(createLabel("Sub-directory", 100, 150), 0, rowIdx);
         CheckBox cb           = new CheckBox();
         var      leftLbl1     = new Label("", cb);
         var      targetSubDir = new TextField();
         targetSubDir.setEditable(false);
         cb.selectedProperty().addListener((observable, oldValue, newValue) -> targetSubDir.setEditable(newValue));
-        targetSubDir.setPromptText("Directory");
+        targetSubDir.setPromptText("Create a new sub-directory into collection.");
         targetSubDir.textProperty().addListener((observable, oldValue, newValue) -> updateExanple());
         HBox.setHgrow(targetSubDir, Priority.ALWAYS);
         var subDirGrp = new InputGroup(leftLbl1, targetSubDir);
@@ -185,20 +178,31 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(subDirGrp, 1, rowIdx);
 
         rowIdx += 1;
-        var genThumbails = new ToggleSwitch("Generate high quality thumbnails");
-        genThumbails.setSelected(false);
-        genThumbails.selectedProperty().addListener((observable, oldValue, newValue) -> log.info("Selected"));
-        grid.add(genThumbails, 0, rowIdx, 2, 1);
+        // TODO: Add inoformation icon with help.
+        genThumbailsCb.setSelected(false);
+        genThumbailsCb.setDisable(true);
+        genThumbailsCb.selectedProperty().addListener((observable, oldValue, newValue) -> log.info("Selected"));
+        grid.add(genThumbailsCb, 0, rowIdx);
+        var info = new FontIcon(MaterialDesignI.INFORMATION_OUTLINE);
+        info.getStyleClass().addAll(Styles.SMALL, Styles.ACCENT);
+        grid.add(info, 1, rowIdx);
 
         rowIdx += 1;
-        var deleteFiles = new ToggleSwitch("Delete imported files");
-        deleteFiles.setSelected(false);
-        deleteFiles.selectedProperty().addListener((observable, oldValue, newValue) -> log.info("deleted ?"));
+        deleteFilesCb.setSelected(false);
+        deleteFilesCb.setDisable(true);
+//        deleteFiles.selectedProperty().addListener((observable, oldValue, newValue) -> log.info("deleted ?"));
 //        deleteFiles.setPadding(new Insets(5, 0, 5, 0));
-        grid.add(deleteFiles, 0, rowIdx, 2, 1);
+        grid.add(deleteFilesCb, 0, rowIdx, 2, 1);
 
         rowIdx += 1;
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
+
+        rowIdx += 1;
+        grid.add(createLabel("Add tags", 100, 150), 0, rowIdx);
+        tags = new TextField();
+        tags.setEditable(false);
+        tags.setPromptText("Not Yet Implemented");
+        grid.add(tags, 1, rowIdx);
 
         rowIdx += 1;
         grid.add(createLabel("Filename prefix", 100, 150), 0, rowIdx);
@@ -208,20 +212,17 @@ public class ImportView extends AbstractView<StackPane> {
             updateExanple();
             filePrefix.pseudoClassStateChanged(Styles.STATE_DANGER, false);
             filePrefix.pseudoClassStateChanged(Styles.STATE_SUCCESS, false);
-            filePrefix.pseudoClassStateChanged(LangUtils.isBlank(newV)
-                                               ? Styles.STATE_DANGER
-                                               : Styles.STATE_SUCCESS, true);
+            filePrefix.pseudoClassStateChanged(LangUtils.isBlank(newV) ? Styles.STATE_DANGER : Styles.STATE_SUCCESS, true);
         });
         filePrefix.pseudoClassStateChanged(Styles.STATE_DANGER, true);
         filePrefix.setText("");
         grid.add(filePrefix, 1, rowIdx);
 
         rowIdx += 1;
-        grid.add(createLabel("Suffix pattern", 100, 150), 0, rowIdx);
-        ComboBox<String> suffixPattern = new ComboBox<>();
-        suffixPattern.getItems().addAll("%i", "%yyyy%mm%dd", "%yyyy%mm%dd-%hh%mm&ss");
-        grid.add(suffixPattern, 1, rowIdx);
-        suffixPattern.selectionModelProperty().addListener((observable, oldValue, newValue) -> updateExanple());
+        grid.add(createLabel("File pattern", 100, 150), 0, rowIdx);
+        renameStrategy.getItems().addAll(ERenameStrategy.values());
+        grid.add(renameStrategy, 1, rowIdx);
+        renameStrategy.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> updateExanple());
 
 
         rowIdx += 1;
@@ -231,17 +232,104 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(createLabel("Example", 100, 150), 0, rowIdx);
         exampleTf.setEditable(false);
         exampleTf.setFocusTraversable(false);
+        exampleTf.setWrapText(true);
+        exampleTf.setPrefRowCount(4);
         grid.add(exampleTf, 1, rowIdx);
 
         rowIdx += 1;
-        runBtn.setDefaultButton(true);
-        runBtn.setDisable(true);
-        grid.add(runBtn, 0, rowIdx);
+        importBtn.setDefaultButton(true);
+        importBtn.setDisable(true);
+        importBtn.setOnMouseClicked(this::runImport);
+        Button reset = new Button("", new FontIcon(MaterialDesignR.REFRESH));
+        reset.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.DANGER);
+        reset.setMnemonicParsing(true);
+        reset.setOnMouseClicked(event -> reset());
+        HBox hbox = new HBox(20, reset, importBtn);
+        hbox.setAlignment(Pos.CENTER_RIGHT);
+        grid.add(hbox, 0, rowIdx, 2, 1);
 
         StackPane.setAlignment(grid, Pos.CENTER);
-        suffixPattern.getSelectionModel().selectFirst();
+        renameStrategy.getSelectionModel().selectFirst();
 
         return grid;
+    }
+
+
+    public record RenameFile(MediaFile source, Path target) {
+    }
+
+    private void runImport(MouseEvent event) {
+        if (Files.exists(sourcePath.get())) {
+            final var                  task        = collectionManager.scanDirectory(sourcePath.get(), false);
+            final IRenameFilesStrategy strategy    = renameStrategy.getSelectionModel().getSelectedItem().getStrategy();
+            final LocalDate            now         = LocalDate.now();
+            final boolean              deleteFiles = deleteFilesCb.isSelected();
+            strategy.reset();
+            isRunning.set(true);
+            taskService.supply(task)
+                       .thenAccept(paths -> {
+                           var files = paths.stream()
+                                            .peek(path -> log.debug("Importing: '{}'", path))
+                                            .flatMap(f -> collectionManager.create(now, f).stream())
+                                            .map(mf -> new RenameFile(mf, createDestinationPath(mf, strategy)))
+                                            .toList();
+                           Task<List<MediaFile>> copyFiles = importFiles(files, deleteFiles);
+                           copyFiles.setOnSucceeded(event1 -> taskService.sendEvent(NotificationEvent.builder()
+                                                                                                     .message("'%s' file(s) imported !".formatted(
+                                                                                                             copyFiles.getValue()
+                                                                                                                      .size()))
+                                                                                                     .type(NotificationEvent.NotificationType.SUCCESS)
+                                                                                                     .source(this)
+                                                                                                     .build()));
+                           taskService.supply(copyFiles)
+                                      .thenRun(() -> Platform.runLater(() -> isRunning.set(false)));
+                       })
+                       .exceptionally(throwable -> {
+                           log.error("Unexpected error", throwable);
+                           Platform.runLater(() -> isRunning.set(false));
+                           return null;
+                       });
+        }
+    }
+
+    private Task<List<MediaFile>> importFiles(List<RenameFile> files, boolean deleteFiles) {
+        return new AbstractTask<>() {
+
+            @Override
+            protected List<MediaFile> call() throws Exception {
+                updateTitle("Copy files");
+                updateProgress(0, files.size());
+                var i = new AtomicInteger(0);
+                return files.stream()
+                            .peek(rf -> {
+                                updateMessage("Copy: " + rf.source.getFullPath().getFileName());
+                                updateProgress(i.incrementAndGet(), files.size());
+                            })
+                            .map(rf -> {
+                                log.info("File copied from: '{}', to: '{}'", rf.source, rf.target);
+                                try {
+                                    Files.copy(rf.source.getFullPath(), rf.target);
+                                    return rf;
+                                } catch (FileAlreadyExistsException e) {
+                                    log.error("Cannot copy file, it already exists: '{}'", rf.target);
+                                    return null;
+                                } catch (IOException e) {
+                                    log.error("Cannot copy file: {}, error", rf.target, e);
+                                    return null;
+                                }
+                            })
+                            .filter(Objects::nonNull)
+                            .peek(rf -> {
+                                if (deleteFiles) {
+                                    // TODO: Delete if flag is check.
+                                    log.info("File deleted: {}", rf.source());
+                                }
+                            })
+                            .peek(rf -> rf.source.setFullPath(rf.target))
+                            .map(rf -> rf.source)
+                            .toList();
+            }
+        };
     }
 
     private void chooseCollectionPath(MouseEvent e) {
@@ -252,11 +340,11 @@ public class ImportView extends AbstractView<StackPane> {
         TreeView<Path> treeView     = new TreeView<>(rootTreeItem);
         persistenceService.findAllMediaCollection()
                           .forEach(mediaCollection -> createTreeView(rootTreeItem, mediaCollection));
-        treeView.setCellFactory(param -> new TreeCell<Path>() {
+        treeView.setCellFactory(param -> new TreeCell<>() {
             @Override
             protected void updateItem(Path item, boolean empty) {
                 super.updateItem(item, empty);
-                log.info("render path: {}", empty || item == null ? "" : item.getFileName().toString());
+//                log.info("render path: {}", empty || item == null ? "" : item.getFileName().toString());
                 setText(empty || item == null ? "" : item.getFileName().toString());
             }
         });
@@ -269,7 +357,9 @@ public class ImportView extends AbstractView<StackPane> {
         Nodes.show(alert, getRootContent().getScene()).filter(buttonType -> buttonType == ButtonType.OK)
              .ifPresent(buttonType -> {
                  log.info("OK: {}", treeView.getSelectionModel().getSelectedItem().getValue());
-                 targetCollection.setText(treeView.getSelectionModel().getSelectedItem().getValue().toString());
+                 targetCollection = treeView.getSelectionModel().getSelectedItem().getValue();
+                 targetCollectionTf.setText(targetCollection.toString());
+                 updateExanple();
              });
     }
 
@@ -281,7 +371,6 @@ public class ImportView extends AbstractView<StackPane> {
 
         mediaCollection.subPaths().forEach(subPath -> {
             var p = mediaCollection.path().resolve(subPath.name());
-            log.info("Path: {}", p);
             addSubDir(pathTreeItem, p, mediaCollection.id());
         });
     }
@@ -289,8 +378,6 @@ public class ImportView extends AbstractView<StackPane> {
     private void addSubDir(TreeItem<Path> current, Path path, int id) {
         path = current.getValue().relativize(path);
         for (int i = 0; i < path.getNameCount(); i++) {
-//            var p = mediaCollection.path().relativize(c.name());
-            log.info("Current: {}, path: {}", current.getValue(), path);
             var child = new TreeItem<>(current.getValue().resolve(path.subpath(0, i + 1)));
             if (current.getChildren().stream().noneMatch(pathTreeItem -> pathTreeItem.getValue().equals(child.getValue()))) {
                 current.getChildren().add(child);
@@ -365,26 +452,33 @@ public class ImportView extends AbstractView<StackPane> {
 
     private void updateExanple() {
         exampleTf.setText("");
+        var strategy      = renameStrategy.getSelectionModel().getSelectedItem().getStrategy();
+        var stringBuilder = new StringBuilder();
+
         strategy.reset();
-        StringBuilder stringBuilder = new StringBuilder();
-
-//        if (sourcePath.get() != null) {
-//            stringBuilder.append(sourcePath.get());
-//            stringBuilder.append("/");
-//        }
-        if (collection != null) {
-            stringBuilder.append(collection.getFileName().toString());
-            stringBuilder.append("/");
+        for (var mf : fakeMf) {
+            stringBuilder.append(createDestinationPath(mf, strategy));
+            stringBuilder.append(System.lineSeparator());
         }
-        if (subPath != null) {
-            stringBuilder.append(subPath);
-            stringBuilder.append("/");
-        }
-
-        stringBuilder.append(filePrefix.getText());
-        stringBuilder.append(strategy.computeNewFileName(fakeMf));
-
         exampleTf.setText(stringBuilder.toString());
+    }
+
+    private void reset() {
+        sourcePath.set(null);
+        targetCollection = null;
+        exampleTf.setText("");
+        filesCounter.setText("");
+        tags.setText("");
+        deleteFilesCb.setSelected(false);
+        genThumbailsCb.setSelected(false);
+    }
+
+
+    Path createDestinationPath(MediaFile mediaFile, IRenameFilesStrategy strategy) {
+        if (targetCollection != null) {
+            return targetCollection.resolve(filePrefix.getText() + strategy.computeNewFileName(mediaFile));
+        }
+        return Path.of(filePrefix.getText() + strategy.computeNewFileName(mediaFile));
     }
 
     private void chooseDirectory(MouseEvent event) {
@@ -394,20 +488,28 @@ public class ImportView extends AbstractView<StackPane> {
         }
 
         final File selectedDirectory = directoryChooser.showDialog(root.getScene().getWindow());
-
         if (selectedDirectory != null) {
             var newImportPath = selectedDirectory.toPath().normalize();
-            sourcePath.set(newImportPath);
-            // TODO: Add into a task;
-            try (var filesStream = Files.walk(newImportPath, 1)) {
-                Set<Path> files = filesStream.filter(p -> !Files.isDirectory(p))   // not a directory
-                                             .map(Path::normalize)
-                                             .filter(Constant::isSupportedExtension)
-                                             .collect(Collectors.toSet());
-                filesCounter.setText(String.valueOf(files.size()));
-                log.info("Files: {}", files.size());
-            } catch (IOException ex) {
-                log.error("Cannot scan directory: {}", newImportPath, ex);
+            if (collectionManager.isSameOrSubCollection(newImportPath).isPresent()) {
+                taskService.sendEvent(NotificationEvent.builder()
+                                                       .message("Diretory is already available into medias collections: '%s'"
+                                                                        .formatted(newImportPath))
+                                                       .type(NotificationEvent.NotificationType.ERROR)
+                                                       .source(this)
+                                                       .build());
+            } else {
+                sourcePath.set(newImportPath);
+                // TODO: Add into a task;
+//                try (var filesStream = Files.walk(newImportPath, 1)) {
+//                    Set<Path> files = filesStream.filter(p -> !Files.isDirectory(p))   // not a directory
+//                                                 .map(Path::normalize)
+//                                                 .filter(Constant::isSupportedExtension)
+//                                                 .collect(Collectors.toSet());
+//                    filesCounter.setText("'"+files.size()+"' files found.");
+//                    log.info("Files: {}", files.size());
+//                } catch (IOException ex) {
+//                    log.error("Cannot scan directory: {}", newImportPath, ex);
+//                }
             }
         }
     }

@@ -3,6 +3,7 @@ package org.icroco.picture.views.organize.details;
 import jakarta.annotation.PostConstruct;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -23,6 +24,7 @@ import org.icroco.picture.util.Env;
 import org.icroco.picture.views.AbstractView;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
+import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
@@ -77,6 +79,7 @@ public class DetailsView extends AbstractView<VBox> {
 
     @PostConstruct
     private void postConstruct() {
+        root.setId(ViewConfiguration.V_MEDIA_DETAILS);
         root.getStyleClass().add(ViewConfiguration.V_DETAILS);
         root.setVisible(false);
         root.setMinWidth(200);
@@ -227,5 +230,11 @@ public class DetailsView extends AbstractView<VBox> {
     @Override
     public VBox getRootContent() {
         return root;
+    }
+
+    public void collectionPathChange(ObservableValue<? extends PathSelection> observableValue,
+                                     PathSelection pathSelection,
+                                     PathSelection pathSelection1) {
+        updatePhotoSelected(PhotoSelectedEvent.builder().mf(null).type(PhotoSelectedEvent.ESelectionType.UNSELECTED).source(this).build());
     }
 }

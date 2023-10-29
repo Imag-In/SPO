@@ -1,5 +1,7 @@
 package org.icroco.picture.metadata;
 
+import com.drew.imaging.FileType;
+import com.drew.imaging.FileTypeDetector;
 import org.icroco.picture.model.GeoLocation;
 import org.slf4j.Logger;
 
@@ -36,6 +38,15 @@ public interface IMetadataExtractor {
         catch (Throwable t) {
             log.warn("Cannot read header for file: {}, message: {}", path, t.getLocalizedMessage());
             return Optional.empty();
+        }
+    }
+
+    default boolean isFileTypeSupported(Path path) {
+        try (var input = new BufferedInputStream(new FileInputStream(path.toFile()))) {
+            return FileTypeDetector.detectFileType(input) != FileType.Unknown;
+        } catch (Throwable t) {
+            log.warn("Cannot read header for file: {}, message: {}", path, t.getLocalizedMessage());
+            return false;
         }
     }
 

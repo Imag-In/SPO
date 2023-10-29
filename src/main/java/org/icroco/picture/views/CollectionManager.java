@@ -1,4 +1,4 @@
-package org.icroco.picture.views.organize.collections;
+package org.icroco.picture.views;
 
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
@@ -31,6 +31,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 @RequiredArgsConstructor
@@ -95,7 +96,7 @@ public class CollectionManager {
                                  Collection<Path> hasBeenModified) {
         var now = LocalDate.now();
         persistenceService.updateCollection(collectionId,
-                                            toBeAdded.stream().map(p -> create(now, p)).toList(),
+                                            toBeAdded.stream().flatMap(p -> create(now, p).stream()).toList(),
                                             toBeDeleted.stream().map(p -> MediaFile.builder().fullPath(p).build()).toList(),
                                             true);
         // TODO: Process hasBeenModified.
@@ -113,24 +114,28 @@ public class CollectionManager {
         }
     }
 
-    MediaFile create(LocalDate now, Path p) {
+    public Optional<MediaFile> create(LocalDate now, Path p) {
         var builder = MediaFile.builder()
                                .fullPath(p)
                                .fileName(p.getFileName().toString())
                                .thumbnailUpdateProperty(new SimpleObjectProperty<>(LocalDateTime.MIN))
-                               .hash(hashGenerator.compute(p).orElse("")) // TODO: Hash later.
-                               .hashDate(now); // TODO: Hash later.
+//                               .hash(hashGenerator.compute(p).orElse("")) // TODO: Hash later.
+//                               .hashDate(now); // TODO: Hash later.
+                ;
 
-        metadataExtractor.header(p) // TODO: Hash later ?
-                         .ifPresent(header -> builder.dimension(header.size())
-                                                     .orientation(header.orientation())
-                                                     .geoLocation(header.geoLocation())
-                                                     .camera(header.camera())
-                                                     .originalDate(header.orginalDate())
-                                                     .keywords(header.keywords())
-                         );
-
-        return builder.build();
+        return metadataExtractor.header(p)
+                                .map(header -> builder.dimension(header.size())
+                                                      .orientation(header.orientation())
+                                                      .geoLocation(header.geoLocation())
+                                                      .camera(header.camera())
+                                                      .originalDate(header.orginalDate())
+                                                      .keywords(header.keywords())
+                                                      .build()
+                                )
+                                .or(() -> {
+                                    log.error("Files not created because we cannot read header: '{}'", p);
+                                    return Optional.empty();
+                                });
     }
 
 
@@ -162,7 +167,7 @@ public class CollectionManager {
                                                    Collectors.mapping(PathAndCollection::path, Collectors.toList())));
     }
 
-    Task<MediaCollection> newCollection(@NonNull Path selectedDirectory) {
+    public Task<MediaCollection> newCollection(@NonNull Path selectedDirectory) {
         var task = scanDirectory(selectedDirectory);
         taskService.supply(task);
         return task;
@@ -184,18 +189,15 @@ public class CollectionManager {
                                 .map(p -> MediaCollectionEntry.builder().name(p).build())
                                 .collect(Collectors.toSet());
                 }
-                try (var images = Files.walk(rootPath)) {
-                    final var filteredImages = images.filter(p -> !Files.isDirectory(p))   // not a directory
-                                                     .map(Path::normalize)
-                                                     .filter(Constant::isSupportedExtension)
-                                                     .toList();
+                final var filteredImages = scanDir(rootPath, true);
                     final var size = filteredImages.size();
                     updateProgress(0, size);
-                    var mc = MediaCollection.builder().path(rootPath)
+                var mc = MediaCollection.builder()
+                                        .path(rootPath)
                                             .subPaths(children)
-                                            .medias(EntryStream.of(filteredImages)
+                                        .medias(EntryStream.of(List.copyOf(filteredImages))
                                                                .peek(i -> updateProgress(i.getKey(), size))
-                                                               .map(i -> create(now, i.getValue()))
+                                                           .flatMap(i -> create(now, i.getValue()).stream())
                                                                .collect(Collectors.toSet()))
                                             .build();
                     mc = persistenceService.saveCollection(mc);
@@ -205,7 +207,6 @@ public class CollectionManager {
                                                                .build());
                     directoryWatcher.registerAll(mc.path());
                     return mc;
-                }
             }
 
             @Override
@@ -222,8 +223,33 @@ public class CollectionManager {
         };
     }
 
+    public Task<Set<Path>> scanDirectory(Path rootPath, boolean resursiveScan) {
+        return new AbstractTask<>() {
+            @Override
+            protected Set<Path> call() throws Exception {
+                updateTitle("Scanning directory: " + rootPath.getFileName());
+                updateMessage("%s: scanning".formatted(rootPath));
+                Set<MediaCollectionEntry> children;
+                updateProgress(-1, -1);
+                return scanDir(rootPath, resursiveScan);
+            }
+        };
+    }
 
-    void deleteCollection(final MediaCollection entry) {
+    private Set<Path> scanDir(Path rootPath, boolean resursiveScan) {
+        try (var images = Files.walk(rootPath, resursiveScan ? Integer.MAX_VALUE : 1)) {
+            return images.filter(p -> !Files.isDirectory(p))   // not a directory
+                         .filter(Constant::isSupportedExtension)
+                         .filter(metadataExtractor::isFileTypeSupported)
+                         .map(Path::normalize)
+                         .collect(Collectors.toSet());
+        } catch (IOException e) {
+            log.error("Unexpected error", e);
+            return Collections.emptySet();
+        }
+    }
+
+    public void deleteCollection(final MediaCollection entry) {
         taskService.supply(() -> {
             persistenceService.deleteMediaCollection(entry.id());
             taskService.sendEvent(CollectionEvent.builder()
@@ -232,6 +258,18 @@ public class CollectionManager {
                                                  .source(this)
                                                  .build());
         });
+    }
+
+    public Optional<Path> isSameOrSubCollection(Path rootPath) {
+        return persistenceService.findAllMediaCollection()
+                                 .stream()
+                                 .filter(mc -> rootPath.startsWith(mc.path()))
+                                 .findFirst()
+                                 .stream()
+                                 .flatMap(mc -> Stream.concat(Stream.of(rootPath),
+                                                              mc.subPaths().stream().map(e -> mc.path().resolve(e.name()))))
+                                 .filter(p -> p.equals(rootPath))
+                                 .findFirst();
     }
 
     // TODO: move outside of this class, like collectionmanager.
