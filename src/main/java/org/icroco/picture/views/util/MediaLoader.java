@@ -306,7 +306,7 @@ public class MediaLoader {
     Void mayRegenerateThubmnail(MediaCollection mediaCollection) {
         if (catalogToReGenerate.contains(mediaCollection.id())) {
             taskService.sendEvent(GenerateThumbnailEvent.builder()
-                                                        .mediaCollection(mediaCollection)
+                                                        .mcId(mediaCollection.id())
                                                         .source(this).build());
             catalogToReGenerate.remove(mediaCollection.id());
         }
@@ -324,7 +324,8 @@ public class MediaLoader {
 
     @EventListener(ExtractThumbnailEvent.class)
     public void extractThumbnails(ExtractThumbnailEvent event) {
-        extractThumbnails(event.getMediaCollection(), List.copyOf(event.getMediaCollection().medias()), true);
+        MediaCollection mediaCollection = persistenceService.getMediaCollection(event.getMcId());
+        extractThumbnails(mediaCollection, List.copyOf(mediaCollection.medias()), true);
     }
 
     private void extractThumbnails(MediaCollection mediaCollection, List<MediaFile> mediaFiles, boolean sendReadyEvent) {
@@ -353,14 +354,18 @@ public class MediaLoader {
                                                                                    .mediaCollectionId(mediaCollection.id())
                                                                                    .source(this)
                                                                                    .build()))
-                         .thenAccept(u -> taskService.sendEvent(CollectionEvent.builder()
-                                                                               .mediaCollection(persistenceService.getMediaCollection(
-                                                                                       mediaCollection.id()))
-                                                                               .type(CollectionEvent.EventType.READY)
-                                                                               .source(this)
-                                                                               .build()))
+                         .thenAccept(u -> {
+                             if (sendReadyEvent) {
+                                 taskService.sendEvent(CollectionEvent.builder()
+                                                                      .mediaCollection(persistenceService.getMediaCollection(
+                                                                              mediaCollection.id()))
+                                                                      .type(CollectionEvent.EventType.READY)
+                                                                      .source(this)
+                                                                      .build());
+                             }
+                         })
                          .thenAccept(u -> taskService.sendEvent(GenerateThumbnailEvent.builder()
-                                                                                      .mediaCollection(mediaCollection)
+                                                                                      .mcId(mediaCollection.id())
                                                                                       .source(this)
                                                                                       .build()))
         ;
@@ -427,7 +432,7 @@ public class MediaLoader {
 
     @EventListener(GenerateThumbnailEvent.class)
     public void generateThumbnails(GenerateThumbnailEvent event) {
-        var catalog = event.getMediaCollection();
+        var catalog = persistenceService.getMediaCollection(event.getMcId());
         generateThumbnails(catalog, catalog.medias());
     }
 
@@ -486,17 +491,17 @@ public class MediaLoader {
                                                         .peek(tu -> tu.thumbnail.setImage(tu.update))
                                                         .toList())
                                            .flatMap(tus -> {
-                                                        log.debug("Update '{}' high res thumbnails", tus.size());
-                                                        persistenceService.saveAll(tus.stream()
-                                                                                      .map(ThumbnailUpdate::thumbnail)
-                                                                                      .toList());
+                                               log.debug("Update '{}' high res thumbnails", tus.size());
+                                               persistenceService.saveAll(tus.stream()
+                                                                             .map(ThumbnailUpdate::thumbnail)
+                                                                             .toList());
 
-                                                        return tus.stream()
-                                                                  .peek(tu -> tu.mf.setThumbnailType(tu.thumbnail.getOrigin()))
-                                                                  .peek(tr -> thCache.evict(tr.mf)) // to make sure grid reload latest version.
-                                                                  .map(tr -> tr.mf);
-                                                    }
-                                           ).toList();
+                                               return tus.stream()
+                                                         .peek(tu -> tu.mf.setThumbnailType(tu.thumbnail.getOrigin()))
+                                                         .peek(tr -> thCache.evict(tr.mf)) // to make sure grid reload latest version.
+                                                         .map(tr -> tr.mf);
+                                           })
+                                           .toList();
                 persistenceService.updateCollection(mediaCollection.id(), updatedFiles, emptyList(), false);
                 mediaCollection.replaceMedias(updatedFiles);
 

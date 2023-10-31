@@ -62,7 +62,7 @@ public class PersistenceService {
 
     @Transactional
 //    @Cacheable(cacheNames = ImageInConfiguration.CATALOG, unless = "#result == null")
-    public synchronized Optional<MediaCollection> findMediaCollection(int id) {
+    public Optional<MediaCollection> findMediaCollection(int id) {
         return Optional.ofNullable(mcCache.get(id, MediaCollection.class));
     }
 
@@ -98,9 +98,15 @@ public class PersistenceService {
             wLock.lock();
 
             log.info("Save collection: {}", mediaCollection);
+            var mcEntity = colMapper.toEntity(mediaCollection);
 
-            var entity            = colMapper.toEntity(mediaCollection);
-            var entitySaved       = collectionRepo.saveAndFlush(entity);
+            mcEntity.getMedias()
+                    .stream()
+                    .filter(mfe -> mfe.getCollectionId() == null)
+                    .forEach(mfe -> log.error("Something wrong: {}, colId: {}", mfe.getFullPath(), mfe.getCollectionId()));
+            var entitySaved = collectionRepo.saveAndFlush(mcEntity);
+            entitySaved.getMedias()
+                       .forEach(mf -> mf.setCollectionId(entitySaved.getId())); // TODO: don't understant why I have to do this !
             var updatedCollection = colMapper.toDomain(entitySaved);
 
             mcCache.put(updatedCollection.id(), updatedCollection);
@@ -203,7 +209,7 @@ public class PersistenceService {
     }
 
 //    @Transactional
-//    public synchronized void updateCollection(int id,
+//    public void updateCollection(int id,
 //                                              Collection<MediaFile> toBeAdded,
 //                                              Collection<MediaFile> toBeDeleted,
 //                                              boolean sendRefreshEvent) {
@@ -247,10 +253,10 @@ public class PersistenceService {
 //    }
 
     @Transactional
-    public synchronized void updateCollection(int id,
-                                              Collection<MediaFile> toBeAdded,
-                                              Collection<MediaFile> toBeDeleted,
-                                              boolean sendRefreshEvent) {
+    public void updateCollection(int id,
+                                 Collection<MediaFile> toBeAdded,
+                                 Collection<MediaFile> toBeDeleted,
+                                 boolean sendRefreshEvent) {
         var wLock = mcLock.writeLock();
         try {
             wLock.lock();
@@ -267,6 +273,7 @@ public class PersistenceService {
 
             mfEntities = mfRepo.saveAllAndFlush(mfEntities);
             mediaFiles.removeAll(toBeAdded);
+
             var toBeAddedSaved = mfEntities.stream().map(mfMapper::toDomain).toList();
             mediaFiles.addAll(toBeAddedSaved);
 

@@ -20,11 +20,8 @@ import javafx.util.Pair;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.event.CollectionEvent;
+import org.icroco.picture.event.*;
 import org.icroco.picture.event.CollectionEvent.EventType;
-import org.icroco.picture.event.CollectionUpdatedEvent;
-import org.icroco.picture.event.CollectionsLoadedEvent;
-import org.icroco.picture.event.DeleteCollectionEvent;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaCollectionEntry;
 import org.icroco.picture.persistence.PersistenceService;
@@ -182,14 +179,21 @@ public class CollectionView implements FxView<VBox> {
     private void addSubDir(TreeItem<CollectionNode> current, Path path, int id) {
         path = current.getValue().path().relativize(path);
         for (int i = 0; i < path.getNameCount(); i++) {
-            log.info("Current: {}, path: {}", current.getValue(), path);
-            var child = new TreeItem<>(new CollectionNode(current.getValue().path().resolve(path.subpath(0, i + 1)), id));
-            if (current.getChildren().stream().noneMatch(pathTreeItem -> pathTreeItem.getValue().equals(child.getValue()))) {
-                current.getChildren().add(child);
-            }
-            current.getChildren()
-                   .sort(Comparator.comparing(ti -> ti.getValue().path().getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
-            current = child;
+            var       subPath = path.subpath(i, i + 1);
+            final var c       = current;
+            final var child   = c.getValue().path().resolve(subPath);
+            current = current.getChildren()
+                             .stream()
+                             .filter(pathTreeItem -> pathTreeItem.getValue().path().equals(child))
+                             .findFirst()
+                             .orElseGet(() -> {
+                                 var newItem = new TreeItem<>(new CollectionNode(child, id));
+                                 c.getChildren().add(newItem);
+                                 c.getChildren()
+                                  .sort(Comparator.comparing(ti -> ti.getValue().path().getFileName().toString(),
+                                                             String.CASE_INSENSITIVE_ORDER));
+                                 return newItem;
+                             });
         }
     }
 
@@ -386,6 +390,7 @@ public class CollectionView implements FxView<VBox> {
         mc.subPaths().addAll(directories);
 
         // TODO: Update raw by raw mediaCollectrion entries.
+        // TODO: should not be there, more in PErsitanceService or CollectionManager
         var mcSaved = persistenceService.saveCollection(mc);
 
         rootTreeItem.getChildren()
@@ -395,6 +400,9 @@ public class CollectionView implements FxView<VBox> {
                     .ifPresent(treeItem -> updateTreeView(treeItem, mcSaved));
     }
 
-    record PaneTreeView(TitledPane tp, TreeView<Path> treeView) {
+    @FxEventListener
+    public void selectCollectionAndDirectory(ShowOrganizeEvent event) {
+        Nodes.searchTreeItemByPredicate(rootTreeItem, collectionNode -> collectionNode.path().equals(event.getDirectory()))
+             .ifPresent(ti -> treeView.getSelectionModel().select(ti));
     }
 }

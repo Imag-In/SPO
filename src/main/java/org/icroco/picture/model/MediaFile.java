@@ -18,7 +18,7 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor
 public class MediaFile implements IMediaFile {
-    private long          id;
+    private Long          id;
     private Path          fullPath;
     private String        fileName;
     private LocalDateTime originalDate;
@@ -27,8 +27,9 @@ public class MediaFile implements IMediaFile {
     private String        hash;
     private LocalDate     hashDate;
     private Dimension     dimension;
-    private short         orientation;
+    private Short         orientation;
     private Camera        camera;
+    private Integer       collectionId;
 
     @NonNull
     @Builder.Default
@@ -108,7 +109,7 @@ public class MediaFile implements IMediaFile {
         return mf -> new Observable[] { mf.loadedInCache, mf.thumbnailUpdateProperty };
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
         idProperty.set(id);
     }

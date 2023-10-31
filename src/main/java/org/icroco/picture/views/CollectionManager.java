@@ -190,23 +190,23 @@ public class CollectionManager {
                                 .collect(Collectors.toSet());
                 }
                 final var filteredImages = scanDir(rootPath, true);
-                    final var size = filteredImages.size();
-                    updateProgress(0, size);
+                final var size           = filteredImages.size();
+                updateProgress(0, size);
                 var mc = MediaCollection.builder()
                                         .path(rootPath)
-                                            .subPaths(children)
+                                        .subPaths(children)
                                         .medias(EntryStream.of(List.copyOf(filteredImages))
-                                                               .peek(i -> updateProgress(i.getKey(), size))
+                                                           .peek(i -> updateProgress(i.getKey(), size))
                                                            .flatMap(i -> create(now, i.getValue()).stream())
-                                                               .collect(Collectors.toSet()))
-                                            .build();
-                    mc = persistenceService.saveCollection(mc);
-                    taskService.sendEvent(ExtractThumbnailEvent.builder()
-                                                               .mediaCollection(mc)
-                                                               .source(this)
-                                                               .build());
-                    directoryWatcher.registerAll(mc.path());
-                    return mc;
+                                                           .collect(Collectors.toSet()))
+                                        .build();
+                mc = persistenceService.saveCollection(mc);
+                taskService.sendEvent(ExtractThumbnailEvent.builder()
+                                                           .mcId(mc.id())
+                                                           .source(this)
+                                                           .build());
+                directoryWatcher.registerAll(mc.path());
+                return mc;
             }
 
             @Override

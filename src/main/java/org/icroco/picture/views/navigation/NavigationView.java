@@ -15,6 +15,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.ImportDirectoryEvent;
+import org.icroco.picture.event.ShowOrganizeEvent;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.util.FxView;
@@ -119,6 +120,11 @@ public class NavigationView implements FxView<HBox> {
     @FxEventListener
     public void importDir(ImportDirectoryEvent event) {
         selectedTab.setValue(importLbl);
+    }
+
+    @FxEventListener
+    public void importDir(ShowOrganizeEvent event) {
+        selectedTab.setValue(organizeLbl);
     }
 
     @Override

@@ -380,12 +380,12 @@ public class GalleryView implements FxView<StackPane> {
     public void collectionPathChange(ObservableValue<? extends PathSelection> observable, PathSelection oldValue, PathSelection newValue) {
         dblCickState = EGalleryClickState.GALLERY;
         if (newValue.equalsNoSeed(oldValue)) {
-            log.info("MediaCollection subpath re-selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
+            log.debug("MediaCollection subpath re-selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
             displayGallery(null);
 //            gallery.setOpacity(0);
 //             Animations.fadeIn(gallery, Duration.millis(1000)).playFromStart();
         } else {
-            log.info("MediaCollection subpath selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
+            log.debug("MediaCollection subpath selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
             currentCatalog.setValue(persistenceService.getMediaCollection(newValue.mediaCollectionId()));
             resetBcbModel(newValue.subPath());
             final var path = getCurrentCatalog().path().resolve(newValue.subPath());

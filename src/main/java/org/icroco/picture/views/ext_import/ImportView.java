@@ -10,6 +10,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
+import javafx.geometry.HorizontalDirection;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -26,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.ImportDirectoryEvent;
 import org.icroco.picture.event.NotificationEvent;
+import org.icroco.picture.event.ShowOrganizeEvent;
 import org.icroco.picture.event.UsbStorageDeviceEvent;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
@@ -58,7 +60,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import static javafx.beans.binding.Bindings.and;
+import static javafx.beans.binding.Bindings.or;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -108,9 +110,9 @@ public class ImportView extends AbstractView<StackPane> {
 
         sourcePath.addListener((observable, oldValue, newValue) -> newSourcePath(newValue));
         sourceDir.textProperty().bind(sourcePath.map(Path::toString));
-        importBtn.disableProperty().bind(and(isRunning, Bindings.not(and(Bindings.isNotNull(sourcePath),
-                                                                         and(Bindings.isNotEmpty(targetCollectionTf.textProperty()),
-                                                                             Bindings.isNotEmpty(filePrefix.textProperty()))))));
+        importBtn.disableProperty().bind(or(isRunning, or(Bindings.isNull(sourcePath),
+                                                          or(Bindings.isEmpty(targetCollectionTf.textProperty()),
+                                                             Bindings.isEmpty(filePrefix.textProperty())))));
     }
 
     private void newSourcePath(Path newValue) {
@@ -181,11 +183,12 @@ public class ImportView extends AbstractView<StackPane> {
         // TODO: Add inoformation icon with help.
         genThumbailsCb.setSelected(false);
         genThumbailsCb.setDisable(true);
+        genThumbailsCb.setLabelPosition(HorizontalDirection.RIGHT);
         genThumbailsCb.selectedProperty().addListener((observable, oldValue, newValue) -> log.info("Selected"));
-        grid.add(genThumbailsCb, 0, rowIdx);
+        grid.add(genThumbailsCb, 1, rowIdx);
         var info = new FontIcon(MaterialDesignI.INFORMATION_OUTLINE);
         info.getStyleClass().addAll(Styles.SMALL, Styles.ACCENT);
-        grid.add(info, 1, rowIdx);
+        grid.add(info, 0, rowIdx);
 
         rowIdx += 1;
         deleteFilesCb.setSelected(false);
@@ -264,6 +267,11 @@ public class ImportView extends AbstractView<StackPane> {
             final IRenameFilesStrategy strategy    = renameStrategy.getSelectionModel().getSelectedItem().getStrategy();
             final LocalDate            now         = LocalDate.now();
             final boolean              deleteFiles = deleteFilesCb.isSelected();
+            final MediaCollection mc = persistenceService.findAllMediaCollection()
+                                                         .stream()
+                                                         .filter(mediaCollection -> targetCollection.startsWith(mediaCollection.path()))
+                                                         .findFirst()
+                                                         .orElseThrow();
             strategy.reset();
             isRunning.set(true);
             taskService.supply(task)
@@ -282,7 +290,15 @@ public class ImportView extends AbstractView<StackPane> {
                                                                                                      .source(this)
                                                                                                      .build()));
                            taskService.supply(copyFiles)
-                                      .thenRun(() -> Platform.runLater(() -> isRunning.set(false)));
+                                      .thenRun(() -> Platform.runLater(() -> {
+                                          isRunning.set(false);
+                                          taskService.sendEvent(ShowOrganizeEvent.builder()
+                                                                                 .collectionsId(mc.id())
+                                                                                 .directory(targetCollection)
+                                                                                 .source(this)
+                                                                                 .build());
+                                          reset();
+                                      }));
                        })
                        .exceptionally(throwable -> {
                            log.error("Unexpected error", throwable);
@@ -378,13 +394,21 @@ public class ImportView extends AbstractView<StackPane> {
     private void addSubDir(TreeItem<Path> current, Path path, int id) {
         path = current.getValue().relativize(path);
         for (int i = 0; i < path.getNameCount(); i++) {
-            var child = new TreeItem<>(current.getValue().resolve(path.subpath(0, i + 1)));
-            if (current.getChildren().stream().noneMatch(pathTreeItem -> pathTreeItem.getValue().equals(child.getValue()))) {
-                current.getChildren().add(child);
-            }
-            current.getChildren()
-                   .sort(Comparator.comparing(ti -> ti.getValue().getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
-            current = child;
+            var       subPath = path.subpath(i, i + 1);
+            final var c       = current;
+            final var child   = c.getValue().resolve(subPath);
+            current = current.getChildren()
+                             .stream()
+                             .filter(pathTreeItem -> pathTreeItem.getValue().equals(child))
+                             .findFirst()
+                             .orElseGet(() -> {
+                                 var newItem = new TreeItem<>(child);
+                                 c.getChildren().add(newItem);
+                                 c.getChildren()
+                                  .sort(Comparator.comparing(ti -> ti.getValue().getFileName().toString(),
+                                                             String.CASE_INSENSITIVE_ORDER));
+                                 return newItem;
+                             });
         }
     }
 
@@ -466,6 +490,8 @@ public class ImportView extends AbstractView<StackPane> {
     private void reset() {
         sourcePath.set(null);
         targetCollection = null;
+        targetCollectionTf.setText("");
+        filePrefix.setText("");
         exampleTf.setText("");
         filesCounter.setText("");
         tags.setText("");
