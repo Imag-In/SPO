@@ -2,7 +2,8 @@ spring:
   application.ui.title: "Picture Organizer"
 
   main:
-    allow-circular-references: true
+    allow-circular-references: false
+    web-application-type: none
 
   datasource:
     url: jdbc:h2:file:~/.icroco/db/pictures
@@ -15,6 +16,7 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+    show-sql: false
 
   h2:
     console.enabled: true
@@ -26,10 +28,11 @@ spring:
 logging:
   level:
     root: INFO
+    "ch.qos.logback.classic.util": DEBUG
     "org.icroco.javafx": INFO
     "org.icroco.picture.views.task": INFO
     "org.icroco.picture.views.util": INFO
-    "org.icroco.picture.views.gallery": INFO
+    "org.icroco.picture.views.organize.gallery": DEBUG
 
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(—){faint} %clr([%15.-15t]){faint} %clr(%-50.50logger{49}%4L){cyan} %clr(:){faint} %m%n:-%wEx}"

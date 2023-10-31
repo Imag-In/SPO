@@ -19,6 +19,9 @@ import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
 import org.springframework.lang.Nullable;
 
+import java.nio.file.Path;
+import java.util.Optional;
+
 @Slf4j
 public class ZoomDragPane extends BorderPane {
     private static final double               HALF          = 0.5d;
@@ -79,6 +82,7 @@ public class ZoomDragPane extends BorderPane {
     }
 
     public final void setImage(MediaFile mediaFile, @Nullable Image image, boolean fromCache) {
+        log.info("setImage: {}", Optional.ofNullable(mediaFile).map(MediaFile::getFullPath).map(Path::toString).orElse("-"));
         zoomLevel = 0;
         view.setRotate(0);
         this.mediaFile = mediaFile;

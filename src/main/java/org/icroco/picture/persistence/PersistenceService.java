@@ -62,7 +62,7 @@ public class PersistenceService {
 
     @Transactional
 //    @Cacheable(cacheNames = ImageInConfiguration.CATALOG, unless = "#result == null")
-    public synchronized Optional<MediaCollection> findMediaCollection(int id) {
+    public Optional<MediaCollection> findMediaCollection(int id) {
         return Optional.ofNullable(mcCache.get(id, MediaCollection.class));
     }
 
@@ -98,9 +98,11 @@ public class PersistenceService {
             wLock.lock();
 
             log.info("Save collection: {}", mediaCollection);
+            var mcEntity = colMapper.toEntity(mediaCollection);
 
-            var entity            = colMapper.toEntity(mediaCollection);
-            var entitySaved       = collectionRepo.saveAndFlush(entity);
+            var entitySaved = collectionRepo.saveAndFlush(mcEntity);
+            entitySaved.getMedias()
+                       .forEach(mf -> mf.setCollectionId(entitySaved.getId())); // TODO: don't understant why I have to do this !
             var updatedCollection = colMapper.toDomain(entitySaved);
 
             mcCache.put(updatedCollection.id(), updatedCollection);
@@ -150,12 +152,12 @@ public class PersistenceService {
             log.info("MediaCollection delete, id: '{}'", mediaCollectionId);
             collectionRepo.deleteById(mediaCollectionId);
             collectionRepo.flush();
-            mcCache.evictIfPresent(mediaCollectionId);
             findMediaCollection(mediaCollectionId).ifPresent(mc -> {
                 thumbRepo.deleteAllById(mc.medias().stream().map(MediaFile::getId).toList());
                 thumbRepo.flush();
                 mc.medias().forEach(thCache::evict);
             });
+            mcCache.evictIfPresent(mediaCollectionId);
         } finally {
             wLock.unlock();
         }
@@ -176,20 +178,6 @@ public class PersistenceService {
         }
     }
 
-    public List<MediaFile> saveAllMediaFiles(Collection<MediaFile> mediaFiles) {
-        var wLock = mcLock.writeLock();
-        try {
-            wLock.lock();
-            return mfRepo.saveAllAndFlush(mediaFiles.stream()
-                                                    .map(mfMapper::toEntity)
-                                                    .toList())
-                         .stream()
-                         .map(mfMapper::toDomain)
-                         .toList();
-        } finally {
-            wLock.unlock();
-        }
-    }
 
     public Optional<Thumbnail> getThumbnailFromCache(MediaFile mediaFile) {
         return Optional.ofNullable(thCache.get(mediaFile, Thumbnail.class));
@@ -203,7 +191,7 @@ public class PersistenceService {
     }
 
 //    @Transactional
-//    public synchronized void updateCollection(int id,
+//    public void updateCollection(int id,
 //                                              Collection<MediaFile> toBeAdded,
 //                                              Collection<MediaFile> toBeDeleted,
 //                                              boolean sendRefreshEvent) {
@@ -247,10 +235,10 @@ public class PersistenceService {
 //    }
 
     @Transactional
-    public synchronized void updateCollection(int id,
-                                              Collection<MediaFile> toBeAdded,
-                                              Collection<MediaFile> toBeDeleted,
-                                              boolean sendRefreshEvent) {
+    public void updateCollection(int id,
+                                 Collection<MediaFile> toBeAdded,
+                                 Collection<MediaFile> toBeDeleted,
+                                 boolean sendRefreshEvent) {
         var wLock = mcLock.writeLock();
         try {
             wLock.lock();
@@ -267,6 +255,7 @@ public class PersistenceService {
 
             mfEntities = mfRepo.saveAllAndFlush(mfEntities);
             mediaFiles.removeAll(toBeAdded);
+
             var toBeAddedSaved = mfEntities.stream().map(mfMapper::toDomain).toList();
             mediaFiles.addAll(toBeAddedSaved);
 
@@ -288,13 +277,4 @@ public class PersistenceService {
             wLock.unlock();
         }
     }
-
-//    public List<Thumbnail> saveAll(List<Thumbnail> values) {
-//        return thumbRepo.saveAll(values.stream()
-//                                       .map(thumbMapper::map)
-//                                       .toList())
-//                        .stream()
-//                        .map(thumbMapper::map)
-//                        .toList();
-//    }
 }

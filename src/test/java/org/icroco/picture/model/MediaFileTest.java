@@ -10,9 +10,9 @@ public class MediaFileTest extends AbstractDataTest<MediaFile> {
     @Override
     public MediaFile buildInstance() {
         return MediaFile.builder()
-                .id(42)
+                        .id(42L)
                         .keywords(Set.of(TagTest.DUMMY, Keyword.builder().id(1).name("foo").build()))
-                .geoLocation(GeoLocation.builder().longitude(1).latitude(2).build())
-                .build();
+                        .geoLocation(GeoLocation.builder().longitude(1).latitude(2).build())
+                        .build();
     }
 }

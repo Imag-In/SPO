@@ -47,9 +47,9 @@ public class MediaFileEntity {
     @Column(name = "last_access", columnDefinition = "DATE")
     private LocalDate lastAccess;
 
-    //    @ManyToOne(fetch = FetchType.LAZY)
     @Column(name = "collection_id")
     private Integer collectionId;
+    //    @ManyToOne(fetch = FetchType.LAZY)
 
     //    @ManyToMany(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER, mappedBy = "entities")
 //    @JoinTable(name = "MF_TAGS", joinColumns = @JoinColumn(name = "tag_id"))

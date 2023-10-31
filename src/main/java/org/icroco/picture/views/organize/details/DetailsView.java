@@ -62,7 +62,7 @@ public class DetailsView extends AbstractView<VBox> {
 
     private final Label   name          = createLabel();
     private final Label   txtDbId       = new Label("Id: ");
-    private final Label   dbId          = createLabel(0, 30);
+    private final Label   dbId          = createLabel(0, 100);
     private final Label   creationDate  = createLabel();
     private final Label   gps           = createLabel();
     private final Label   size          = createLabel();

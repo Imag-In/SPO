@@ -1,5 +1,6 @@
 package org.icroco.picture.views.status;
 
+import atlantafx.base.controls.Popover;
 import atlantafx.base.controls.Spacer;
 import atlantafx.base.theme.Styles;
 import jakarta.annotation.PostConstruct;
@@ -19,8 +20,6 @@ import javafx.scene.layout.HBox;
 import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.controlsfx.control.PopOver;
-import org.icroco.picture.persistence.MediaFileRepository;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.task.TaskView;
 import org.icroco.picture.views.util.FxView;
@@ -36,16 +35,15 @@ import java.time.temporal.ChronoUnit;
 @RequiredArgsConstructor
 @Component
 public class StatusBarView implements FxView<HBox> {
-    private final MediaFileRepository mediaFileRepository;
-    private final TaskView            taskView;
-    private final TaskScheduler       scheduler;
+    private final TaskView      taskView;
+    private final TaskScheduler scheduler;
 
     private final HBox        root          = new HBox();
     private final Tooltip     tooltip       = new Tooltip("");
     private final Label       progressLabel = new Label();
     private final ProgressBar progressBar   = new ProgressBar(0.5);
     private       ProgressBar memoryStatus;
-    private       PopOver     popOver;
+    private       Popover     popOver;
 
     @PostConstruct
     protected void initializedOnce() {
@@ -64,7 +62,7 @@ public class StatusBarView implements FxView<HBox> {
         SimpleListProperty<Task<?>> list = new SimpleListProperty<>(taskView.getTasks());
         progressBar.progressProperty().bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
         taskView.getTasks().addListener(getTaskListChangeListener());
-        initPopOver(progressBar);
+        initPopOver(taskView.getRootContent());
         Label memory = new Label("Memory ");
         memory.setTooltip(tooltip);
         memoryStatus.setOnMouseClicked(event -> {
@@ -89,7 +87,9 @@ public class StatusBarView implements FxView<HBox> {
         long         totalMemoryInMebibytes = totalMemory / (1024 * 1024);
         long         maxMemoryInMebibytes   = maxMemory / (1024 * 1024);
         long         usedMemoryInMebibytes  = usedMemory / (1024 * 1024);
-        double       usedPct                = new BigDecimal((double) usedMemory / (double) totalMemory).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        double
+                usedPct =
+                new BigDecimal((double) usedMemory / (double) totalMemory).setScale(2, RoundingMode.HALF_UP).doubleValue();
         final String textToShow             = usedMemoryInMebibytes + "MiB of " + totalMemoryInMebibytes + "MiB";
         final String toolTipToShow = "Heap size: " + usedMemoryInMebibytes + "MiB of total: " + totalMemoryInMebibytes + "MiB max: "
                                      + maxMemoryInMebibytes + "MiB";
@@ -143,15 +143,17 @@ public class StatusBarView implements FxView<HBox> {
         }
     }
 
-    private PopOver createPopOver(Node node) {
-        PopOver popOver = new PopOver(node);
+    private Popover createPopOver(Node node) {
+        Popover popOver = new Popover();
+//        popOver.skinProperty().set(new PopoverSkin(popOver));
+        popOver.setContentNode(node);
         popOver.setDetachable(false);
-        popOver.setMinSize(600, 400);
+        popOver.setMinSize(800, 400);
         popOver.setDetached(false);
         popOver.setTitle("Tasks");
         popOver.setHeaderAlwaysVisible(true);
         popOver.setAutoHide(true);
-        popOver.setArrowLocation(PopOver.ArrowLocation.BOTTOM_RIGHT);
+        popOver.setArrowLocation(Popover.ArrowLocation.BOTTOM_RIGHT);
 //        popOver.arrowSizeProperty().bind(masterArrowSize);
 //        popOver.arrowIndentProperty().bind(masterArrowIndent);
 //        popOver.arrowLocationProperty().bind(masterArrowLocation);

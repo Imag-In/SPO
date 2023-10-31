@@ -20,11 +20,9 @@ import javafx.util.Pair;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.event.CollectionEvent;
+import org.icroco.picture.event.*;
 import org.icroco.picture.event.CollectionEvent.EventType;
-import org.icroco.picture.event.CollectionUpdatedEvent;
-import org.icroco.picture.event.CollectionsLoadedEvent;
-import org.icroco.picture.event.DeleteCollectionEvent;
+import org.icroco.picture.event.NotificationEvent.NotificationType;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaCollectionEntry;
 import org.icroco.picture.persistence.PersistenceService;
@@ -35,6 +33,7 @@ import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.pref.UserPreference;
 import org.icroco.picture.views.pref.UserPreferenceService;
+import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.Nodes;
@@ -50,8 +49,6 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Predicate;
 
 @Slf4j
 @Component
@@ -182,14 +179,21 @@ public class CollectionView implements FxView<VBox> {
     private void addSubDir(TreeItem<CollectionNode> current, Path path, int id) {
         path = current.getValue().path().relativize(path);
         for (int i = 0; i < path.getNameCount(); i++) {
-            log.info("Current: {}, path: {}", current.getValue(), path);
-            var child = new TreeItem<>(new CollectionNode(current.getValue().path().resolve(path.subpath(0, i + 1)), id));
-            if (current.getChildren().stream().noneMatch(pathTreeItem -> pathTreeItem.getValue().equals(child.getValue()))) {
-                current.getChildren().add(child);
-            }
-            current.getChildren()
-                   .sort(Comparator.comparing(ti -> ti.getValue().path().getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
-            current = child;
+            var       subPath = path.subpath(i, i + 1);
+            final var c       = current;
+            final var child   = c.getValue().path().resolve(subPath);
+            current = current.getChildren()
+                             .stream()
+                             .filter(pathTreeItem -> pathTreeItem.getValue().path().equals(child))
+                             .findFirst()
+                             .orElseGet(() -> {
+                                 var newItem = new TreeItem<>(new CollectionNode(child, id));
+                                 c.getChildren().add(newItem);
+                                 c.getChildren()
+                                  .sort(Comparator.comparing(ti -> ti.getValue().path().getFileName().toString(),
+                                                             String.CASE_INSENSITIVE_ORDER));
+                                 return newItem;
+                             });
         }
     }
 
@@ -213,19 +217,17 @@ public class CollectionView implements FxView<VBox> {
                               dlg.getDialogPane()
                                  .setContentText("""
                                                          Do you want to delete MediaCollection:
-                                                           Path: %s
-                                                           Id: %d
+                                                           Path:   %s
+                                                           Id:     %d
                                                            #Items: %s
                                                          """.formatted(mc.path(), mc.id(), mc.medias().size()));
 
-                              dlg.show();
-                              dlg.resultProperty()
-                                 .addListener(o -> {
-                                     if (dlg.getResult() == ButtonType.OK) {
-                                         collectionManager.deleteCollection(mc);
-                                         catalogSizeProp.set(catalogSizeProp.get() - mc.medias().size());
-                                     }
-                                 });
+                              Nodes.show(dlg, getRootContent().getScene())
+                                   .filter(buttonType -> buttonType == ButtonType.OK)
+                                   .ifPresent(_ -> {
+                                       collectionManager.deleteCollection(mc);
+                                       catalogSizeProp.set(catalogSizeProp.get() - mc.medias().size());
+                                   });
                           });
 //    }
     }
@@ -252,25 +254,50 @@ public class CollectionView implements FxView<VBox> {
                      .ifPresent(item -> {
                          treeView.getSelectionModel().select(item);
                          item.setExpanded(true);
-                         // TODO: Add visual notification.
+                         taskService.sendEvent(NotificationEvent.builder()
+                                                                .type(NotificationType.INFO)
+                                                                .message("Directory already present into collections")
+                                                                .source(this)
+                                                                .build());
                      });
                 return;
             }
 
-            detectParentCollection(newColPath);
+            taskService.supply(ModernTask.builder()
+                                         .execute(() -> detectParentCollection(newColPath))
+                                         .onSuccess((_) -> {
+                                             disablePathActions.set(true);
+                                             // TODO: Ask question if newCollection is on a network volume or if @item is > 1000 ?
+                                             var task = collectionManager.newCollection(newColPath, this::askConfirmation);
+                                             task.setOnSucceeded(_ -> {
+                                                 disablePathActions.set(false);
+                                                 createTreeView(task.getValue());
+                                             });
+                                             task.setOnFailed(_ -> disablePathActions.set(false));
+                                         })
+                                         .build());
 
-            disablePathActions.set(true);
-            // TODO: Ask question if newCollection is on a network volume or if @item is > 1000 ?
-            var task = collectionManager.newCollection(newColPath);
-            task.setOnSucceeded(evt -> {
-                disablePathActions.set(false);
-                createTreeView(task.getValue());
-            });
-            task.setOnFailed(evt -> disablePathActions.set(false));
         }
     }
 
-    private void detectParentCollection(Path newColPath) {
+
+    boolean askConfirmation(long nbFilesToImport) {
+        // TODO: Add into preferences
+        if (nbFilesToImport > 1000) {
+            final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, "");
+            dlg.initOwner(getRootContent().getScene().getWindow());
+            dlg.setTitle("Importing a large collection");
+            dlg.getDialogPane()
+               .setContentText("Do you want to import '%d' files ?".formatted(nbFilesToImport));
+
+            return Nodes.show(dlg, getRootContent().getScene())
+                        .map(buttonType -> buttonType == ButtonType.OK)
+                        .orElse(false);
+        }
+        return true;
+    }
+
+    private Void detectParentCollection(Path newColPath) {
         // TODO: Do something smarter (do not delete everytinh then recreate all files with thumbnails, ...)
         rootTreeItem.getChildren()
                     .stream()
@@ -278,25 +305,10 @@ public class CollectionView implements FxView<VBox> {
                     .filter(mc -> mc.path().startsWith(newColPath))
                     .forEach(collectionManager::deleteCollection);
 //                    .ifPresent(collectionManager::deleteCollection); // TODO: Ask user confirmation ?
+
+        return null;
     }
 
-    private Optional<TreeItem<CollectionNode>> isSameOrSubCollection(Path rootPath) {
-        return rootTreeItem.getChildren()
-                           .stream()
-                           .filter(treeItem -> rootPath.startsWith(persistenceService.getMediaCollection(treeItem.getValue()
-                                                                                                                 .id())
-                                                                                     .path()))
-                           .findFirst()
-                           .flatMap(treeItem -> Nodes.searchTreeItemByPredicate(treeItem,
-                                                                                (Predicate<CollectionNode>) cn -> rootPath.equals(cn.path())
-                                                                                                                  || cn.path().equals(
-                                                                                        treeItem.getValue()
-                                                                                                .path()
-                                                                                                .relativize(rootPath))));
-    }
-
-
-    //        @Async(ImageInConfiguration.FX_EXECUTOR)
     @FxEventListener
     public void initCollections(CollectionsLoadedEvent event) {
         UserPreference.Collection collectionPref = pref.getUserPreference().getCollection();
@@ -386,6 +398,7 @@ public class CollectionView implements FxView<VBox> {
         mc.subPaths().addAll(directories);
 
         // TODO: Update raw by raw mediaCollectrion entries.
+        // TODO: should not be there, more in PErsitanceService or CollectionManager
         var mcSaved = persistenceService.saveCollection(mc);
 
         rootTreeItem.getChildren()
@@ -395,6 +408,9 @@ public class CollectionView implements FxView<VBox> {
                     .ifPresent(treeItem -> updateTreeView(treeItem, mcSaved));
     }
 
-    record PaneTreeView(TitledPane tp, TreeView<Path> treeView) {
+    @FxEventListener
+    public void selectCollectionAndDirectory(ShowOrganizeEvent event) {
+        Nodes.searchTreeItemByPredicate(rootTreeItem, collectionNode -> collectionNode.path().equals(event.getDirectory()))
+             .ifPresent(ti -> treeView.getSelectionModel().select(ti));
     }
 }

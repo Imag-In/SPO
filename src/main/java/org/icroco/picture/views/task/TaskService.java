@@ -11,8 +11,12 @@ import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -56,8 +60,7 @@ public class TaskService {
             task.run();
             try {
                 return task.get();
-            }
-            catch (InterruptedException | ExecutionException e) {
+            } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException("Unexpected error while executing this task", e);
             }
         }, executor);
@@ -77,12 +80,48 @@ public class TaskService {
 
     /**
      * We do not use thread pool TaskExecutor because if this pool is busy we want to make sure to dispatch event.
-     *
      */
     public CompletableFuture<Void> sendEvent(final ApplicationEvent event) {
         return CompletableFuture.runAsync(() -> {
             log.debug("Send Event from source: {}, event: {}", event.getSource().getClass().getSimpleName(), event);
             eventBus.multicastEvent(event);
         });
+    }
+
+    public void runAndWait(Runnable runnable) {
+        try {/* ww  w . j a v a  2s .  c  o m*/
+            if (Platform.isFxApplicationThread()) {
+                runnable.run();
+            } else {
+                FutureTask<Void> futureTask = new FutureTask<>(runnable, null);
+                Platform.runLater(futureTask);
+                futureTask.get();
+            }
+        } catch (Exception e) {
+            log.error("Cannot execute and wait task into Platform thread", e);
+        }
+    }
+
+    public <R> Optional<R> runAndWait(Supplier<R> supplier) {
+        return runAndWait(supplier, null);
+    }
+
+    public <R> Optional<R> runAndWait(Supplier<R> supplier, R defaultValue) {
+        if (Platform.isFxApplicationThread()) {
+            return Optional.ofNullable(supplier.get());
+        } else {
+            Callable<R>   callable   = supplier::get;
+            FutureTask<R> futureTask = new FutureTask<>(callable);
+            Platform.runLater(futureTask);
+            try {
+                return Optional.ofNullable(futureTask.get());
+            } catch (InterruptedException | ExecutionException e) {
+                futureTask.cancel(true);
+                log.error("Cannot execute task into Platform thread: {}, Exception: {}",
+                          e.getLocalizedMessage(),
+                          Arrays.stream(e.getStackTrace()).findFirst().orElse(null));
+            }
+            return Optional.ofNullable(defaultValue);
+        }
     }
 }

@@ -105,7 +105,7 @@ public class NotificationView {
         out.setOnFinished(f -> notificationPane.getChildren().remove(msg));
 
         var seqTransition = new SequentialTransition(in,
-                                                     new PauseTransition(Duration.millis(5000)),
+                                                     new PauseTransition(Duration.seconds(event.getTimeoutInSeconds())),
                                                      out);
         seqTransition.play();
     }

@@ -55,6 +55,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+import static java.util.Optional.ofNullable;
 import static javafx.application.Platform.runLater;
 import static org.fxmisc.wellbehaved.event.EventPattern.keyPressed;
 import static org.fxmisc.wellbehaved.event.InputMap.consume;
@@ -117,7 +118,7 @@ public class GalleryView implements FxView<StackPane> {
         gridView.setCellHeight(128);
         gridView.setCache(true);
         gridView.setCacheHint(CacheHint.SPEED);
-        Optional.ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(this::applyGridCellWidthFactor);
+        ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(this::applyGridCellWidthFactor);
         gridView.setHorizontalCellSpacing(0D);
         gridView.setVerticalCellSpacing(0D);
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService, expandCell, this::cellDoubleClick));
@@ -173,14 +174,21 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void cellDoubleClick(MouseEvent event, MediaFileGridCell cell) {
-        var mf = ((MediaFileGridCell) event.getSource()).getItem();
-        if (mf != null && event.getClickCount() == 1) {
-            gridView.getSelectionModel().set(cell);
-            cell.requestLayout();
-        } else if (event.getClickCount() == 2) {
-            gridView.getSelectionModel().set(cell);
-            displayNext(mf);
-        }
+//        var mf = ((MediaFileGridCell) event.getSource()).getItem();
+        var optMf = ofNullable(cell.getItem());
+        log.atDebug()
+           .log(() -> "#click: %s, mf: %s".formatted(event.getClickCount(),
+                                                     optMf.map(MediaFile::getFullPath).orElse(null)));
+        optMf.ifPresent(mf -> {
+            if (event.getClickCount() == 1) {
+                gridView.getSelectionModel().set(cell);
+                cell.requestLayout();
+            } else if (event.getClickCount() == 2) {
+                gridView.getSelectionModel().set(cell);
+                displayNext(mf);
+            }
+        });
+
         event.consume();
     }
 
@@ -201,12 +209,12 @@ public class GalleryView implements FxView<StackPane> {
 
 //        zoomThumbnails.getStyleClass().add(Styles.SMALL);
         zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
-        Optional.ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(zoomThumbnails::setValue);
+        ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(zoomThumbnails::setValue);
         zoomThumbnails.setBlockIncrement(1);
         zoomThumbnails.valueProperty()
                       .addListener((ObservableValue<? extends Number> ov, Number oldValue, Number newValue) -> {
                           zoomLevel = newValue.intValue();
-                          log.info("Zoom Level: {}", zoomLevel);
+                          log.debug("Zoom Level: {}", zoomLevel);
                           applyGridCellWidthFactor(zoomLevel);
                           pref.getUserPreference().getGrid().setGridZoomFactor(zoomLevel);
 //                          gridView.setCellWidth(gridCellWidth + 10 * zoomLevel);
@@ -265,6 +273,8 @@ public class GalleryView implements FxView<StackPane> {
     private void displayNext(MediaFile mf) {
         EGalleryClickState prev = dblCickState;
         dblCickState = dblCickState.next();
+        log.atDebug()
+           .log(() -> "Next click: %s, file: %s".formatted(dblCickState, ofNullable(mf).map(MediaFile::getFullPath).orElse(null)));
         switch (dblCickState) {
             case GALLERY -> displayGallery(mf);
             case IMAGE, IMAGE_BACK -> {
@@ -288,6 +298,7 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void displayGallery(MediaFile mf) {
+        dblCickState = EGalleryClickState.GALLERY;
         gallery.requestFocus();
         Animations.fadeOut(carousel, Duration.millis(1000)).playFromStart();
         gallery.setVisible(true);
@@ -380,12 +391,12 @@ public class GalleryView implements FxView<StackPane> {
     public void collectionPathChange(ObservableValue<? extends PathSelection> observable, PathSelection oldValue, PathSelection newValue) {
         dblCickState = EGalleryClickState.GALLERY;
         if (newValue.equalsNoSeed(oldValue)) {
-            log.info("MediaCollection subpath re-selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
+            log.debug("MediaCollection subpath re-selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
             displayGallery(null);
 //            gallery.setOpacity(0);
 //             Animations.fadeIn(gallery, Duration.millis(1000)).playFromStart();
         } else {
-            log.info("MediaCollection subpath selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
+            log.debug("MediaCollection subpath selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
             currentCatalog.setValue(persistenceService.getMediaCollection(newValue.mediaCollectionId()));
             resetBcbModel(newValue.subPath());
             final var path = getCurrentCatalog().path().resolve(newValue.subPath());
@@ -396,15 +407,15 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private MediaCollection getCurrentCatalog() {
-        return Optional.ofNullable(currentCatalog.get())
-                       .orElseThrow(() -> new IllegalStateException("Technical error, current catalog is not set"));
+        return ofNullable(currentCatalog.get())
+                .orElseThrow(() -> new IllegalStateException("Technical error, current catalog is not set"));
     }
 
     @FxEventListener
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
 //            log.info("GridView item in row: {}", gridView.getItemsInRow());
-            final var source = Optional.ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
+            final var source = ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
             final var mf     = event.getMf();
             log.atDebug().log(() -> {
                 Optional<Thumbnail> cache = persistenceService.getThumbnailFromCache(mf);
@@ -459,7 +470,6 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void escapePressed(KeyEvent keyEvent) {
-        log.info("Carousel Escape");
         if (dblCickState == EGalleryClickState.ZOOM) {
             displayNext(photo.getMediaFile());
         } else if (dblCickState.isImage()) {
@@ -516,41 +526,19 @@ public class GalleryView implements FxView<StackPane> {
         }
     }
 
-//    @FxEventListener
-//    public void showCarousel(CarouselEvent event) {
-//        log.debug("Receive Carousel Event: {},", event.getEventType());
-//        // TODO: Add visual animations;
-//        switch (event.getEventType()) {
-//            case SHOW -> {
-//                gallery.setVisible(false);
-//                photo.setImage(null, null);
-//                carousel.setVisible(true);
-//                mediaLoader.getOrLoadImage(event.getMediaFile());
-//            }
-//            case HIDE -> {
-//                gallery.setVisible(true);
-//                carousel.setVisible(false);
-//                photo.setImage(null, null);
-//                // TODO: Jump to previous item.
-////                gridView.getSelectionModel().clear();
-////                gridView.ensureVisible(event.getMediaFile());
-//            }
+//    //    @FxEventListener
+//    public void refreshGrid(GalleryRefreshEvent event) {
+//        if (event.getMediaCollectionId() == Optional.ofNullable(currentCatalog.get())
+//                                                    .map(MediaCollection::id)
+//                                                    .orElse(event.getMediaCollectionId())) {
+//            log.info("Refresh collection id: '{}'", event.getMediaCollectionId());
+//            MediaCollection mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
+//            images.clear();
+//            images.addAll(mc.medias());
+//            currentCatalog.set(mc);
+////                gridView.refreshItems();
 //        }
 //    }
-
-    //    @FxEventListener
-    public void refreshGrid(GalleryRefreshEvent event) {
-        if (event.getMediaCollectionId() == Optional.ofNullable(currentCatalog.get())
-                                                    .map(MediaCollection::id)
-                                                    .orElse(event.getMediaCollectionId())) {
-            log.info("Refresh collection id: '{}'", event.getMediaCollectionId());
-            MediaCollection mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
-            images.clear();
-            images.addAll(mc.medias());
-            currentCatalog.set(mc);
-//                gridView.refreshItems();
-        }
-    }
 
     @Override
     public StackPane getRootContent() {
