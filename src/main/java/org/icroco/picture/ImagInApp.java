@@ -202,7 +202,7 @@ public class ImagInApp extends Application {
 
 
     public static void main(String[] args) {
-        Application.launch(ImagInApp.class, args);
+        launch(ImagInApp.class, args);
     }
 
 

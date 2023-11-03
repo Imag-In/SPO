@@ -16,6 +16,7 @@ import org.icroco.picture.model.MediaCollectionEntry;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.FileUtil;
+import org.icroco.picture.util.UserAbortedException;
 import org.icroco.picture.views.task.AbstractTask;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Constant;
@@ -30,6 +31,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -167,13 +169,13 @@ public class CollectionManager {
                                                    Collectors.mapping(PathAndCollection::path, Collectors.toList())));
     }
 
-    public Task<MediaCollection> newCollection(@NonNull Path selectedDirectory) {
-        var task = scanDirectory(selectedDirectory);
+    public Task<MediaCollection> newCollection(@NonNull Path selectedDirectory, Function<Long, Boolean> askConfirmation) {
+        var task = scanDirectory(selectedDirectory, askConfirmation);
         taskService.supply(task);
         return task;
     }
 
-    private Task<MediaCollection> scanDirectory(Path rootPath) {
+    private Task<MediaCollection> scanDirectory(Path rootPath, Function<Long, Boolean> askConfirmation) {
         return new AbstractTask<>() {
             @Override
             protected MediaCollection call() throws Exception {
@@ -200,13 +202,19 @@ public class CollectionManager {
                                                            .flatMap(i -> create(now, i.getValue()).stream())
                                                            .collect(Collectors.toSet()))
                                         .build();
-                mc = persistenceService.saveCollection(mc);
-                taskService.sendEvent(ExtractThumbnailEvent.builder()
-                                                           .mcId(mc.id())
-                                                           .source(this)
-                                                           .build());
-                directoryWatcher.registerAll(mc.path());
-                return mc;
+
+                return taskService.runAndWait(() -> askConfirmation.apply((long) size), false)
+                                  .filter(b -> b)
+                                  .map(_ -> {
+                                      var mcSaved = persistenceService.saveCollection(mc);
+                                      taskService.sendEvent(ExtractThumbnailEvent.builder()
+                                                                                 .mcId(mcSaved.id())
+                                                                                 .source(this)
+                                                                                 .build());
+                                      directoryWatcher.registerAll(mcSaved.path());
+                                      return mcSaved;
+                                  })
+                                  .orElseThrow(() -> new UserAbortedException("User aborted action, collection too large: " + size));
             }
 
             @Override
@@ -218,7 +226,10 @@ public class CollectionManager {
             @Override
             protected void failed() {
                 log.error("While scanning dir: '{}'", rootPath, getException());
-                super.failed();
+                var throwable = getException();
+                if (!(throwable instanceof UserAbortedException)) {
+                    super.failed();
+                }
             }
         };
     }
@@ -226,7 +237,7 @@ public class CollectionManager {
     public Task<Set<Path>> scanDirectory(Path rootPath, boolean resursiveScan) {
         return new AbstractTask<>() {
             @Override
-            protected Set<Path> call() throws Exception {
+            protected Set<Path> call() {
                 updateTitle("Scanning directory: " + rootPath.getFileName());
                 updateMessage("%s: scanning".formatted(rootPath));
                 Set<MediaCollectionEntry> children;
@@ -250,14 +261,14 @@ public class CollectionManager {
     }
 
     public void deleteCollection(final MediaCollection entry) {
-        taskService.supply(() -> {
-            persistenceService.deleteMediaCollection(entry.id());
-            taskService.sendEvent(CollectionEvent.builder()
-                                                 .mediaCollection(entry)
-                                                 .type(CollectionEvent.EventType.DELETED)
-                                                 .source(this)
-                                                 .build());
-        });
+//        taskService.supply(() -> {
+        persistenceService.deleteMediaCollection(entry.id());
+        taskService.sendEvent(CollectionEvent.builder()
+                                             .mediaCollection(entry)
+                                             .type(CollectionEvent.EventType.DELETED)
+                                             .source(this)
+                                             .build());
+//        });
     }
 
     public Optional<Path> isSameOrSubCollection(Path rootPath) {

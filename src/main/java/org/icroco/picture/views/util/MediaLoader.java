@@ -445,22 +445,36 @@ public class MediaLoader {
             return;
         }
 
+        taskService.sendEvent(NotificationEvent.builder()
+                                               .type(NotificationEvent.NotificationType.INFO)
+                                               .message("'%s' thumbnails are missing, we'll generate them (HQ)..."
+                                                                .formatted(mfFiltered.size()))
+                                               .source(this)
+                                               .build());
+
         final var batches = Collections.splitByCoreWithIdx(mfFiltered);
         var futures = batches.values()
                              .map(e -> taskService.supply(thumbnailBatchGeneration(mediaCollection, e, batches.splitCount())))
                              .toArray(new CompletableFuture[0]);
 
         CompletableFuture.allOf(futures)
-                         .thenAccept(u -> taskService.sendEvent(GalleryRefreshEvent.builder()
+                         .thenAccept(_ -> taskService.sendEvent(GalleryRefreshEvent.builder()
                                                                                    .mediaCollectionId(mediaCollection.id())
                                                                                    .source(this)
                                                                                    .build()))
-                         .thenAccept(u -> log.info("Thumbnail generation finished for '{}', '{}', files, it took: '{}'",
+                         .thenAccept(_ -> {
+                             log.info("Thumbnail generation finished for '{}', '{}', files, it took: '{}'",
                                                    mediaCollection.path(),
                                                    mediaFiles.size(),
                                                    AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start),
-                                                                           Locale.getDefault())
-                         ));
+                                                                           Locale.getDefault()));
+                             taskService.sendEvent(NotificationEvent.builder()
+                                                                    .type(NotificationEvent.NotificationType.INFO)
+                                                                    .message("'%s' thumbnails generated!"
+                                                                                     .formatted(mfFiltered.size()))
+                                                                    .source(this)
+                                                                    .build());
+                         });
     }
 
     Task<List<MediaFile>> thumbnailBatchGeneration(final MediaCollection mediaCollection,

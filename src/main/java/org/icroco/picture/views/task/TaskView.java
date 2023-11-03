@@ -22,8 +22,8 @@ public class TaskView implements FxView<TaskProgressView<Task<?>>> {
     @PostConstruct
     void postConstruct() {
         root.setId(ViewConfiguration.V_TASKS);
-        root.setPrefWidth(400D);
-        root.setPrefHeight(600D);
+        root.setPrefWidth(700D);
+        root.setPrefHeight(400D);
     }
 
     public <T> void addTask(Task<T> task) {

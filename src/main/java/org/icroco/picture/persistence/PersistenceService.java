@@ -100,10 +100,6 @@ public class PersistenceService {
             log.info("Save collection: {}", mediaCollection);
             var mcEntity = colMapper.toEntity(mediaCollection);
 
-            mcEntity.getMedias()
-                    .stream()
-                    .filter(mfe -> mfe.getCollectionId() == null)
-                    .forEach(mfe -> log.error("Something wrong: {}, colId: {}", mfe.getFullPath(), mfe.getCollectionId()));
             var entitySaved = collectionRepo.saveAndFlush(mcEntity);
             entitySaved.getMedias()
                        .forEach(mf -> mf.setCollectionId(entitySaved.getId())); // TODO: don't understant why I have to do this !
@@ -156,12 +152,12 @@ public class PersistenceService {
             log.info("MediaCollection delete, id: '{}'", mediaCollectionId);
             collectionRepo.deleteById(mediaCollectionId);
             collectionRepo.flush();
-            mcCache.evictIfPresent(mediaCollectionId);
             findMediaCollection(mediaCollectionId).ifPresent(mc -> {
                 thumbRepo.deleteAllById(mc.medias().stream().map(MediaFile::getId).toList());
                 thumbRepo.flush();
                 mc.medias().forEach(thCache::evict);
             });
+            mcCache.evictIfPresent(mediaCollectionId);
         } finally {
             wLock.unlock();
         }
@@ -182,20 +178,6 @@ public class PersistenceService {
         }
     }
 
-    public List<MediaFile> saveAllMediaFiles(Collection<MediaFile> mediaFiles) {
-        var wLock = mcLock.writeLock();
-        try {
-            wLock.lock();
-            return mfRepo.saveAllAndFlush(mediaFiles.stream()
-                                                    .map(mfMapper::toEntity)
-                                                    .toList())
-                         .stream()
-                         .map(mfMapper::toDomain)
-                         .toList();
-        } finally {
-            wLock.unlock();
-        }
-    }
 
     public Optional<Thumbnail> getThumbnailFromCache(MediaFile mediaFile) {
         return Optional.ofNullable(thCache.get(mediaFile, Thumbnail.class));
@@ -295,13 +277,4 @@ public class PersistenceService {
             wLock.unlock();
         }
     }
-
-//    public List<Thumbnail> saveAll(List<Thumbnail> values) {
-//        return thumbRepo.saveAll(values.stream()
-//                                       .map(thumbMapper::map)
-//                                       .toList())
-//                        .stream()
-//                        .map(thumbMapper::map)
-//                        .toList();
-//    }
 }

@@ -17,14 +17,15 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "thumbnail")
+@Table(name = "thumbnail", uniqueConstraints = {
+        @UniqueConstraint(name = "UK_THUMB_PATH", columnNames = { "full_path" }) })
 @Slf4j
 public class ThumbnailEntity {
     @Id
     Long mfId;
 
     @NotNull
-    @Column(length = 1024, unique = true)
+    @Column(length = 1024, name = "full_path")
     @Type(PathType.class)
     private Path fullPath;
 

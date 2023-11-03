@@ -1,5 +1,6 @@
 package org.icroco.picture.event;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
@@ -17,4 +18,6 @@ public class NotificationEvent extends IiEvent {
 
     private final String           message;
     private final NotificationType type;
+    @Builder.Default
+    private final int              timeoutInSeconds = 5;
 }
