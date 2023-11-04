@@ -464,10 +464,10 @@ public class MediaLoader {
                                                                                    .build()))
                          .thenAccept(_ -> {
                              log.info("Thumbnail generation finished for '{}', '{}', files, it took: '{}'",
-                                                   mediaCollection.path(),
-                                                   mediaFiles.size(),
-                                                   AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start),
-                                                                           Locale.getDefault()));
+                                      mediaCollection.path(),
+                                      mediaFiles.size(),
+                                      AmountFormats.wordBased(Duration.ofMillis(System.currentTimeMillis() - start),
+                                                              Locale.getDefault()));
                              taskService.sendEvent(NotificationEvent.builder()
                                                                     .type(NotificationEvent.NotificationType.INFO)
                                                                     .message("'%s' thumbnails generated!"

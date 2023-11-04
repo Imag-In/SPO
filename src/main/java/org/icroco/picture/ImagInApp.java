@@ -1,30 +1,39 @@
 package org.icroco.picture;
 
 import atlantafx.base.theme.PrimerLight;
+import atlantafx.base.util.Animations;
+import jakarta.persistence.EntityManagerFactory;
 import javafx.application.*;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import net.codecrete.usb.USBDevice;
 import org.controlsfx.dialog.ExceptionDialog;
 import org.icroco.javafx.StageReadyEvent;
+import org.icroco.picture.splashscreen.LoaderProgressNotification;
+import org.icroco.picture.splashscreen.SpoPreLoader;
 import org.icroco.picture.util.Error;
 import org.icroco.picture.util.Resources;
 import org.icroco.picture.views.MainView;
+import org.icroco.picture.views.pref.UserPreference;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.util.ImageUtils;
 import org.icroco.picture.views.util.Nodes;
 import org.scenicview.ScenicView;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.Banner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.awt.*;
@@ -45,6 +54,7 @@ public class ImagInApp extends Application {
     @Autowired
     MainView mainView;
 
+
     /**
      * The application context created by the JavaFX starter.
      * This context will only be available once the {@link #init()} has been invoked by JavaFX.
@@ -60,29 +70,19 @@ public class ImagInApp extends Application {
      */
     @SuppressWarnings("unused")
     public static void launch(Class<? extends Application> appClass, String... args) {
+        System.setProperty("javafx.preloader", SpoPreLoader.class.getName());
         Application.launch(appClass, args);
     }
 
-    /**
-     * Launch a JavaFX application with for the given class and program arguments.
-     *
-     * @param appClass       The class to launch the JavaFX application for.
-     * @param preloaderClass The class to use as the preloader of the JavaFX application.
-     * @param args           The program arguments.
-     */
     @SuppressWarnings("unused")
     public static void launch(Class<? extends Application> appClass, Class<? extends Preloader> preloaderClass, String... args) {
         System.setProperty("javafx.preloader", preloaderClass.getName());
         Application.launch(appClass, args);
     }
 
-    /**
-     * Launch a JavaFX application with the given program arguments.
-     *
-     * @param args The program arguments.
-     */
     @SuppressWarnings("unused")
     public static void launch(String... args) {
+        System.setProperty("javafx.preloader", SpoPreLoader.class.getName());
         Application.launch(args);
     }
 
@@ -91,10 +91,12 @@ public class ImagInApp extends Application {
     public final void init() {
         try {
             log.debug("Init: {}", getClass().getSimpleName());
+            notifyPreloader(new LoaderProgressNotification(.1, "Starting ..."));
             ApplicationContextInitializer<GenericApplicationContext> initializer = genericApplicationContext -> {
                 genericApplicationContext.registerBean(Application.class, () -> ImagInApp.this);
                 genericApplicationContext.registerBean(Parameters.class, this::getParameters);
                 genericApplicationContext.registerBean(HostServices.class, this::getHostServices);
+                genericApplicationContext.registerBean(ProgressBeanPostProcessor.class, ProgressBeanPostProcessor::new);
             };
             applicationContext = new SpringApplicationBuilder().sources(getClass())
                                                                .bannerMode(Banner.Mode.OFF)
@@ -118,7 +120,11 @@ public class ImagInApp extends Application {
             preStart(primaryStage);
             primaryStage.setOnCloseRequest(this::closeRequest);
             Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));
-            Platform.runLater(primaryStage::show);
+
+            primaryStage.getScene().getRoot().setOpacity(0);
+            primaryStage.show();
+            Animations.fadeIn(primaryStage.getScene().getRoot(), Duration.millis(1000)).playFromStart();
+//            Platform.runLater(primaryStage::show);
 //            USB.setOnDeviceConnected((device) -> printDetails(device, "Connected"));
 //            USB.setOnDeviceDisconnected((device) -> printDetails(device, "Disconnected"));
         } catch (Exception ex) {
@@ -133,7 +139,7 @@ public class ImagInApp extends Application {
     @Override
     public final void stop() throws Exception {
         applicationContext.close();
-        System.exit(0);
+        //System.exit(0);
     }
 
     private void showError(Thread thread, Throwable throwable) {
@@ -200,10 +206,28 @@ public class ImagInApp extends Application {
         }
     }
 
-
     public static void main(String[] args) {
         launch(ImagInApp.class, args);
     }
 
+
+    class ProgressBeanPostProcessor implements BeanPostProcessor {
+        @Override
+        public Object postProcessAfterInitialization(@NonNull Object bean, String beanName) throws BeansException {
+            if (bean instanceof UserPreference up) {
+                notifyPreloader(new LoaderProgressNotification(0.2, "User preferences loaded"));
+            } else if (bean instanceof EntityManagerFactory) {
+                notifyPreloader(new LoaderProgressNotification(.2, "Database loaded"));
+            } else if (beanName.equals("cacheAutoConfigurationValidator")) {
+                notifyPreloader(new LoaderProgressNotification(.8, "Cache loaded"));
+            } else if (beanName.equals("viewResolver")) {
+                notifyPreloader(new LoaderProgressNotification(.4, "Views loaded"));
+            } else {
+                log.info("Loaded: {}", beanName);
+            }
+
+            return bean;
+        }
+    }
 
 }
