@@ -22,6 +22,7 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.DirectoryChooser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.icroco.picture.event.ImportDirectoryEvent;
 import org.icroco.picture.event.NotificationEvent;
 import org.icroco.picture.event.ShowOrganizeEvent;
@@ -29,11 +30,13 @@ import org.icroco.picture.event.UsbStorageDeviceEvent;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.PersistenceService;
+import org.icroco.picture.persistence.mapper.MediaFileMapper;
 import org.icroco.picture.views.AbstractView;
 import org.icroco.picture.views.CollectionManager;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.task.AbstractTask;
+import org.icroco.picture.views.task.FxRunAllScope;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.LangUtils;
 import org.icroco.picture.views.util.Nodes;
@@ -57,12 +60,14 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+import static java.util.Collections.emptyList;
 import static javafx.beans.binding.Bindings.or;
 
 @Slf4j
 @RequiredArgsConstructor
 @Component
 public class ImportView extends AbstractView<StackPane> {
+    private final       MediaFileMapper    mediaFileMapper;
     public static final int                FIRST_COL_PREF_WIDTH = 400;
     private final       TaskService        taskService;
     private final       PersistenceService persistenceService;
@@ -70,7 +75,7 @@ public class ImportView extends AbstractView<StackPane> {
     private final       StackPane          root                 = new StackPane();
     private final       CustomTextField    sourceDir            = new CustomTextField();
     private             TextField          targetCollectionTf;
-    private             CustomTextField    targetSubDirTf;
+    private             TextField          targetSubDirTf;
     private             TextField          tags;
     private final       TextArea           exampleTf            = new TextArea();
     private final       CustomTextField    filePrefix           = new CustomTextField("");
@@ -169,10 +174,9 @@ public class ImportView extends AbstractView<StackPane> {
 
         rowIdx += 1;
         grid.add(createLabel("Sub-directory", 100, 150), 0, rowIdx);
-        targetSubDirTf = createCustomText(true, new FontIcon(MaterialDesignF.FOLDER_PLUS_OUTLINE), _ -> {
-        });
-        targetSubDirTf.setEditable(false);
+        targetSubDirTf = new TextField();
         targetSubDirTf.setPromptText("Create a new sub-directory into collection.");
+        // TODO check if directory already exits into collections.
         grid.add(targetSubDirTf, 1, rowIdx);
 
         rowIdx += 1;
@@ -190,7 +194,7 @@ public class ImportView extends AbstractView<StackPane> {
 
         rowIdx += 1;
         deleteFilesCb.setSelected(false);
-        deleteFilesCb.setDisable(true);
+        deleteFilesCb.setDisable(false);
         deleteFilesCb.setLabelPosition(HorizontalDirection.RIGHT);
         grid.add(deleteFilesCb, 1, rowIdx);
         var infoDelete = new Label("", new FontIcon(MaterialDesignI.INFORMATION_OUTLINE));
@@ -284,16 +288,15 @@ public class ImportView extends AbstractView<StackPane> {
                                             .flatMap(f -> collectionManager.create(now, f).stream())
                                             .map(mf -> new RenameFile(mf, createDestinationPath(mf, strategy)))
                                             .toList();
-                           Task<List<MediaFile>> copyFiles = importFiles(files, deleteFiles);
-                           copyFiles.setOnSucceeded(event1 -> taskService.sendEvent(NotificationEvent.builder()
-                                                                                                     .message("'%s' file(s) imported !".formatted(
-                                                                                                             copyFiles.getValue()
-                                                                                                                      .size()))
-                                                                                                     .type(NotificationEvent.NotificationType.SUCCESS)
-                                                                                                     .source(this)
-                                                                                                     .build()));
+                           Task<List<MediaFile>> copyFiles = importFiles(files);
+                           copyFiles.setOnSucceeded(_ -> taskService.sendEvent(NotificationEvent.builder()
+                                                                                                .message("'%s' file(s) imported !".formatted(
+                                                                                                        copyFiles.getValue().size()))
+                                                                                                .type(NotificationEvent.NotificationType.SUCCESS)
+                                                                                                .source(this)
+                                                                                                .build()));
                            taskService.supply(copyFiles)
-                                      .thenRun(() -> Platform.runLater(() -> {
+                                      .thenAccept(mediaFiles -> Platform.runLater(() -> {
                                           isRunning.set(false);
                                           taskService.sendEvent(ShowOrganizeEvent.builder()
                                                                                  .collectionsId(mc.id())
@@ -301,6 +304,8 @@ public class ImportView extends AbstractView<StackPane> {
                                                                                  .source(this)
                                                                                  .build());
                                           reset();
+                                          var filesToBeDeleted = askForDeletion(mediaFiles, deleteFiles);
+                                          Thread.ofVirtual().start(() -> deleteAllFiles(filesToBeDeleted));
                                       }));
                        })
                        .exceptionally(throwable -> {
@@ -311,9 +316,8 @@ public class ImportView extends AbstractView<StackPane> {
         }
     }
 
-    private Task<List<MediaFile>> importFiles(List<RenameFile> files, boolean deleteFiles) {
+    private Task<List<MediaFile>> importFiles(List<RenameFile> files) {
         return new AbstractTask<>() {
-
             @Override
             protected List<MediaFile> call() {
                 updateTitle("Copy files");
@@ -324,31 +328,63 @@ public class ImportView extends AbstractView<StackPane> {
                                 updateMessage("Copy: " + rf.source.getFullPath().getFileName());
                                 updateProgress(i.incrementAndGet(), files.size());
                             })
-                            .map(rf -> {
-                                log.info("File copied from: '{}', to: '{}'", rf.source, rf.target);
-                                try {
-                                    Files.copy(rf.source.getFullPath(), rf.target);
-                                    return rf;
-                                } catch (FileAlreadyExistsException e) {
-                                    log.error("Cannot copy file, it already exists: '{}'", rf.target);
-                                    return null;
-                                } catch (IOException e) {
-                                    log.error("Cannot copy file: {}, error", rf.target, e);
-                                    return null;
-                                }
-                            })
+                            .map(ImportView::copyAndRename)
                             .filter(Objects::nonNull)
-                            .peek(rf -> {
-                                if (deleteFiles) {
-                                    // TODO: Delete if flag is check.
-                                    log.info("File deleted: {}", rf.source());
-                                }
-                            })
-                            .peek(rf -> rf.source.setFullPath(rf.target))
                             .map(rf -> rf.source)
                             .toList();
             }
         };
+    }
+
+    private List<MediaFile> askForDeletion(List<MediaFile> files, boolean deleteFiles) {
+        if (deleteFiles) {
+            // TODO: Delete if flag is check.
+            log.info("Delete '{}' files.", files.size());
+            final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, """
+                    Do you really want to deleted all source files ?
+                      '%d' files living into: '%s'.
+                    """.formatted(files.size(), sourceDir.getText()));
+            dlg.initOwner(getRootContent().getScene().getWindow());
+            dlg.setTitle("Delete files");
+
+            return Nodes.show(dlg, getRootContent().getScene())
+                        .map(buttonType -> buttonType == ButtonType.OK)
+                        .map(_ -> files)
+                        .orElse(emptyList());
+        }
+        return emptyList();
+    }
+
+    private void deleteAllFiles(List<MediaFile> mediaFiles) {
+        try (var scope = new FxRunAllScope<>(taskService, "Deletes files.", mediaFiles.size())) {
+            mediaFiles.forEach(mf -> scope.fork(() -> {
+                FileUtils.deleteQuietly(mf.getFullPath().toFile());
+                return null;
+            }));
+            scope.join();
+            taskService.sendEvent(NotificationEvent.builder()
+                                                   .message("'%s' file(s) deleted !".formatted(
+                                                           mediaFiles.size()))
+                                                   .type(NotificationEvent.NotificationType.SUCCESS)
+                                                   .source(this)
+                                                   .build());
+        } catch (InterruptedException e) {
+            log.error("Unexpected error", e);
+        }
+    }
+
+    private static RenameFile copyAndRename(RenameFile rf) {
+        log.info("File copied from: '{}', to: '{}'", rf.source, rf.target);
+        try {
+            Files.copy(rf.source.getFullPath(), rf.target);
+            return rf;
+        } catch (FileAlreadyExistsException e) {
+            log.error("Cannot copy file, it already exists: '{}'", rf.target);
+            return null;
+        } catch (IOException e) {
+            log.error("Cannot copy file: {}, error", rf.target, e);
+            return null;
+        }
     }
 
     private void chooseCollectionPath(MouseEvent e) {
@@ -363,7 +399,6 @@ public class ImportView extends AbstractView<StackPane> {
             @Override
             protected void updateItem(Path item, boolean empty) {
                 super.updateItem(item, empty);
-//                log.info("render path: {}", empty || item == null ? "" : item.getFileName().toString());
                 setText(empty || item == null ? "" : item.getFileName().toString());
             }
         });
@@ -385,7 +420,7 @@ public class ImportView extends AbstractView<StackPane> {
     private void createTreeView(final TreeItem<Path> rootTreeItem, final MediaCollection mediaCollection) {
         var pathTreeItem = new TreeItem<>(mediaCollection.path());
         rootTreeItem.getChildren().add(pathTreeItem);
-        pathTreeItem.setExpanded(true);
+        pathTreeItem.setExpanded(false);
         log.info("Root Path: {}", pathTreeItem.getValue());
 
         mediaCollection.subPaths().forEach(subPath -> {
@@ -528,17 +563,6 @@ public class ImportView extends AbstractView<StackPane> {
                                                        .build());
             } else {
                 sourcePath.set(newImportPath);
-                // TODO: Add into a task;
-//                try (var filesStream = Files.walk(newImportPath, 1)) {
-//                    Set<Path> files = filesStream.filter(p -> !Files.isDirectory(p))   // not a directory
-//                                                 .map(Path::normalize)
-//                                                 .filter(Constant::isSupportedExtension)
-//                                                 .collect(Collectors.toSet());
-//                    filesCounter.setText("'"+files.size()+"' files found.");
-//                    log.info("Files: {}", files.size());
-//                } catch (IOException ex) {
-//                    log.error("Cannot scan directory: {}", newImportPath, ex);
-//                }
             }
         }
     }

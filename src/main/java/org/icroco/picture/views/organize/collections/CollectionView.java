@@ -5,7 +5,7 @@ import atlantafx.base.theme.Tweaks;
 import jakarta.annotation.PostConstruct;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
@@ -70,7 +70,7 @@ public class CollectionView implements FxView<VBox> {
     @Getter
     private final SimpleObjectProperty<PathSelection> pathSelectionProperty = new SimpleObjectProperty<>();
     private final BooleanProperty                     disablePathActions    = new SimpleBooleanProperty(false);
-    private final SimpleIntegerProperty               catalogSizeProp       = new SimpleIntegerProperty(0);
+    private final SimpleLongProperty                  catalogSizeProp       = new SimpleLongProperty(0);
 
     @PostConstruct
     protected void initializedOnce() {
@@ -153,7 +153,6 @@ public class CollectionView implements FxView<VBox> {
     private Pair<MediaCollection, TreeItem<CollectionNode>> createTreeView(final MediaCollection mediaCollection) {
         var pathTreeItem = new TreeItem<>(new CollectionNode(mediaCollection.path(), mediaCollection.id(), true));
         log.info("Add collection: {}", mediaCollection.path());
-        catalogSizeProp.set(catalogSizeProp.get() + mediaCollection.medias().size());
         rootTreeItem.getChildren().add(pathTreeItem);
         mediaCollection.subPaths().forEach(c -> {
             var p = c.name();//mediaCollection.path().relativize(c.name());
@@ -204,11 +203,6 @@ public class CollectionView implements FxView<VBox> {
 
     @FxEventListener
     public void onDeleteCollection(DeleteCollectionEvent event) {
-//        if (mouseEvent.getClickCount() == 1) {
-//            Node source = (Node) mouseEvent.getSource();
-//            Nodes.getFirstParent(source, TitledPane.class)
-//                 .map(t -> new TitlePaneEntry(t, (int) t.getUserData()))
-        // TODO: Create Task (can takes times);
         persistenceService.findMediaCollection(event.getMcId())
                           .ifPresent(mc -> {
                               final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, "");
@@ -224,24 +218,11 @@ public class CollectionView implements FxView<VBox> {
 
                               Nodes.show(dlg, getRootContent().getScene())
                                    .filter(buttonType -> buttonType == ButtonType.OK)
-                                   .ifPresent(_ -> {
-                                       collectionManager.deleteCollection(mc);
-                                       catalogSizeProp.set(catalogSizeProp.get() - mc.medias().size());
-                                   });
+                                   .ifPresent(_ -> collectionManager.deleteCollection(mc,
+                                                                                      _ -> catalogSizeProp.set(persistenceService.countMediaFiles())));
                           });
-//    }
     }
 
-//    private void deleteCollection(MediaCollection entry) {
-//        taskService.supply(() -> {
-//            rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path.equals(entry.path()));
-//            persistenceService.deleteMediaCollection(entry.id());
-//            taskService.sendEvent(CollectionEvent.builder().mediaCollection(entry).type(EventType.DELETED).source(this).build());
-//            // TODO: Clean Thumbnail Cache and DB.
-//        });
-//    }
-
-    //    @FXML
     private void newCollection(MouseEvent event) {
         final DirectoryChooser directoryChooser  = new DirectoryChooser();
         final File             selectedDirectory = directoryChooser.showDialog(root.getScene().getWindow());
@@ -265,18 +246,18 @@ public class CollectionView implements FxView<VBox> {
 
             taskService.supply(ModernTask.builder()
                                          .execute(() -> detectParentCollection(newColPath))
-                                         .onSuccess((_) -> {
+                                         .onSuccess(_ -> {
                                              disablePathActions.set(true);
                                              // TODO: Ask question if newCollection is on a network volume or if @item is > 1000 ?
                                              var task = collectionManager.newCollection(newColPath, this::askConfirmation);
                                              task.setOnSucceeded(_ -> {
                                                  disablePathActions.set(false);
                                                  createTreeView(task.getValue());
+                                                 catalogSizeProp.set(persistenceService.countMediaFiles());
                                              });
                                              task.setOnFailed(_ -> disablePathActions.set(false));
                                          })
                                          .build());
-
         }
     }
 
@@ -303,7 +284,8 @@ public class CollectionView implements FxView<VBox> {
                     .stream()
                     .map(ti -> persistenceService.getMediaCollection(ti.getValue().id()))
                     .filter(mc -> mc.path().startsWith(newColPath))
-                    .forEach(collectionManager::deleteCollection);
+                    .forEach(mc -> collectionManager.deleteCollection(mc, _ -> {
+                    }));
 //                    .ifPresent(collectionManager::deleteCollection); // TODO: Ask user confirmation ?
 
         return null;
@@ -334,6 +316,7 @@ public class CollectionView implements FxView<VBox> {
                  } else {
                      treeView.getSelectionModel().select(p.getValue());
                  }
+                 catalogSizeProp.set(persistenceService.countMediaFiles());
              });
     }
 
@@ -372,7 +355,7 @@ public class CollectionView implements FxView<VBox> {
                             treeView.getSelectionModel().select(treeItem);
                         });
         } else if (Objects.requireNonNull(event.getType()) == EventType.DELETED) {
-            catalogSizeProp.set(catalogSizeProp.get() - event.getMediaCollection().medias().size());
+            catalogSizeProp.set(persistenceService.countMediaFiles());
             rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path().equals(event.getMediaCollection().path()));
         }
 //        else if (EventType.SELECTED == event.getType()) {
@@ -382,30 +365,36 @@ public class CollectionView implements FxView<VBox> {
 
     @FxEventListener
     public void updateImages(CollectionUpdatedEvent event) {
-        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}'",
+        if (event.isEmpty()) {
+            return;
+        }
+        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}",
                  event.getMediaCollectionId(),
                  event.getNewItems().size(),
+                 event.getModifiedItems().size(),
                  event.getDeletedItems().size());
-        var mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
-        var directories = event.getNewItems()
-                               .stream()
-                               .map(mediaFile -> mediaFile.getFullPath().normalize().getParent())
-                               .distinct()
-                               .filter(FileUtil::isLastDir)
-                               .filter(p -> !p.equals(mc.path()))
-                               .map(p -> MediaCollectionEntry.builder().name(p).build())
-                               .toList();
-        mc.subPaths().addAll(directories);
+        if (!event.getNewItems().isEmpty()) {
+            var mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
+            var directories = event.getNewItems()
+                                   .stream()
+                                   .map(mediaFile -> mediaFile.getFullPath().normalize().getParent())
+                                   .distinct()
+                                   .filter(FileUtil::isLastDir)
+                                   .filter(p -> !p.equals(mc.path()))
+                                   .map(p -> MediaCollectionEntry.builder().name(p).build())
+                                   .toList();
+            mc.subPaths().addAll(directories);
 
-        // TODO: Update raw by raw mediaCollectrion entries.
-        // TODO: should not be there, more in PErsitanceService or CollectionManager
-        var mcSaved = persistenceService.saveCollection(mc);
+            // TODO: Update raw by raw mediaCollectrion entries.
+            var mcSaved = persistenceService.saveCollection(mc);
 
-        rootTreeItem.getChildren()
-                    .stream()
-                    .filter(treeItem -> treeItem.getValue().id() == event.getMediaCollectionId())
-                    .findFirst()
-                    .ifPresent(treeItem -> updateTreeView(treeItem, mcSaved));
+            rootTreeItem.getChildren()
+                        .stream()
+                        .filter(treeItem -> treeItem.getValue().id() == event.getMediaCollectionId())
+                        .findFirst()
+                        .ifPresent(treeItem -> updateTreeView(treeItem, mcSaved));
+        }
+        catalogSizeProp.set(persistenceService.countMediaFiles());
     }
 
     @FxEventListener

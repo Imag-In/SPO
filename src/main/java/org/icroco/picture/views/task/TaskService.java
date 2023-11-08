@@ -50,6 +50,14 @@ public class TaskService {
     }
 
 
+    public <T> void vSupply(final Task<T> task, boolean visualFeedback) {
+        if (visualFeedback) {
+            // TODO: Use event to decouple from controller.
+            Platform.runLater(() -> taskView.addTask(task));
+        }
+        Thread.ofVirtual().name("FxSupplyVThread").start(task);
+    }
+
     public <T> CompletableFuture<T> supply(final Task<T> task, boolean visualFeedback) {
         log.debug("Start new task: {}, visualEffect: {}", task, visualFeedback);
         if (visualFeedback) {

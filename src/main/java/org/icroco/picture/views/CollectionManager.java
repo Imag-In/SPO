@@ -2,6 +2,7 @@ package org.icroco.picture.views;
 
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
@@ -31,6 +32,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -55,8 +57,7 @@ public class CollectionManager {
             log.info("End of adding directory watcher");
         });
 
-        taskService.supply(analyseCollections(List.copyOf(event.getMediaCollections())))
-                   .thenRun(() -> log.info("TODO: Add a timer to rescan folders on regular basics"));
+        taskService.supply(analyseCollections(List.copyOf(event.getMediaCollections())));
     }
 
     Task<Void> analyseCollections(final List<MediaCollection> mediaCollections) {
@@ -260,15 +261,22 @@ public class CollectionManager {
         }
     }
 
-    public void deleteCollection(final MediaCollection entry) {
-//        taskService.supply(() -> {
-        persistenceService.deleteMediaCollection(entry.id());
-        taskService.sendEvent(CollectionEvent.builder()
-                                             .mediaCollection(entry)
-                                             .type(CollectionEvent.EventType.DELETED)
-                                             .source(this)
-                                             .build());
-//        });
+    public void deleteCollection(final MediaCollection entry, Consumer<WorkerStateEvent> handler) {
+        var task = new AbstractTask<Void>() {
+            @Override
+            protected Void call() throws Exception {
+                updateTitle("Delete collection: '%s', '%s' files".formatted(entry.id(), entry.medias().size()));
+                persistenceService.deleteMediaCollection(entry.id());
+                taskService.sendEvent(CollectionEvent.builder()
+                                                     .mediaCollection(entry)
+                                                     .type(CollectionEvent.EventType.DELETED)
+                                                     .source(this)
+                                                     .build());
+                return null;
+            }
+        };
+        task.setOnSucceeded(handler::accept);
+        taskService.supply(task);
     }
 
     public Optional<Path> isSameOrSubCollection(Path rootPath) {

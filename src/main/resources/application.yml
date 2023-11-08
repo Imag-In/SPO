@@ -32,7 +32,7 @@ logging:
     "org.icroco.javafx": INFO
     "org.icroco.picture.views.task": INFO
     "org.icroco.picture.views.util": INFO
-    "org.icroco.picture.views.organize.gallery": DEBUG
+    "org.icroco.picture.views.organize.gallery": INFO
 
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(—){faint} %clr([%15.-15t]){faint} %clr(%-50.50logger{49}%4L){cyan} %clr(:){faint} %m%n:-%wEx}"

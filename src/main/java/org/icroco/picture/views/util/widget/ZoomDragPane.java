@@ -82,7 +82,8 @@ public class ZoomDragPane extends BorderPane {
     }
 
     public final void setImage(MediaFile mediaFile, @Nullable Image image, boolean fromCache) {
-        log.info("setImage: {}", Optional.ofNullable(mediaFile).map(MediaFile::getFullPath).map(Path::toString).orElse("-"));
+        log.atDebug()
+           .log(() -> "setImage: %s".formatted(Optional.ofNullable(mediaFile).map(MediaFile::getFullPath).map(Path::toString).orElse("-")));
         zoomLevel = 0;
         view.setRotate(0);
         this.mediaFile = mediaFile;

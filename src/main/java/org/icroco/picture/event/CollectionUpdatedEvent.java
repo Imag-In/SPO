@@ -14,4 +14,9 @@ public class CollectionUpdatedEvent extends IiEvent {
     private final int                   mediaCollectionId;
     private final Collection<MediaFile> newItems;
     private final Collection<MediaFile> deletedItems;
+    private final Collection<MediaFile> modifiedItems;
+
+    public boolean isEmpty() {
+        return newItems.isEmpty() && deletedItems.isEmpty() && modifiedItems.isEmpty();
+    }
 }
