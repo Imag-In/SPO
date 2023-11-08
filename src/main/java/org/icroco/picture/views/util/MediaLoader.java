@@ -542,5 +542,7 @@ public class MediaLoader {
         if (!event.getNewItems().isEmpty()) {
             extractThumbnails(persistenceService.getMediaCollection(event.getMediaCollectionId()), List.copyOf(event.getNewItems()), false);
         }
+        // TODO: Process deleted
+        // TODO: Process updated
     }
 }

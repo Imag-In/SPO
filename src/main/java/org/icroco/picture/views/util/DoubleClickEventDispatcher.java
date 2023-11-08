@@ -11,7 +11,7 @@ public class DoubleClickEventDispatcher implements EventDispatcher {
     /**
      * Default delay to fire a double click event in milliseconds.
      */
-    private static final long DEFAULT_DOUBLE_CLICK_DELAY = 215;
+    private static final long DEFAULT_DOUBLE_CLICK_DELAY = 250;
 
     /**
      * Default event dispatcher of a node.

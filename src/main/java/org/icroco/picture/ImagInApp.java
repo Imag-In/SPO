@@ -139,7 +139,7 @@ public class ImagInApp extends Application {
     @Override
     public final void stop() throws Exception {
         applicationContext.close();
-        //System.exit(0);
+        System.exit(0);
     }
 
     private void showError(Thread thread, Throwable throwable) {
@@ -223,7 +223,7 @@ public class ImagInApp extends Application {
             } else if (beanName.equals("viewResolver")) {
                 notifyPreloader(new LoaderProgressNotification(.4, "Views loaded"));
             } else {
-                log.info("Loaded: {}", beanName);
+//                log.info("Loaded: {}", beanName);
             }
 
             return bean;

@@ -12,6 +12,7 @@ import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.persistence.mapper.MediaCollectionMapper;
 import org.icroco.picture.persistence.mapper.MediaFileMapper;
 import org.icroco.picture.persistence.mapper.ThumbnailMapper;
+import org.icroco.picture.persistence.model.MediaFileEntity;
 import org.icroco.picture.views.task.TaskService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
@@ -21,9 +22,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @SuppressWarnings("unchecked")
@@ -245,7 +244,11 @@ public class PersistenceService {
             final var mc         = getMediaCollection(id);
             final var mediaFiles = mc.medias();
 
-            mfRepo.deleteAllById(toBeDeleted.stream().map(MediaFile::getId).toList());
+            mfRepo.deleteAllById(toBeDeleted.stream().map(mfMapper::toEntity)
+                                            .map(mce -> mfRepo.findByFullPath(mce.getFullPath()).orElse(null))
+                                            .filter(Objects::nonNull)
+                                            .map(MediaFileEntity::getId)
+                                            .toList());
             mediaFiles.removeIf(toBeDeleted::contains);
 
             var mfEntities = toBeAdded.stream()
@@ -270,11 +273,16 @@ public class PersistenceService {
                                                             .mediaCollectionId(mc.id())
                                                             .newItems(toBeAddedSaved)
                                                             .deletedItems(toBeDeleted)
+                                                            .modifiedItems(Collections.emptySet())
                                                             .source(this)
                                                             .build());
             }
         } finally {
             wLock.unlock();
         }
+    }
+
+    public long countMediaFiles() {
+        return mfRepo.count();
     }
 }

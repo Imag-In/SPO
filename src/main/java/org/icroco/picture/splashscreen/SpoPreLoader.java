@@ -41,7 +41,7 @@ public class SpoPreLoader extends Preloader {
         ImageView imageView = new ImageView("/images/IMG_0373-EDIT.jpg");
 //        imageView.setFitWidth(500);;
         imageView.setFitHeight(400);
-        ;
+
         imageView.setPreserveRatio(true);
 
 //        progressBar.setPrefWidth(450);
@@ -64,11 +64,13 @@ public class SpoPreLoader extends Preloader {
         hb.getChildren().add(progressBar);
         HBox.setHgrow(progressBar, Priority.ALWAYS);
         borderPane.setBottom(hb);
+        borderPane.setPrefHeight(400);
         root.getChildren().addAll(imageView, borderPane);
 
         var scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("/styles/splash.css").toExternalForm());
         scene.setFill(Color.TRANSPARENT);
+        primaryStage.setHeight(400);
 //        primaryStage.initStyle(StageStyle.TRANSPARENT);
         primaryStage.setScene(scene);
         primaryStage.setAlwaysOnTop(true);

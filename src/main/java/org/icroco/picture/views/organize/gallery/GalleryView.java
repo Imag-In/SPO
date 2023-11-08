@@ -379,12 +379,17 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void updateImages(CollectionUpdatedEvent event) {
-        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}'",
+        if (event.isEmpty()) {
+            return;
+        }
+        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}'",
                  event.getMediaCollectionId(),
+                 event.getModifiedItems(),
                  event.getNewItems().size(),
                  event.getDeletedItems().size());
         images.addAll(event.getNewItems());
         images.removeAll(event.getDeletedItems());
+        // TODO: Implements updates
     }
 
 
