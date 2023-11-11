@@ -6,7 +6,6 @@ import jakarta.persistence.EntityManagerFactory;
 import javafx.application.*;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
-import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
@@ -155,15 +154,13 @@ public class ImagInApp extends Application {
 //        System.setProperty("apple.laf.useScreenMenuBar", "true");
 //        OpenCV.loadShared();
         ImageUtils.readImageIoCodec();
-        var icon = getClass().getResourceAsStream(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG);
-        primaryStage.getIcons().add(new Image(icon));
+//        var icon = getClass().getResourceAsStream(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG);
+        primaryStage.getIcons().addAll(SpoPreLoader.getIcons());
         if (Taskbar.isTaskbarSupported()) {
             var taskbar = Taskbar.getTaskbar();
             if (taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) {
                 final Toolkit defaultToolkit = Toolkit.getDefaultToolkit();
-                var
-                        dockIcon =
-                        defaultToolkit.getImage(getClass().getResource(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG));
+                var           dockIcon       = defaultToolkit.getImage(getClass().getResource("/images/Imag'In-Icon_Only-256x256-FF.png"));
                 taskbar.setIconImage(dockIcon);
             }
         }

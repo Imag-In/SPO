@@ -19,6 +19,9 @@ import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+import java.util.stream.Stream;
+
 @Slf4j
 public class SpoPreLoader extends Preloader {
     private final StackPane   root        = new StackPane();
@@ -28,17 +31,32 @@ public class SpoPreLoader extends Preloader {
     private Stage stage;
 
 
+    public static List<Image> getIcons() {
+        return Stream.of("Imag'In-Icon_Only-1024x1024-FF.png",
+                         "Imag'In-Icon_Only-512x512-FF.png",
+                         "Imag'In-Icon_Only-256x256-FF.png",
+                         "Imag'In-Icon_Only-128x128-FF.png",
+                         "Imag'In-Icon_Only-64x64-FF.png",
+                         "Imag'In-Icon_Only-32x32-FF.png",
+                         "Imag'In-Icon_Only-16x16-FF.png")
+                     .map(s -> "/images/" + s)
+                     .map(s -> new Image(s))
+                     .toList();
+    }
+
     @Override
     public void start(Stage primaryStage) throws Exception {
         stage = primaryStage;
         primaryStage.setTitle("Simple Photo Organizer loading ....");
-        primaryStage.getIcons().add(new Image("/images/128px-GNOME_Photos_logo_2019.svg.png"));
+        primaryStage.getIcons().addAll(getIcons());
+
         primaryStage.initStyle(StageStyle.UNDECORATED);
 
 //        root.setStyle("-fx-background-radius: 15; -fx-background-color: transparent");
 //        root.setStyle("-fx-background-radius: 15; -fx-background-color: rgba(229, 36, 66, 0.8)");
 
-        ImageView imageView = new ImageView("/images/IMG_0373-EDIT.jpg");
+//        ImageView imageView = new ImageView("/images/IMG_0373-EDIT.jpg");
+        ImageView imageView = new ImageView("/images/PXL_20230115_220040106-EDIT.jpg");
 //        imageView.setFitWidth(500);;
         imageView.setFitHeight(400);
 
