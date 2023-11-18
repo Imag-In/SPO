@@ -12,7 +12,6 @@ import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import net.codecrete.usb.USBDevice;
 import org.controlsfx.dialog.ExceptionDialog;
-import org.icroco.javafx.StageReadyEvent;
 import org.icroco.picture.splashscreen.LoaderProgressNotification;
 import org.icroco.picture.splashscreen.SpoPreLoader;
 import org.icroco.picture.util.Error;
@@ -118,7 +117,7 @@ public class ImagInApp extends Application {
             Thread.setDefaultUncaughtExceptionHandler(this::showError);
             preStart(primaryStage);
             primaryStage.setOnCloseRequest(this::closeRequest);
-            Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));
+//            Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));
 
             primaryStage.getScene().getRoot().setOpacity(0);
             primaryStage.show();
@@ -138,6 +137,7 @@ public class ImagInApp extends Application {
     @Override
     public final void stop() throws Exception {
         applicationContext.close();
+        Thread.sleep(100);
         System.exit(0);
     }
 

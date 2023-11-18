@@ -12,11 +12,11 @@
         <commons-codec.version>1.16.0</commons-codec.version>
         <commons-collections4.version>4.4</commons-collections4.version>
         <commons-io.version>2.15.0</commons-io.version>
-        <controlsfx.version>11.1.2</controlsfx.version>
+        <controlsfx.version>11.2.0</controlsfx.version>
         <cssfx.version>11.5.1</cssfx.version>
         <eclipse-collections-api.version>11.1.0</eclipse-collections-api.version>
         <ikonli-bom.version>12.3.1</ikonli-bom.version>
-        <imageio-jpeg.version>3.10.0</imageio-jpeg.version>
+        <imageio-jpeg.version>3.10.1</imageio-jpeg.version>
         <jackson-dataformat-yaml.version>2.15.1</jackson-dataformat-yaml.version>
         <java-does-usb.version>0.6.1</java-does-usb.version>
         <java.version>21</java.version>
@@ -46,6 +46,7 @@
         <usbdrivedetector.version>2.2.1</usbdrivedetector.version>
         <virtualizedfx.version>21.1.0</virtualizedfx.version>
         <wellbehavedfx.version>0.3.3</wellbehavedfx.version>
+        <versions-maven-plugin.version>2.16.2</versions-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -203,11 +204,11 @@
             <artifactId>wellbehavedfx</artifactId>
             <version>${wellbehavedfx.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.icroco</groupId>
-            <artifactId>spring-boot-javafx-starter</artifactId>
-            <version>${spring-boot-javafx-starter.version}</version>
-        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>org.icroco</groupId>-->
+        <!--            <artifactId>spring-boot-javafx-starter</artifactId>-->
+        <!--            <version>${spring-boot-javafx-starter.version}</version>-->
+        <!--        </dependency>-->
         <dependency>
             <groupId>org.jooq</groupId>
             <artifactId>jool</artifactId>
@@ -481,6 +482,11 @@
                         <phase>verify</phase>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>${versions-maven-plugin.version}</version>
             </plugin>
         </plugins>
     </build>

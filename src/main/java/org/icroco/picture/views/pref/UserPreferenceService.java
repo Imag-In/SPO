@@ -9,23 +9,24 @@ import jakarta.annotation.PreDestroy;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Component
 @Slf4j
 
 public class UserPreferenceService {
-    private static final File FILENAME = new File(System.getProperty("icroco.picture.home",
-                                                                     System.getProperty("user.home")
-                                                                     + File.separatorChar
-                                                                     + ".icroco"
-                                                                     + File.separatorChar
-                                                                     + "configuration.yml"));
+    private static final Path FILENAME = Path.of(System.getProperty("icroco.picture.home",
+                                                                    System.getProperty("user.home")
+                                                                    + File.separatorChar
+                                                                    + ".icroco"
+                                                                    + File.separatorChar
+                                                                    + "configuration.yml"));
 
     private final ObjectMapper   mapper;
     @Getter
@@ -38,21 +39,15 @@ public class UserPreferenceService {
         this.mapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        ;
 
         readConf(FILENAME);
     }
 
-//    @PostConstruct
-//    private void initFromFile() {
-//        initFromFile();
-//    }
-
-    private void readConf(File fileName) {
+    private void readConf(Path fileName) {
         log.info("Read configuration from: {}", fileName);
-        if (fileName.exists()) {
+        if (Files.exists(fileName) && Files.isRegularFile(fileName)) {
             try {
-                userPreference = mapper.readValue(fileName, UserPreference.class);
+                userPreference = mapper.readValue(fileName.toFile(), UserPreference.class);
                 //mapper.readerForUpdating(this).readValue(f);
             } catch (IOException e) {
                 log.error("Failed to parse config file: {}, message: {}", fileName, e.getLocalizedMessage());
@@ -64,11 +59,13 @@ public class UserPreferenceService {
     }
 
     @PreDestroy
+    @SneakyThrows
     private void saveConfiguration() {
-        FILENAME.getParentFile().mkdirs();
+        Files.createDirectories(FILENAME.getParent());
 
-        try (FileOutputStream out = new FileOutputStream(FILENAME, false)) {
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(FILENAME.toFile(), false))) {
             mapper.writerWithDefaultPrettyPrinter().writeValue(out, getUserPreference());
+            out.flush();
             log.info("Configuration saved into: {}", FILENAME);
         } catch (IOException ex) {
             log.error("Failed to serialized configuration: {}", FILENAME, ex);
