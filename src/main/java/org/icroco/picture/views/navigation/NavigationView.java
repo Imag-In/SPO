@@ -92,11 +92,13 @@ public class NavigationView implements FxView<HBox> {
 
         selectedTab.set(organizeLbl);
         FontIcon settingsIcon = new FontIcon(Material2OutlinedMZ.SETTINGS);
+        settingsIcon.setIconSize(64);
         settingsIcon.getStyleClass().add(Styles.LARGE);
 //        settingsIcon.setIconSize(24);
 
         var settings = new Button(null, settingsIcon);
         settings.setTooltip(new Tooltip("Settings"));
+        settings.setDisable(true);
         FxUtil.styleCircleButton(settings).setOnAction(this::openSettings);
 
         root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, repairLbl, peopleLbl, exportLbl, new Spacer(), settings);

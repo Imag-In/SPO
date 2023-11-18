@@ -48,7 +48,7 @@ public class UserPreference {
         private Integer gridZoomFactor;
     }
 
-    private MainWindow mainWindow = new MainWindow(0D, 0D, 800D, 600D);
+    private MainWindow mainWindow = new MainWindow(0D, 0D, 1024D, 800D);
     private Collection collection = new Collection(-1, null);
     private Gallery    grid       = new Gallery(128, 128, 0);
 

@@ -27,7 +27,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
-import org.icroco.javafx.StageReadyEvent;
 import org.icroco.picture.event.*;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
@@ -328,30 +327,30 @@ public class GalleryView implements FxView<StackPane> {
         event.consume();
     }
 
-    @FxEventListener
-    public void stageReady(StageReadyEvent event) {
-        var width = Math.max(gridView.getCellWidth(), (root.getWidth() - 100) / (gridView.getItemsInRow() - 1));
-        width = Math.max(128, root.getWidth() / 8);
-
-        log.info("Parent width: {}, nbColumn: {}, currentWidth: {}, newWidth: {}",
-                 gridView.getWidth(),
-                 gridView.getItemsInRow(),
-                 gridView.getCellWidth(),
-                 width);
-//        gridView.cellWidthProperty().bind(Bindings.max(128, Bindings.divide(root.widthProperty(), 8)));
-
-//        root.widthProperty().addListener((observable, oldValue, newValue) -> {
-//            gridCellWidth = Math.max(128, newValue.doubleValue() / 8);
-////            log.info("Parent width: {}, cell width: {}", newValue, gridCellWidth);
-////            gridView.setCellHeight(gridCellWidth);
-////            gridView.setCellWidth(gridCellWidth);
-//        });
-
-//        gridCellHeight = gridCellWidth = width;
-//        gridView.setCellWidth(width);
-//        gridView.setCellHeight(width);
-        gridView.requestFocus();
-    }
+//    @FxEventListener
+//    public void stageReady(StageReadyEvent event) {
+//        var width = Math.max(gridView.getCellWidth(), (root.getWidth() - 100) / (gridView.getItemsInRow() - 1));
+//        width = Math.max(128, root.getWidth() / 8);
+//
+//        log.info("Parent width: {}, nbColumn: {}, currentWidth: {}, newWidth: {}",
+//                 gridView.getWidth(),
+//                 gridView.getItemsInRow(),
+//                 gridView.getCellWidth(),
+//                 width);
+////        gridView.cellWidthProperty().bind(Bindings.max(128, Bindings.divide(root.widthProperty(), 8)));
+//
+////        root.widthProperty().addListener((observable, oldValue, newValue) -> {
+////            gridCellWidth = Math.max(128, newValue.doubleValue() / 8);
+//////            log.info("Parent width: {}, cell width: {}", newValue, gridCellWidth);
+//////            gridView.setCellHeight(gridCellWidth);
+//////            gridView.setCellWidth(gridCellWidth);
+////        });
+//
+////        gridCellHeight = gridCellWidth = width;
+////        gridView.setCellWidth(width);
+////        gridView.setCellHeight(width);
+//        gridView.requestFocus();
+//    }
 
     @FxEventListener
     public void updateImages(CollectionEvent event) {

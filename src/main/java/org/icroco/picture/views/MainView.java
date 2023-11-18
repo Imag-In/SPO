@@ -9,24 +9,19 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Screen;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.javafx.SceneReadyEvent;
-import org.icroco.picture.util.Resources;
 import org.icroco.picture.views.ext_import.ImportView;
 import org.icroco.picture.views.navigation.NavigationView;
 import org.icroco.picture.views.organize.OrganizeView;
 import org.icroco.picture.views.status.StatusBarView;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.FxView;
-import org.scenicview.ScenicView;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.prefs.BackingStoreException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -79,21 +74,21 @@ public class MainView implements FxView<StackPane> {
         Optional.ofNullable(views.get(newView)).ifPresent(v -> v.getRootContent().setVisible(true));
     }
 
-    @EventListener(SceneReadyEvent.class)
-    public void sceneReady(SceneReadyEvent event) throws BackingStoreException {
-        log.info("READY, source: {}", event.getSource());
-        event.getScene().getStylesheets().addAll(Resources.resolve("/styles/index.css"));
-
-//        Resources.getPreferences().put("FOO", "BAR");
-//        Resources.getPreferences().flush();
-//        Resources.printPreferences(Resources.getPreferences(), "");
-        if (Boolean.getBoolean("SCENIC")) {
-            ScenicView.show(event.getScene());
-        }
-//        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
-//            log.info("call: {}", element);
+//    @EventListener(SceneReadyEvent.class)
+//    public void sceneReady(SceneReadyEvent event) throws BackingStoreException {
+//        log.info("READY, source: {}", event.getSource());
+//        event.getScene().getStylesheets().addAll(Resources.resolve("/styles/index.css"));
+//
+////        Resources.getPreferences().put("FOO", "BAR");
+////        Resources.getPreferences().flush();
+////        Resources.printPreferences(Resources.getPreferences(), "");
+//        if (Boolean.getBoolean("SCENIC")) {
+//            ScenicView.show(event.getScene());
 //        }
-    }
+////        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
+////            log.info("call: {}", element);
+////        }
+//    }
 
     @Override
     public StackPane getRootContent() {
