@@ -1,5 +1,6 @@
 package org.icroco.picture.thumbnail;
 
+import javafx.application.Platform;
 import org.icroco.picture.hash.JdkHashGenerator;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.TagManagerTest;
@@ -18,10 +19,10 @@ import java.util.List;
 
 class ThumbnailatorGeneratorTest {
     //    public static final String IMAGE_DIR = "/Users/christophe/Pictures/Holidays/Ete/Espagne 2017";
-    public static final String TARGET = "/Users/christophe/dev/github/image-in/target/thumbnails";
+    public static final String TARGET = "./target/generated-images";
 
 
-    public static final String    IMAGE_DIR = "/Users/christophe/Pictures/foo/test";
+    public static final String IMAGE_DIR = "./src/test/resources/images/valid";
     public static final Dimension DIM       = new Dimension(600, 600);
 
     @AfterEach
@@ -84,16 +85,20 @@ class ThumbnailatorGeneratorTest {
 
     @Test
     void generate_thumbnails_imgscalr_bytes() throws IOException {
-        IThumbnailGenerator
-                generator =
-                new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER));
-        Dimension           dimension = new Dimension(600, 600);
+        var       generator = new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER));
+        Dimension dimension = new Dimension(600, 600);
 
-        List.of(Paths.get("src/test/resources/images/benchmark/Corse 2015-20072015-036.jpg"),
-                Paths.get("src/test/resources/images/benchmark/Corse 2015-24072015-275.jpg"))
-            .forEach(path -> {
-                System.out.println(generator.generateJpg(path, dimension).data().length);
+        try {
+            Platform.runLater(() -> {
+                for (Path path : List.of(Paths.get("src/test/resources/images/benchmark/Corse 2015-20072015-036.jpg"),
+                                         Paths.get("src/test/resources/images/benchmark/Corse 2015-24072015-275.jpg"))) {
+                    System.out.println(generator.generateJpg(path, dimension).data().length);
+                }
             });
+        } catch (Exception ex) {
+            Platform.startup(() -> {
+            });
+        }
     }
 
 

@@ -26,7 +26,7 @@ jobs:
           cache: 'maven'
 
       - name: Cache Maven packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.m2
           key: spo-mvnw
@@ -34,7 +34,7 @@ jobs:
       #          restore-keys: ${{ runner.os }}-m2
 
       - name: Build with Maven
-        run: mvn -V clean verify -Drelease -f pom.xml
+        run: mvn -V -fae clean verify -Drelease -f pom.xml
 
       - name: Get release
         id: get_release

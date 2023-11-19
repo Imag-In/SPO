@@ -1,10 +1,12 @@
 package org.icroco.picture.thumbnail;
 
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.api.Assertions;
 import org.icroco.picture.hash.JdkHashGenerator;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.TagManagerTest;
 import org.icroco.picture.model.Dimension;
+import org.icroco.picture.model.Thumbnail;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -30,7 +32,9 @@ class ImageIoGeneratorTest {
 
     @Test
     void extract_thumbnail() {
-        generator.extractThumbnail(Paths.get("/Users/christophe/Pictures/Holidays/Ete/Espagne 2017/Corse-29072017-267.jpg"));
+        var thumbnail = generator.extractThumbnail(Paths.get("./src/test/resources/images/benchmark/Corse 2015-24072015-275.jpg"));
+        Assertions.assertThat(thumbnail).isNotNull()
+                  .extracting(Thumbnail::getImage).isNotNull();
     }
 
 }
