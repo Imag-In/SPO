@@ -7,7 +7,10 @@
     <version>1.0.1-SNAPSHOT</version>
 
     <properties>
+        <app.name>SimplePhotoOrganizer</app.name>
+        <app.version>${project.version}</app.version>
         <atlantafx-base.version>2.0.1</atlantafx-base.version>
+        <build-helper-maven-plugin.version>3.4.0</build-helper-maven-plugin.version>
         <caffeine.version>3.1.8</caffeine.version>
         <commons-codec.version>1.16.0</commons-codec.version>
         <commons-collections4.version>4.4</commons-collections4.version>
@@ -24,15 +27,28 @@
         <jmh.version>1.37</jmh.version>
         <jool.version>0.9.15</jool.version>
         <jsr305.version>3.0.2</jsr305.version>
+        <jtoolprovider-plugin.version>1.0.34</jtoolprovider-plugin.version>
+        <!--      <jvm.modules>java.base,jdk.management,java.naming,java.sql,java.transaction.xa,java.xml,jdk.unsupported,java.management,java.datatransfer,java.desktop,java.security.jgss,java.xml.crypto,jdk.javadoc,javafx.media,javafx.controls,javafx.fxml,javafx.graphics,javafx.base,javafx.swing,javafx.web,java.logging,jdk.charsets,java.se,java.net.http,java.prefs,jdk.crypto.ec,jdk.crypto.cryptoki,jdk.localedata,java.compiler,jdk.net,java.instrument,java.scripting,java.rmi</jvm.modules>-->
+        <jvm.modules>
+            java.base,java.desktop,java.instrument,java.naming,java.prefs,java.sql,javafx.base,javafx.media,javafx.controls,javafx.graphics,javafx.swing
+        </jvm.modules>
         <libjpeg-turbo.version>2.1.3</libjpeg-turbo.version>
         <lombok.version>1.18.30</lombok.version>
+        <mainClass>org.icroco.picture.ImagInApp</mainClass>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <maven-compiler-plugin.version>0.2.0</maven-compiler-plugin.version>
+        <maven-dependency-plugin.version>3.2.0</maven-dependency-plugin.version>
+        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <metadata-extractor.version>2.18.0</metadata-extractor.version>
         <opencv.version>4.7.0-0</opencv.version>
+        <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
+        <os.detected.arch/>
+        <os.detected.classifier/>
+        <os.detected.name/>
         <oshi-core.version>6.4.6</oshi-core.version>
+        <platform/>
         <preferencesfx-core.version>11.16.0</preferencesfx-core.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -44,9 +60,9 @@
         <threeten-extra.version>1.7.2</threeten-extra.version>
         <thumbnailator.version>0.4.20</thumbnailator.version>
         <usbdrivedetector.version>2.2.1</usbdrivedetector.version>
+        <versions-maven-plugin.version>2.16.2</versions-maven-plugin.version>
         <virtualizedfx.version>21.1.0</virtualizedfx.version>
         <wellbehavedfx.version>0.3.3</wellbehavedfx.version>
-        <versions-maven-plugin.version>2.16.2</versions-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -310,10 +326,6 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-logging</artifactId>
         </dependency>
         <!--        <dependency>-->
@@ -329,6 +341,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.threeten</groupId>
@@ -367,11 +383,24 @@
         </resources>
         <plugins>
             <plugin>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>${os-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>detect</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>org.icroco.picture.ImagInApp</mainClass>
+                    <mainClass>${mainClass}</mainClass>
                     <jvmArguments>--enable-preview</jvmArguments>
                     <compilerArguments>--enable-preview</compilerArguments>
                 </configuration>
@@ -473,6 +502,8 @@
                     <sortDependencies>groupId,artifactId</sortDependencies>
                     <sortDependencyExclusions>groupId,artifactId</sortDependencyExclusions>
                     <createBackupFile>false</createBackupFile>
+                    <expandEmptyElements>false</expandEmptyElements>
+                    <indentSize>4</indentSize>
                 </configuration>
                 <executions>
                     <execution>
@@ -488,6 +519,196 @@
                 <artifactId>versions-maven-plugin</artifactId>
                 <version>${versions-maven-plugin.version}</version>
             </plugin>
+
         </plugins>
     </build>
+
+    <profiles>
+
+        <!--        <profile>-->
+        <!--            <id>unix-active</id>-->
+        <!--            <activation>-->
+        <!--                <os>-->
+        <!--                    <family>unix</family>-->
+        <!--                </os>-->
+        <!--            </activation>-->
+        <!--            <properties>-->
+        <!--                <platform>linux</platform>-->
+        <!--            </properties>-->
+        <!--        </profile>-->
+        <!--        <profile>-->
+        <!--            <id>windows-active</id>-->
+        <!--            <activation>-->
+        <!--                <os>-->
+        <!--                    <family>windows</family>-->
+        <!--                </os>-->
+        <!--            </activation>-->
+        <!--            <properties>-->
+        <!--                <platform>win</platform>-->
+        <!--            </properties>-->
+        <!--        </profile>-->
+        <!--                <profile>-->
+        <!--                    <id>mac-active</id>-->
+        <!--                    <activation>-->
+        <!--                        <os>-->
+        <!--                            <family>mac</family>-->
+        <!--                        </os>-->
+        <!--                    </activation>-->
+        <!--                    <properties>-->
+        <!--                        <os.detected.name>mac</os.detected.name>-->
+        <!--                    </properties>-->
+        <!--                </profile>-->
+        <profile>
+            <id>prepare-jar-and-dep</id>
+            <activation>
+                <property>
+                    <name>release</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>${build-helper-maven-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>parse-version</id>
+                                <goals>
+                                    <goal>parse-version</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>${maven-dependency-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>copy-dependencies</id>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <phase>package</phase>
+                                <configuration>
+                                    <excludeGroupIds>org.openjfx</excludeGroupIds>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>${maven-resources-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>copy-jar</id>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <phase>pre-integration-test</phase>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/dependency</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}</directory>
+                                            <filtering>false</filtering>
+                                            <includes>
+                                                <include>${project.build.finalName}.jar</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+        </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>release-mac-x64</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>x86_64</arch>
+                </os>
+                <property>
+                    <name>release</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>${maven-resources-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>copy-distrib-files</id>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <phase>process-resources</phase>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/pkg-config</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${basedir}/src/distrib</directory>
+                                            <filtering>true</filtering>
+                                            <includes>
+                                                <include>mac/${os.arch}-jpackage.txt</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <!-- https://github.com/wiverson/jtoolprovider-plugin -->
+                        <groupId>io.github.wiverson</groupId>
+                        <artifactId>jtoolprovider-plugin</artifactId>
+                        <version>${jtoolprovider-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>jlink</id>
+                                <goals>
+                                    <goal>java-tool</goal>
+                                </goals>
+                                <phase>pre-integration-test</phase>
+                                <configuration>
+                                    <toolName>jlink</toolName>
+                                    <removeDirectories>${project.build.directory}/custom-jvm/</removeDirectories>
+                                    <!--                                    <modulePath>${project.basedir}/jmods/${os.detected.classifier}-javafx/javafx-jmods-${javafx.version}/-->
+                                    <!--                                    </modulePath>-->
+                                    <addModules>${jvm.modules}</addModules>
+                                    <output>${project.build.directory}/custom-jvm</output>
+                                    <args>
+                                        <arg>--strip-native-commands</arg>
+                                        <arg>--no-header-files</arg>
+                                        <arg>--strip-debug</arg>
+                                        <arg>--no-man-pages</arg>
+                                        <arg>--compress=zip-6</arg>
+                                    </args>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>jpackage</id>
+                                <goals>
+                                    <goal>java-tool</goal>
+                                </goals>
+                                <phase>pre-integration-test</phase>
+                                <configuration>
+                                    <toolName>jpackage</toolName>
+                                    <removeDirectories>${project.build.directory}/installer-work</removeDirectories>
+                                    <args>@${project.build.directory}/pkg-config/mac/${os.arch}-jpackage.txt</args>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

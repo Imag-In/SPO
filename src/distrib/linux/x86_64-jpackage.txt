@@ -1,0 +1,26 @@
+--name ${app.name}
+--icon ${project.basedir}/src/main/resources/images/spo-256x256.png
+--dest ${project.build.directory}
+--main-jar ${project.build.finalName}.jar
+--main-class ${mainClass}
+--input ${project.build.directory}/dependency
+--app-version ${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.${parsedVersion.incrementalVersion}
+--runtime-image ${project.build.directory}/custom-jvm
+--linux-shortcut
+--java-options -XX:+UseZGC
+--java-options -Xms2g
+--java-options --enable-preview
+--java-options --add-opens=javafx.graphics/javafx.scene=ALL-UNNAMED
+--java-options --enable-native-access=ALL-UNNAMED
+--java-options --add-exports=java.desktop/sun.awt.image=ALL-UNNAMED
+--java-options --add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED
+--java-options --add-opens=javafx.graphics/javafx.scene=ALL-UNNAMED
+--java-options --add-exports=javafx.base/com.sun.javafx.event=ALL-UNNAMED
+--java-options --add-exports=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED
+--java-options --add-exports=javafx.graphics/com.sun.javafx.iio=ALL-UNNAMED
+--java-options --add-exports=javafx.graphics/com.sun.javafx.iio.common=ALL-UNNAMED
+--java-options --add-exports=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED
+--java-options --add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED
+--java-options --add-exports=javafx.graphics/com.sun.javafx.iio=ALL-UNNAMED
+--java-options --add-exports=javafx.graphics/com.sun.javafx.iio.common=ALL-UNNAMED
+--java-options --add-opens=java.base/java.net=ALL-UNNAMED

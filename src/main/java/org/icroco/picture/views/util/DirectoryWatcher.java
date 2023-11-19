@@ -121,7 +121,7 @@ public class DirectoryWatcher {
                 try {
                     key = watcher.take();
                 } catch (InterruptedException x) {
-                    log.warn("Unexpected exception ", x);
+                    log.warn("Thread interrupted. Directory watcher is disabled ");
                     continue;
                 }
 
