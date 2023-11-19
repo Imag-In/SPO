@@ -791,6 +791,7 @@
                                 </goals>
                                 <phase>pre-integration-test</phase>
                                 <configuration>
+                                    <debug>true</debug>
                                     <toolName>jpackage</toolName>
                                     <removeDirectories>${project.build.directory}/installer-work</removeDirectories>
                                     <args>@${project.build.directory}/pkg-config/windows/${os.arch}-jpackage.txt</args>

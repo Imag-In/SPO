@@ -4,7 +4,7 @@
 --win-shortcut
 --win-menu-group ${windows.vendor}
 --vendor ${windows.vendor}
---icon "${project.basedir}/src/distrib/win/spo.ico"
+--icon "${project.basedir}\src\distrib\win\spo.ico"
 --dest ${project.build.directory}
 --main-jar ${project.build.finalName}.jar
 --main-class ${mainClass}
