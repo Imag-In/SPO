@@ -30,6 +30,11 @@ class MediaFileMapperTest {
 
         @Bean
         GeoLocationMapper geoLocationMapper() {return new GeoLocationMapperImpl();}
+
+        @Bean
+        CameraMapper cameraMapper() {
+            return new CameraMapperImpl();
+        }
     }
 
     @Autowired
