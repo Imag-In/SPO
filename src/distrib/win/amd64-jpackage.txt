@@ -2,16 +2,16 @@
 --name ${app.name}
 --win-menu
 --win-shortcut
---win-menu-group "${windows.vendor}""
+--win-menu-group "{windows.vendor}"
 --vendor "${windows.vendor}"
---icon ".\src\distrib\win\spo.ico"
---dest "${project.build.directory}""
+--icon "${project.basedir}/src/distrib/win/spo.ico"
+--dest ${project.build.directory}
 --main-jar ${project.build.finalName}.jar
 --main-class ${mainClass}
---input ${project.build.directory}\dependency
---app-version "${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.${parsedVersion.incrementalVersion}""
---runtime-image ${project.build.directory}\custom-jvm
---win-upgrade-uuid "${windows.upgrade.uuid}""
+--input ${project.build.directory}/dependency
+--app-version "${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.${parsedVersion.incrementalVersion}"
+--runtime-image ${project.build.directory}/custom-jvm
+--win-upgrade-uuid "${windows.upgrade.uuid}"
 --description "${project.description}"
 --copyright "(C) ${windows.vendor}"
 --java-options -XX:+UseZGC

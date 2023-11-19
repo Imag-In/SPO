@@ -5,7 +5,7 @@
     <groupId>org.icroco.imagin</groupId>
     <artifactId>spo</artifactId>
     <version>1.0.1-SNAPSHOT</version>
-
+    <description>Imag'In | Sinple Photo Organizer</description>
     <properties>
         <app.name>SimplePhotoOrganizer</app.name>
         <app.version>${project.version}</app.version>
@@ -410,7 +410,7 @@
                             <goal>repackage</goal>
                         </goals>
                         <configuration>
-                            <finalName>${project.artifactId}-full.jar</finalName>
+                            <finalName>${project.artifactId}-full</finalName>
                             <excludeDevtools>true</excludeDevtools>
                             <excludeGroupIds>org.openjfx</excludeGroupIds>
                             <mainClass>${mainClass}</mainClass>
@@ -754,7 +754,7 @@
                                             <directory>${basedir}/src/distrib</directory>
                                             <filtering>true</filtering>
                                             <includes>
-                                                <include>windows/${os.arch}-jpackage.txt</include>
+                                                <include>win/${os.arch}-jpackage.txt</include>
                                             </includes>
                                         </resource>
                                     </resources>
@@ -800,7 +800,7 @@
                                     <debug>true</debug>
                                     <toolName>jpackage</toolName>
                                     <removeDirectories>${project.build.directory}/installer-work</removeDirectories>
-                                    <args>@${project.build.directory}/pkg-config/windows/${os.arch}-jpackage.txt</args>
+                                    <args>@${project.build.directory}/pkg-config/win/${os.arch}-jpackage.txt</args>
                                 </configuration>
                             </execution>
                         </executions>
