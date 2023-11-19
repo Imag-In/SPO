@@ -32,13 +32,13 @@ public class SpoPreLoader extends Preloader {
 
 
     public static List<Image> getIcons() {
-        return Stream.of("Imag'In-Icon_Only-1024x1024-FF.png",
-                         "Imag'In-Icon_Only-512x512-FF.png",
-                         "Imag'In-Icon_Only-256x256-FF.png",
-                         "Imag'In-Icon_Only-128x128-FF.png",
-                         "Imag'In-Icon_Only-64x64-FF.png",
-                         "Imag'In-Icon_Only-32x32-FF.png",
-                         "Imag'In-Icon_Only-16x16-FF.png")
+        return Stream.of("spo-1024x1024.png",
+                         "spo-512x512.png",
+                         "spo-256x256.png",
+                         "spo-128x128.png",
+                         "spo-64x64.png",
+                         "spo-32x32.png",
+                         "spo-16x16.png")
                      .map(s -> "/images/" + s)
                      .map(s -> new Image(s))
                      .toList();

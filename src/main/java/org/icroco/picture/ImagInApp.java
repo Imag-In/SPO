@@ -148,7 +148,6 @@ public class ImagInApp extends Application {
         }
     }
 
-
     protected void preStart(final Stage primaryStage) {
 //        System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Image'In");
 //        System.setProperty("apple.laf.useScreenMenuBar", "true");
@@ -160,7 +159,7 @@ public class ImagInApp extends Application {
             var taskbar = Taskbar.getTaskbar();
             if (taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) {
                 final Toolkit defaultToolkit = Toolkit.getDefaultToolkit();
-                var           dockIcon       = defaultToolkit.getImage(getClass().getResource("/images/Imag'In-Icon_Only-256x256-FF.png"));
+                var           dockIcon       = defaultToolkit.getImage(getClass().getResource("/images/spo-256x256.png"));
                 taskbar.setIconImage(dockIcon);
             }
         }
@@ -183,8 +182,6 @@ public class ImagInApp extends Application {
         if (Boolean.getBoolean("SCENIC")) {
             ScenicView.show(scene);
         }
-//        primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/images/240px-GNOME_Photos_logo_2019.svg.png")));
-
     }
 
 
