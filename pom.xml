@@ -446,11 +446,11 @@
                             <artifactId>lombok</artifactId>
                             <version>${lombok.version}</version>
                         </path>
-                        <path>
-                            <groupId>org.icroco</groupId>
-                            <artifactId>spring-boot-javafx-starter</artifactId>
-                            <version>${spring-boot-javafx-starter.version}</version>
-                        </path>
+                        <!--                        <path>-->
+                        <!--                            <groupId>org.icroco</groupId>-->
+                        <!--                            <artifactId>spring-boot-javafx-starter</artifactId>-->
+                        <!--                            <version>${spring-boot-javafx-starter.version}</version>-->
+                        <!--                        </path>-->
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok-mapstruct-binding</artifactId>
