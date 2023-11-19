@@ -31,26 +31,26 @@ jobs:
           path: ~/.m2
           key: spo-mvnw
       #          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-      #          restore-keys: ${{ runner.os }}-m2
+      #          restore-keys: spo-mvnw
 
       - name: Build with Maven
         run: mvn -V -fae clean verify -Drelease -f pom.xml
 
-      - name: Get release
-        id: get_release
-        uses: bruceadams/get-release@v1.3.2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+#      - name: Get release
+#        id: get_release
+#        uses: bruceadams/get-release@v1.3.2
+#        env:
+#          GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Upload Release Asset OSX
-        id: upload-release-asset
-        uses: csexton/release-asset-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          pattern: ./target/*.dmg
-          release-url: ${{ steps.get_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing its ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Upload Release Asset OSX
+#        id: upload-release-asset
+#        uses: csexton/release-asset-action@v2
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          pattern: ./target/*.dmg
+#          release-url: ${{ steps.get_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing its ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
 
 #  build-win:
 #
