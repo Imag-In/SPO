@@ -2,8 +2,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.icroco</groupId>
-    <artifactId>imag-in</artifactId>
+    <groupId>org.icroco.imagin</groupId>
+    <artifactId>spo</artifactId>
     <version>1.0.1-SNAPSHOT</version>
 
     <properties>
@@ -405,11 +405,17 @@
                     <compilerArguments>--enable-preview</compilerArguments>
                 </configuration>
                 <executions>
-                    <!--                    <execution>-->
-                    <!--                        <goals>-->
-                    <!--                            <goal>repackage</goal>-->
-                    <!--                        </goals>-->
-                    <!--                    </execution>-->
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${project.artifactId}-full.jar</finalName>
+                            <excludeDevtools>true</excludeDevtools>
+                            <excludeGroupIds>org.openjfx</excludeGroupIds>
+                            <mainClass>${mainClass}</mainClass>
+                        </configuration>
+                    </execution>
                     <!--                    <execution>-->
                     <!--                        <id>process-aot</id>-->
                     <!--                        <goals>-->

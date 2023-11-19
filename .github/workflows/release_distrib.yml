@@ -37,7 +37,7 @@ jobs:
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "target/*.dmg"
+          artifacts: "target/*.dmg,target/*-full.jar"
           allowUpdates: "true"
 
   build-linux:
