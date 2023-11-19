@@ -806,7 +806,7 @@
             <id>release-linux-x64</id>
             <activation>
                 <os>
-                    <family>windows</family>
+                    <family>unix</family>
                     <arch>amd64</arch>
                 </os>
                 <property>
