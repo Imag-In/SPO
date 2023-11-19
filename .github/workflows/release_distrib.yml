@@ -6,9 +6,7 @@ name: Relase native distribution
 on:
   push:
     tags:
-      - 'r*'
-
-
+      - 'v[1-9][0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   
@@ -34,7 +32,12 @@ jobs:
       #          restore-keys: spo-mvnw
 
       - name: Build with Maven
-        run: mvn -V -fae clean verify -Drelease -f pom.xml
+        run: mvn -V -B -fae clean verify -Drelease -f pom.xml
+
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "target/*.dmg"
+          allowUpdates: "true"
 
 #      - name: Get release
 #        id: get_release
