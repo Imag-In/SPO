@@ -6,7 +6,9 @@ name: Relase native distribution
 on:
   push:
     tags:
-      - 'v*'
+      - 'r*'
+
+
 
 jobs:
   
