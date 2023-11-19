@@ -34,6 +34,13 @@ other apps.
     - [ ] Preference option to switch dyamically.
 - [ ] Preferences management.
 - [ ] Export collection (WEb / cloud / ...)
+- [ ] Supported file type
+    - [x] jpeg
+    - [x] png
+    - [ ] TIFF
+    - [ ] HEIC / HEIF
+    - [ ] mov
+    - ...
 
 ### Features out of scope
 
