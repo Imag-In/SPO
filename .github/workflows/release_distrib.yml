@@ -3,10 +3,12 @@
 
 name: Relase native distribution
 
-#on:
-#  push:
-#    tags:
-#      - 'v*'
+on:
+  push:
+    tags:
+      - 'r*'
+
+
 
 jobs:
   
