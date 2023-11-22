@@ -2,7 +2,7 @@
 
 
 APP_VERSION=${SPO_VERSION}
-APP_NAME=${SPO_ARTIFACT_ID}
+#APP_NAME=${SPO_ARTIFACT_ID}
 
 echo "java home: ${JAVA_HOME}"
 echo "App groupId: ${SPO_GROUP_ID}"
@@ -96,8 +96,9 @@ do
   --app-version ${APP_VERSION} \
   --vendor "${APP_VENDOR}" \
   --copyright "Copyright © 2023 ${APP_VENDOR}" \
+  --license-file LICENSE.txt \
   --description "$APP_DESC" \
-  --mac-package-name "${SPO_GROUP_ID}"
+  --mac-package-name "${APP_NAME}"
 
 done
 
@@ -107,7 +108,11 @@ arch_name="$(uname -m)"
 if [ "${arch_name}" = "arm64" ]; then
     mv "build/installer/${APP_NAME}-${APP_VERSION}.pkg" "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.pkg"
     shasum -a 256 "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.pkg" > "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.pkg.sha256"
+    mv "build/installer/${APP_NAME}-${APP_VERSION}.dmg" "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.dmg"
+    shasum -a 256 "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.dmg" > "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.dmg.sha256"
 else
-    shasum -a 256 "build/installer/${APP_NAME}-${APP_VERSION}.pkg" > "build/installer/${APP_NAME}-${APP_VERSION}.pkg.sha256"
-    shasum -a 256 "build/installer/${APP_NAME}-${APP_VERSION}.dmg" > "build/installer/${APP_NAME}-${APP_VERSION}.dmg.sha256"
+    mv "build/installer/${APP_NAME}-${APP_VERSION}.pkg" "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.pkg"
+    mv "build/installer/${APP_NAME}-${APP_VERSION}.dmg" "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.dmg"
+    shasum -a 256 "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.pkg" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.pkg.sha256"
+    shasum -a 256 "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.dmg" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.dmg.sha256"
 fi

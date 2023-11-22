@@ -135,11 +135,11 @@ public class GalleryView implements FxView<StackPane> {
         photo.maxWidthProperty().bind(carousel.widthProperty());
 //        carousel.setBottom(carouselIcons);
 
-        addInputMap(carousel, sequence(consume(keyPressed(KeyCode.ESCAPE), this::escapePressed)));
-        addInputMap(carousel, sequence(consume(keyPressed(KeyCode.LEFT), this::leftPressed)));
-        addInputMap(carousel, sequence(consume(keyPressed(KeyCode.RIGHT), this::rightPressed)));
-        addInputMap(carousel, sequence(consume(keyPressed(KeyCode.UP), this::skipPressed)));
-        addInputMap(carousel, sequence(consume(keyPressed(KeyCode.DOWN), this::skipPressed)));
+        addInputMap(root, sequence(consume(keyPressed(KeyCode.ESCAPE), this::escapePressed)));
+        addInputMap(root, sequence(consume(keyPressed(KeyCode.LEFT), this::leftPressed)));
+        addInputMap(root, sequence(consume(keyPressed(KeyCode.RIGHT), this::rightPressed)));
+        addInputMap(root, sequence(consume(keyPressed(KeyCode.UP), this::skipPressed)));
+        addInputMap(root, sequence(consume(keyPressed(KeyCode.DOWN), this::skipPressed)));
 
 //        photo.fitHeightProperty().bind(photoContainer.heightProperty().subtract(10));
 //        photo.fitWidthProperty().bind(photoContainer.widthProperty().subtract(10));
@@ -474,6 +474,7 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void escapePressed(KeyEvent keyEvent) {
+        log.info("Escape: {}", dblCickState);
         if (dblCickState == EGalleryClickState.ZOOM) {
             displayNext(photo.getMediaFile());
         } else if (dblCickState.isImage()) {

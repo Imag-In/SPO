@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class ImageIoGenerator extends AbstractThumbnailGenerator {
     @Override
     public Thumbnail generate(Path path, Dimension dim) {
-        return new Thumbnail(0,
+        return new Thumbnail(0L,
                              path,
                              new Image(path.toUri().toString(), dim.width(), 0, true, true),
                              EThumbnailType.GENERATED,

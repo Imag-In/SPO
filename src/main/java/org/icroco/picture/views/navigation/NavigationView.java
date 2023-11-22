@@ -68,7 +68,7 @@ public class NavigationView implements FxView<HBox> {
         initTabLabel(peopleLbl);
         initTabLabel(exportLbl);
 
-        selectedTab.addListener((obs, old, val) -> {
+        selectedTab.addListener((_, old, val) -> {
 //            if (val == codeTab) {
 //                stateToggle.setDisable(true);
 //                content.getChildren().setAll(snippet.render());

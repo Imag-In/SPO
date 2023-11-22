@@ -10,6 +10,7 @@ import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
 import com.drew.metadata.iptc.IptcDirectory;
+import com.drew.metadata.png.PngDirectory;
 import lombok.RequiredArgsConstructor;
 import org.icroco.picture.config.ImagInConfiguration;
 import org.icroco.picture.model.Camera;
@@ -98,8 +99,8 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 //                    System.out.printf("   Tag: %s (%d/%s): %s%n", tag.getTagName(), tag.getTagType(), tag.getTagTypeHex(), tag.getDescription());
 //                }
 //            }
-            var                         edb                    = ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
-            Optional<ExifIFD0Directory> firstExifIFD0Directory = ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class));
+            var edb                    = ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
+            var firstExifIFD0Directory = ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class));
             return Optional.of(MetadataHeader.builder()
                                              .orginalDate(originalDateTime(path, metadata).orElse(EPOCH_0))
                                              .orientation(extractOrientation(path, firstExifIFD0Directory))
@@ -107,7 +108,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                                                               metadata).map(gl -> new org.icroco.picture.model.GeoLocation(gl.getLatitude(),
                                                                                                                            gl.getLongitude()))
                                                                        .orElse(NO_WHERE))
-                                             .size(extractSize(path, edb))
+                                             .size(extractSize(metadata, path, edb))
                                              .camera(extractCamera(path, firstExifIFD0Directory))
                                              .keywords(extractKeywords(path,
                                                                        ofNullable(metadata.getFirstDirectoryOfType(IptcDirectory.class))))
@@ -171,16 +172,28 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 //    }
 
 
-    public Dimension extractSize(Path path, Optional<? extends ExifDirectoryBase> metadata) {
-        return metadata.map(edb -> new Dimension(getTagAsInt(metadata,
-                                                             ExifDirectoryBase.TAG_EXIF_IMAGE_WIDTH,
-                                                             () -> 0,
-                                                             t -> log.warn("'{}' Cannot read width", path)),
-                                                 getTagAsInt(metadata,
-                                                             ExifDirectoryBase.TAG_EXIF_IMAGE_HEIGHT,
-                                                             () -> 0,
-                                                             t -> log.warn("'{}' Cannot read height", path))))
-                       .orElse(Dimension.EMPTY_DIM);
+    public Dimension extractSize(Metadata metadata, Path path, Optional<? extends ExifDirectoryBase> directory) {
+        return directory.map(_ -> new Dimension(getTagAsInt(directory,
+                                                            ExifDirectoryBase.TAG_EXIF_IMAGE_WIDTH,
+                                                            () -> 0,
+                                                            t -> log.warn("'{}' Cannot read width", path)),
+                                                getTagAsInt(directory,
+                                                            ExifDirectoryBase.TAG_EXIF_IMAGE_HEIGHT,
+                                                            () -> 0,
+                                                            t -> log.warn("'{}' Cannot read height", path))))
+                        .orElseGet(() -> extractPngSize(metadata, path, ofNullable(metadata.getFirstDirectoryOfType(PngDirectory.class))));
+    }
+
+    public Dimension extractPngSize(Metadata metadata, Path path, Optional<? extends PngDirectory> directory) {
+        return directory.map(_ -> new Dimension(getTagAsInt(directory,
+                                                            PngDirectory.TAG_IMAGE_WIDTH,
+                                                            () -> 0,
+                                                            t -> log.warn("'{}' Cannot read width", path)),
+                                                getTagAsInt(directory,
+                                                            PngDirectory.TAG_IMAGE_HEIGHT,
+                                                            () -> 0,
+                                                            t -> log.warn("'{}' Cannot read height", path))))
+                        .orElse(Dimension.EMPTY_DIM);
     }
 
     public short extractOrientation(Path path, Optional<? extends ExifDirectoryBase> exif) {

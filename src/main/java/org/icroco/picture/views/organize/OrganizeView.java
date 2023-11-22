@@ -1,6 +1,7 @@
 package org.icroco.picture.views.organize;
 
 import jakarta.annotation.PostConstruct;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.layout.BorderPane;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +30,16 @@ public class OrganizeView implements FxView<BorderPane> {
         root.setLeft(collectionView.getRootContent());
         root.setCenter(galleryView.getRootContent());
         root.setRight(detailsView.getRootContent());
+        root.visibleProperty().addListener(this::rootVisibleCb);
 
         collectionView.getPathSelectionProperty().addListener(galleryView::collectionPathChange);
         collectionView.getPathSelectionProperty().addListener(detailsView::collectionPathChange);
+    }
+
+    private void rootVisibleCb(ObservableValue<? extends Boolean> observableValue, Boolean oldValue, Boolean newValue) {
+        if (newValue) {
+            galleryView.getRootContent().requestFocus();
+        }
     }
 
     @Override
