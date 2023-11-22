@@ -91,7 +91,7 @@ jobs:
           author_email: ouaibsky@gmail.com
           message: "Next Version ${{ steps.get-version.outputs.SPO_VERSION }} [skip ci]"
           add: 'pom.xml'
-          tag: "v${{ steps.get-version.outputs.SPO_VERSION }} --force"
+  #          tag: "v${{ steps.get-version.outputs.SPO_VERSION }} --force"
 
   build-osx:
     runs-on: macos-latest
