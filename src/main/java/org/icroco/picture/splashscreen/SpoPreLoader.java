@@ -50,7 +50,7 @@ public class SpoPreLoader extends Preloader {
         primaryStage.setTitle("Simple Photo Organizer loading ....");
         primaryStage.getIcons().addAll(getIcons());
 
-        primaryStage.initStyle(StageStyle.UNDECORATED);
+        primaryStage.initStyle(StageStyle.TRANSPARENT);
 
 //        root.setStyle("-fx-background-radius: 15; -fx-background-color: transparent");
 //        root.setStyle("-fx-background-radius: 15; -fx-background-color: rgba(229, 36, 66, 0.8)");
@@ -82,9 +82,16 @@ public class SpoPreLoader extends Preloader {
         hb.getChildren().add(progressBar);
         HBox.setHgrow(progressBar, Priority.ALWAYS);
         borderPane.setBottom(hb);
-        borderPane.setPrefHeight(400);
-        root.getChildren().addAll(imageView, borderPane);
 
+//        imageView.setStyle("-fx-background-color: transparent; -fx-background-radius: 10;");
+//        borderPane.setStyle("-fx-background-color: transparent; -fx-background-radius: 10;");
+        root.setStyle(
+                "-fx-background-color: rgba(255, 255, 255, 0);" +
+                "-fx-effect: dropshadow(gaussian, white, 50, 0, 0, 0);" +
+                "-fx-background-insets: 0;"
+        );
+        imageView.setOpacity(1);
+        root.getChildren().addAll(imageView, borderPane);
         var scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("/styles/splash.css").toExternalForm());
         scene.setFill(Color.TRANSPARENT);
@@ -106,7 +113,7 @@ public class SpoPreLoader extends Preloader {
 
     @Override
     public void handleStateChangeNotification(StateChangeNotification scn) {
-        log.info("type: {}", scn.getType());
+        log.debug("type: {}", scn.getType());
         if (scn.getType() == StateChangeNotification.Type.BEFORE_START) {
             var fadeOut = Animations.fadeOut(root, Duration.millis(1000));
             fadeOut.setOnFinished(_ -> {
@@ -125,7 +132,7 @@ public class SpoPreLoader extends Preloader {
 
     @Override
     public void handleApplicationNotification(PreloaderNotification pn) {
-        log.info("Application notification: {}", pn);
+        log.debug("Application notification: {}", pn);
         if (pn instanceof LoaderProgressNotification lpn) {
             progressBar.progressProperty().setValue(lpn.getProgress());
             progressLbl.textProperty().setValue(lpn.getDetails());

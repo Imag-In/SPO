@@ -52,13 +52,11 @@ public class ImagInApp extends Application {
     @Autowired
     MainView mainView;
 
-
     /**
      * The application context created by the JavaFX starter.
      * This context will only be available once the {@link #init()} has been invoked by JavaFX.
      */
     protected ConfigurableApplicationContext applicationContext;
-
 
     /**
      * Launch a JavaFX application with for the given class and program arguments.
@@ -83,7 +81,6 @@ public class ImagInApp extends Application {
         System.setProperty("javafx.preloader", SpoPreLoader.class.getName());
         Application.launch(args);
     }
-
 
     @Override
     public final void init() {
@@ -153,7 +150,6 @@ public class ImagInApp extends Application {
 //        System.setProperty("apple.laf.useScreenMenuBar", "true");
 //        OpenCV.loadShared();
         ImageUtils.readImageIoCodec();
-//        var icon = getClass().getResourceAsStream(IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG);
         primaryStage.getIcons().addAll(SpoPreLoader.getIcons());
         if (Taskbar.isTaskbarSupported()) {
             var taskbar = Taskbar.getTaskbar();
@@ -184,7 +180,6 @@ public class ImagInApp extends Application {
         }
     }
 
-
     protected void showErrorToUser(final Throwable throwable) {
         Throwable       t   = Error.findOwnedException(throwable);
         ExceptionDialog dlg = new ExceptionDialog(t);
@@ -204,7 +199,6 @@ public class ImagInApp extends Application {
         launch(ImagInApp.class, args);
     }
 
-
     class ProgressBeanPostProcessor implements BeanPostProcessor {
         @Override
         public Object postProcessAfterInitialization(@NonNull Object bean, String beanName) throws BeansException {
@@ -223,5 +217,4 @@ public class ImagInApp extends Application {
             return bean;
         }
     }
-
 }

@@ -54,7 +54,7 @@ public class CollectionManager {
                  .stream()
                  .map(MediaCollection::path)
                  .forEach(directoryWatcher::registerAll);
-            log.info("End of adding directory watcher");
+            log.debug("End of adding directory watcher");
         });
 
         taskService.supply(analyseCollections(List.copyOf(event.getMediaCollections())));

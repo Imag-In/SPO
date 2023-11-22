@@ -7,7 +7,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 @Component
 @AllArgsConstructor
@@ -18,8 +17,8 @@ public class Env {
 
     @PostConstruct
     void init() {
-        log.info("Default Profile: {}", Arrays.stream(environment.getDefaultProfiles()).collect(Collectors.joining(", ")));
-        log.info("Profiles: {}", Arrays.stream(environment.getActiveProfiles()).collect(Collectors.joining(", ")));
+        log.info("Default Profile: {}", String.join(", ", environment.getDefaultProfiles()));
+        log.info("Profiles: {}", String.join(", ", environment.getActiveProfiles()));
     }
 
     public boolean isDev() {

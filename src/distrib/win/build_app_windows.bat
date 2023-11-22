@@ -87,6 +87,7 @@ for %%s in ("msi" "exe") do call "%JAVA_HOME%\bin\jpackage" ^
   --runtime-image build\java-runtime ^
   --icon src\distrib\win\spo.ico ^
   --win-shortcut ^
+  --win-per-user-install ^
   --win-menu ^
   --win-menu-group "%APP_VENDOR%" ^
   --app-version %APP_VERSION% ^

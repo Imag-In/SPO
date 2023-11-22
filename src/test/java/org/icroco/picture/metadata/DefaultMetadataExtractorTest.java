@@ -32,7 +32,7 @@ class DefaultMetadataExtractorTest {
     }
 
     @Test
-    void printAllByDirectory() throws ImageProcessingException, IOException {
+    void should_throw_exception_when_image_unreadable() throws ImageProcessingException, IOException {
         //Users/christophe/Pictures/foo/test/Espagne-25072017-138.jpg
         //src/test/resources/images/IMG_20180527_160832.jpg
 //        Metadata
@@ -55,5 +55,31 @@ class DefaultMetadataExtractorTest {
         }).isInstanceOf(ImageProcessingException.class);
     }
 
+
+    @Test
+    @Disabled
+    void printAllByDirectory() throws ImageProcessingException, IOException {
+        //Users/christophe/Pictures/foo/test/Espagne-25072017-138.jpg
+        //src/test/resources/images/IMG_20180527_160832.jpg
+//        Metadata
+//                metadata =
+//                ImageMetadataReader.readMetadata(Paths.get("/Users/christophe/Pictures/foo/json/IMGP8950.JPG").toFile());
+
+        Assertions.assertThatThrownBy(() -> {
+            Metadata
+                    metadata =
+                    ImageMetadataReader.readMetadata(Paths.get("/Users/christophe/Pictures/foo/json/Imag'In-Icon_Only-128x128-FF.png")
+                                                          .toFile());
+
+            Collections.toStream(metadata.getDirectories())
+                       .forEach(d -> {
+                           log.info("Directory: {}", d.getClass());
+                           d.getTags()
+                            .forEach(t -> {
+                                log.info("   tags: {}({}) = {}", t.getTagName(), t.getTagType(), t.getDescription());
+                            });
+                       });
+        }).isInstanceOf(ImageProcessingException.class);
+    }
 
 }

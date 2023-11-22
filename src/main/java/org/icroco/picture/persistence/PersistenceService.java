@@ -14,6 +14,7 @@ import org.icroco.picture.persistence.mapper.MediaFileMapper;
 import org.icroco.picture.persistence.mapper.ThumbnailMapper;
 import org.icroco.picture.persistence.model.MediaFileEntity;
 import org.icroco.picture.views.task.TaskService;
+import org.jooq.lambda.Unchecked;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.cache.Cache;
@@ -24,6 +25,9 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
+import static java.time.Duration.ofMinutes;
 
 @SuppressWarnings("unchecked")
 @Component
@@ -56,6 +60,27 @@ public class PersistenceService {
             taskService.sendEvent(CollectionsLoadedEvent.builder().mediaCollections(mediaCollections).source(this).build());
         } finally {
             rLock.unlock();
+        }
+        Thread.ofVirtual().name("DataBase checking").start(Unchecked.runnable(() -> {
+            Thread.sleep(ofMinutes(1)); // It cost nothing with Virtual Thread. // Put in conf.
+            checkDatase();
+        }));
+    }
+
+    private void checkDatase() {
+        var wLock = mcLock.writeLock();
+        try {
+            wLock.lock();
+            // Make sure only one thread is cleaning
+            log.info("Database cleaning - starting");
+            List<Long> orphelans = thumbRepo.findOrphelans();
+            log.warn("Found '{}' thumbnail(s) orphelan(s), 20th first: {}",
+                     orphelans.size(),
+                     orphelans.stream().limit(20).map(Object::toString).collect(Collectors.joining(",")));
+            thumbRepo.deleteAllById(orphelans);
+            log.info("Database cleaning - end.");
+        } finally {
+            wLock.unlock();
         }
     }
 
@@ -162,6 +187,7 @@ public class PersistenceService {
         }
     }
 
+    @Transactional
     public List<Thumbnail> saveAll(Collection<Thumbnail> thumbnails) {
         var wLock = mcLock.writeLock();
         try {
