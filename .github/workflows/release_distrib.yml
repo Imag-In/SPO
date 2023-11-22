@@ -82,7 +82,11 @@ jobs:
           tag: "v${{ steps.get-version.outputs.SPO_VERSION }}"
 
       - name: Maven next version
-        run: ./mvnw -B build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.nextIncrementalVersion}-SNAPSHOT'
+        id: next-version
+        run: |
+          ./mvnw -B build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.nextIncrementalVersion}-SNAPSHOT'
+          SPO_NEXT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "SPO_NEXT_VERSION=${SPO_NEXT_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Commit version
         uses: EndBug/add-and-commit@v9
@@ -195,18 +199,18 @@ jobs:
       - uses: cardinalby/export-env-action@v2
         with:
           envFile: 'build.env'
-      - name: Download Wix
-        uses: i3h/download-release-asset@v1
-        with:
-          owner: wixtoolset
-          repo: wix3
-          tag: wix3112rtm
-          file: wix311-binaries.zip
-      - name: Decompress Wix
-        uses: DuckSoft/extract-7z-action@v1.0
-        with:
-          pathSource: wix311-binaries.zip
-          pathTarget: ./target/wix
+      #      - name: Download Wix
+      #        uses: i3h/download-release-asset@v1
+      #        with:
+      #          owner: wixtoolset
+      #          repo: wix3
+      #          tag: wix3112rtm
+      #          file: wix311-binaries.zip
+      #      - name: Decompress Wix
+      #        uses: DuckSoft/extract-7z-action@v1.0
+      #        with:
+      #          pathSource: wix311-binaries.zip
+      #          pathTarget: ./target/wix
       - name: Extract dependencies
         run: java -Djarmode=layertools -jar spo-full.jar extract
 
