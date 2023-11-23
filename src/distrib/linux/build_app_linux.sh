@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-APP_VERSION=${SPO_VERSION}
+APP_VERSION="${SPO_VERSION}"
 #APP_NAME=${SPO_ARTIFACT_ID}
 
 echo "java home: ${JAVA_HOME}"
@@ -25,7 +25,7 @@ rm -rfd ${BUILD_DIR}/installer/
 mkdir -p ${BUILD_DIR}/installer/input/libs/
 
 cp dependencies/BOOT-INF/lib/* ${BUILD_DIR}/installer/input/libs/
-cp ${MAIN_JAR} ${BUILD_DIR}/installer/input/libs/
+cp "${MAIN_JAR}" ${BUILD_DIR}/installer/input/libs/
 
 # ------ REQUIRED MODULES -----------------------------------------------------
 # Use jlink to detect all modules that are required to run the application.
@@ -33,12 +33,12 @@ cp ${MAIN_JAR} ${BUILD_DIR}/installer/input/libs/
 # application.
 
 echo "detecting required modules"
-detected_modules=`$JAVA_HOME/bin/jdeps \
-  --multi-release ${JAVA_VERSION} \
+detected_modules=$("${JAVA_HOME}"/bin/jdeps \
+  --multi-release "${JAVA_VERSION}" \
   --ignore-missing-deps \
   --print-module-deps \
   --class-path "${BUILD_DIR}/installer/input/libs/*" \
-  ${MAIN_JAR}`
+  "${MAIN_JAR}")
 echo "detected modules: ${detected_modules}"
 
 
@@ -62,7 +62,7 @@ echo "manual modules: ${manual_modules}"
 # works with dependencies that are not fully modularized, yet.
 
 echo "creating java runtime image"
-$JAVA_HOME/bin/jlink \
+"$JAVA_HOME"/bin/jlink \
   --no-header-files \
   --no-man-pages  \
   --compress=zip-6  \
@@ -79,7 +79,7 @@ for type in "deb" "rpm"
 do
   echo "Creating installer of type ... $type"
 
-  $JAVA_HOME/bin/jpackage \
+  "$JAVA_HOME"/bin/jpackage \
   --type $type \
   --dest ${BUILD_DIR}/installer \
   --input ${BUILD_DIR}/installer/input/libs \
@@ -113,11 +113,11 @@ ls -la ${BUILD_DIR}/installer/
 if [ "${arch_name}" = "aarch64" ]; then
     mv "${BUILD_DIR}/installer/${APP_NAME}_${APP_VERSION}_arm64.deb" "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_arm64.deb"
     sha256sum "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_arm64.deb" > "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}-1_arm64.deb.sha256"
-    mv "${BUILD_DIR}/installer/${APP_NAME}-${APP_VERSION}-1.aarch64.rpm"  "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm.sha256"
+    mv "${BUILD_DIR}/installer/${APP_NAME}-${APP_VERSION}-1.aarch64.rpm"  "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm"
     sha256sum "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm" > "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm.sha256"
 else
-    mv "${BUILD_DIR}/installer/${APP_NAME}_${APP_VERSION}_amd64.deb" "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb.sha256"
+    mv "${BUILD_DIR}/installer/${APP_NAME}_${APP_VERSION}_amd64.deb" "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb"
     sha256sum "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb" > "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb.sha256"
-    mv "${BUILD_DIR}/installer/${APP_NAME}-${APP_VERSION}-1.x86_64.rpm" "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm.sha256"
+    mv "${BUILD_DIR}/installer/${APP_NAME}-${APP_VERSION}-1.x86_64.rpm" "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm"
     sha256sum "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm" > "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm.sha256"
 fi
