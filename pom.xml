@@ -3,10 +3,10 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.icroco.imagin</groupId>
   <artifactId>spo</artifactId>
-  <version>1.0.4-SNAPSHOT</version>
+  <version>1.0.7-SNAPSHOT</version>
   <description>Imag'In | Sinple Photo Organizer</description>
 
-    <properties>
+  <properties>
     <app.name>SimplePhotoOrganizer</app.name>
     <app.version>${project.version}</app.version>
     <atlantafx-base.version>2.0.1</atlantafx-base.version>

@@ -18,13 +18,14 @@ echo "App vendor: ${APP_VENDOR}"
 # Remove previously generated java runtime and installers. Copy all required
 # jar files into the input/libs folder.
 
-rm -rfd ./build/java-runtime/
-rm -rfd build/installer/
+BUILD_DIR=./build
+rm -rfd ${BUILD_DIR}/java-runtime/
+rm -rfd ${BUILD_DIR}/installer/
 
-mkdir -p build/installer/input/libs/
+mkdir -p ${BUILD_DIR}/installer/input/libs/
 
-cp dependencies/BOOT-INF/lib/* build/installer/input/libs/
-cp ${MAIN_JAR} build/installer/input/libs/
+cp dependencies/BOOT-INF/lib/* ${BUILD_DIR}/installer/input/libs/
+cp ${MAIN_JAR} ${BUILD_DIR}/installer/input/libs/
 
 # ------ REQUIRED MODULES -----------------------------------------------------
 # Use jlink to detect all modules that are required to run the application.
@@ -36,7 +37,7 @@ detected_modules=`$JAVA_HOME/bin/jdeps \
   --multi-release ${JAVA_VERSION} \
   --ignore-missing-deps \
   --print-module-deps \
-  --class-path "build/installer/input/libs/*" \
+  --class-path "${BUILD_DIR}/installer/input/libs/*" \
   ${MAIN_JAR}`
 echo "detected modules: ${detected_modules}"
 
@@ -68,11 +69,11 @@ $JAVA_HOME/bin/jlink \
   --strip-debug \
   --add-modules "${detected_modules},${manual_modules}" \
   --include-locales=en,fr \
-  --output build/java-runtime
+  --output ${BUILD_DIR}/java-runtime
 
 # ------ PACKAGING ------------------------------------------------------------
 # A loop iterates over the various packaging types supported by jpackage. In
-# the end we will find all packages inside the build/installer directory.
+# the end we will find all packages inside the ${BUILD_DIR}/installer directory.
 
 for type in "deb" "rpm"
 do
@@ -80,8 +81,8 @@ do
 
   $JAVA_HOME/bin/jpackage \
   --type $type \
-  --dest build/installer \
-  --input build/installer/input/libs \
+  --dest ${BUILD_DIR}/installer \
+  --input ${BUILD_DIR}/installer/input/libs \
   --name "${APP_NAME}" \
   --main-class "${APP_MAIN_CLASS}" \
   --main-jar "${MAIN_JAR}" \
@@ -90,7 +91,7 @@ do
   --java-options '--enable-preview' \
   --java-options '-Djdk.gtk.verbose=true' \
   --java-options '-Djdk.gtk.version=3' \
-  --runtime-image build/java-runtime \
+  --runtime-image ${BUILD_DIR}/java-runtime \
   --icon src/main/resources/images/spo-256x256.png \
   --linux-shortcut \
   --linux-menu-group "${APP_VENDOR}" \
@@ -105,15 +106,18 @@ done
 
 # ------ CHECKSUM FILE --------------------------------------------------------
 arch_name="$(uname -m)"
+APP_NAME=$(echo "${APP_NAME}" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
+
+ls -la ${BUILD_DIR}/installer/
 
 if [ "${arch_name}" = "aarch64" ]; then
-    mv "build/installer/${APP_NAME}_${APP_VERSION}_arm64.deb" "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_arm64.deb"
-    sha256sum "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_arm64.deb" > "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}-1_arm64.deb.sha256"
-    mv "build/installer/${APP_NAME}-${APP_VERSION}-1.aarch64.rpm" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm.sha256"
-    sha256sum "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm.sha256"
+    mv "${BUILD_DIR}/installer/${APP_NAME}_${APP_VERSION}_arm64.deb" "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_arm64.deb"
+    sha256sum "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_arm64.deb" > "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}-1_arm64.deb.sha256"
+    mv "${BUILD_DIR}/installer/${APP_NAME}-${APP_VERSION}-1.aarch64.rpm"  "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm.sha256"
+    sha256sum "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm" > "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm.sha256"
 else
-    sha256sum "build/installer/${APP_NAME}_${APP_VERSION}_amd64.deb" > "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb.sha256"
-    mv "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb" > "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb.sha256"
-    sha256sum "build/installer/${APP_NAME}-${APP_VERSION}-1.x86_64.rpm" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm.sha256"
-    mv "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm.sha256"
+    mv "${BUILD_DIR}/installer/${APP_NAME}_${APP_VERSION}_amd64.deb" "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb.sha256"
+    sha256sum "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb" > "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb.sha256"
+    mv "${BUILD_DIR}/installer/${APP_NAME}-${APP_VERSION}-1.x86_64.rpm" "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm.sha256"
+    sha256sum "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm" > "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm.sha256"
 fi
