@@ -106,7 +106,7 @@ done
 
 # ------ CHECKSUM FILE --------------------------------------------------------
 arch_name="$(uname -m)"
-APP_NAME=$(echo "${APP_NAME}" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
+APP_NAME=$(echo "${APP_NAME}" | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
 
 ls -la ${BUILD_DIR}/installer/
 
