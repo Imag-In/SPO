@@ -80,7 +80,7 @@ for %%s in ("msi" "exe") do call "%JAVA_HOME%\bin\jpackage" ^
   --input build\installer\input\libs ^
   --name "%APP_NAME%" ^
   --main-class "%APP_MAIN_CLASS%" ^
-  --main-jar "%MAIN_JAR%"" ^
+  --main-jar "%MAIN_JAR%" ^
   --java-options -XX:+UseZGC ^
   --java-options -Xms2g ^
   --java-options '--enable-preview' ^

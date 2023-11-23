@@ -105,6 +105,7 @@ done
 
 # ------ CHECKSUM FILE --------------------------------------------------------
 arch_name="$(uname -m)"
+ls -la build/installer/
 
 if [ "${arch_name}" = "aarch64" ]; then
     mv "build/installer/${APP_NAME}_${APP_VERSION}_arm64.deb" "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_arm64.deb"
