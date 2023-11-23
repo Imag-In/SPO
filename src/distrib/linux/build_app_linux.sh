@@ -105,6 +105,8 @@ done
 
 # ------ CHECKSUM FILE --------------------------------------------------------
 arch_name="$(uname -m)"
+APP_NAME=$(echo "${APP_NAME}" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
+
 ls -la build/installer/
 
 if [ "${arch_name}" = "aarch64" ]; then
