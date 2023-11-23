@@ -12,7 +12,7 @@ echo "main JAR file: ${MAIN_JAR}"
 echo "App name: ${APP_NAME}"
 echo "App classname: ${APP_MAIN_CLASS}"
 echo "App description: ${APP_DESC}"
-echo "App vendor: ${APP_VENDOR}}"
+echo "App vendor: ${APP_VENDOR}"
 
 # ------ SETUP DIRECTORIES AND FILES ------------------------------------------
 # Remove previously generated java runtime and installers. Copy all required
@@ -75,6 +75,7 @@ $JAVA_HOME/bin/jlink \
 # the end we will find all packages inside the build/installer directory.
 
 # Somehow before signing there needs to be another step: xattr -cr build/installer/JDKMon.app
+arch_name="$(uname -m)"
 
 #for type in "app-image" "dmg" "pkg"
 for type in "dmg" "pkg"
@@ -85,34 +86,26 @@ do
   --type $type \
   --dest build/installer \
   --input build/installer/input/libs \
-  --name ${APP_NAME} \
-  --main-class ${APP_MAIN_CLASS} \
-  --main-jar ${MAIN_JAR} \
+  --name "${APP_NAME}" \
+  --main-class "${APP_MAIN_CLASS}" \
+  --main-jar "${MAIN_JAR}" \
   --java-options -XX:+UseZGC \
   --java-options -Xms2g \
   --java-options '--enable-preview' \
   --runtime-image build/java-runtime \
   --icon src/distrib/mac/spo.icns \
-  --app-version ${APP_VERSION} \
+  --app-version "${APP_VERSION}" \
   --vendor "${APP_VENDOR}" \
   --copyright "Copyright © 2023 ${APP_VENDOR}" \
   --license-file LICENSE.txt \
-  --description "$APP_DESC" \
-  --mac-package-name "${APP_NAME}"
+  --description "${APP_DESC}" \
+  --mac-package-name "${SPO_ARTIFACT_ID}"
 
+    mv "build/installer/${APP_NAME}-${APP_VERSION}.${type}" "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.${type}"
+    if [ "${arch_name}" = "arm64" ]; then
+      mv "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.${type}" "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-aarch64.${type}"
+      shasum -a 256 "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-aarch64.${type}" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-aarch64.${type}.sha256"
+    else
+      shasum -a 256 "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.${type}" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.${type}.sha256"
+    fi
 done
-
-# ------ CHECKSUM FILE --------------------------------------------------------
-arch_name="$(uname -m)"
-
-if [ "${arch_name}" = "arm64" ]; then
-    mv "build/installer/${APP_NAME}-${APP_VERSION}.pkg" "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.pkg"
-    shasum -a 256 "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.pkg" > "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.pkg.sha256"
-    mv "build/installer/${APP_NAME}-${APP_VERSION}.dmg" "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.dmg"
-    shasum -a 256 "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.dmg" > "build/installer/${APP_NAME}-${APP_VERSION}-aarch64.dmg.sha256"
-else
-    mv "build/installer/${APP_NAME}-${APP_VERSION}.pkg" "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.pkg"
-    mv "build/installer/${APP_NAME}-${APP_VERSION}.dmg" "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.dmg"
-    shasum -a 256 "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.pkg" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.pkg.sha256"
-    shasum -a 256 "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.dmg" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}.dmg.sha256"
-fi

@@ -1,9 +1,8 @@
 #!/bin/bash
 
-#JAVA_VERSION=21
-#MAIN_JAR="JDKMon-17.0.85.jar"
+
 APP_VERSION=${SPO_VERSION}
-APP_NAME=${SPO_ARTIFACT_ID}
+#APP_NAME=${SPO_ARTIFACT_ID}
 
 echo "java home: ${JAVA_HOME}"
 echo "App groupId: ${SPO_GROUP_ID}"
@@ -13,7 +12,7 @@ echo "main JAR file: ${MAIN_JAR}"
 echo "App name: ${APP_NAME}"
 echo "App classname: ${APP_MAIN_CLASS}"
 echo "App description: ${APP_DESC}"
-echo "App vendor: ${APP_VENDOR}}"
+echo "App vendor: ${APP_VENDOR}"
 
 # ------ SETUP DIRECTORIES AND FILES ------------------------------------------
 # Remove previously generated java runtime and installers. Copy all required
@@ -83,9 +82,9 @@ do
   --type $type \
   --dest build/installer \
   --input build/installer/input/libs \
-  --name ${APP_NAME} \
-  --main-class ${APP_MAIN_CLASS} \
-  --main-jar ${MAIN_JAR} \
+  --name "${APP_NAME}" \
+  --main-class "${APP_MAIN_CLASS}" \
+  --main-jar "${MAIN_JAR}" \
   --java-options -XX:+UseZGC \
   --java-options -Xms2g \
   --java-options '--enable-preview' \
@@ -95,9 +94,10 @@ do
   --icon src/main/resources/images/spo-256x256.png \
   --linux-shortcut \
   --linux-menu-group "${APP_VENDOR}" \
-  --app-version ${APP_VERSION} \
+  --app-version "${APP_VERSION}" \
   --vendor "${APP_VENDOR}" \
   --copyright "Copyright © 2023 ${APP_VENDOR}" \
+  --license-file LICENSE.txt \
   --description "$APP_DESC" \
 
 done
@@ -107,9 +107,13 @@ done
 arch_name="$(uname -m)"
 
 if [ "${arch_name}" = "aarch64" ]; then
-    sha256sum "build/installer/${APP_NAME}_${APP_VERSION}_arm64.deb" > "build/installer/${APP_NAME}_${APP_VERSION}-1_arm64.deb.sha256"
-    sha256sum "build/installer/${APP_NAME}-${APP_VERSION}-1.aarch64.rpm" > "build/installer/${APP_NAME}-${APP_VERSION}-1.aarch64.rpm.sha256"
+    mv "build/installer/${APP_NAME}_${APP_VERSION}_arm64.deb" "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_arm64.deb"
+    sha256sum "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_arm64.deb" > "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}-1_arm64.deb.sha256"
+    mv "build/installer/${APP_NAME}-${APP_VERSION}-1.aarch64.rpm" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm.sha256"
+    sha256sum "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.aarch64.rpm.sha256"
 else
-    sha256sum "build/installer/${APP_NAME}_${APP_VERSION}_amd64.deb" > "build/installer/${APP_NAME}_${APP_VERSION}_amd64.deb.sha256"
-    sha256sum "build/installer/${APP_NAME}-${APP_VERSION}-1.x86_64.rpm" > "build/installer/${APP_NAME}-${APP_VERSION}-1.x86_64.rpm.sha256"
+    sha256sum "build/installer/${APP_NAME}_${APP_VERSION}_amd64.deb" > "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb.sha256"
+    mv "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb" > "build/installer/${SPO_ARTIFACT_ID}_${APP_VERSION}_amd64.deb.sha256"
+    sha256sum "build/installer/${APP_NAME}-${APP_VERSION}-1.x86_64.rpm" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm.sha256"
+    mv "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm" > "build/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm.sha256"
 fi

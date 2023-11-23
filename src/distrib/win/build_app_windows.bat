@@ -1,7 +1,7 @@
 @ECHO OFF
 
 set APP_VERSION=%SPO_VERSION%
-set APP_NAME=%SPO_ARTIFACT_ID%
+rem set APP_NAME=%SPO_ARTIFACT_ID%
 
 echo "java home: %JAVA_HOME%"
 echo "App groupId: %SPO_GROUP_ID%"
@@ -78,9 +78,9 @@ for %%s in ("msi" "exe") do call "%JAVA_HOME%\bin\jpackage" ^
   --type %%s ^
   --dest build\installer ^
   --input build\installer\input\libs ^
-  --name %APP_NAME% ^
+  --name "%APP_NAME%" ^
   --main-class "%APP_MAIN_CLASS%" ^
-  --main-jar %MAIN_JAR% ^
+  --main-jar "%MAIN_JAR%"" ^
   --java-options -XX:+UseZGC ^
   --java-options -Xms2g ^
   --java-options '--enable-preview' ^
@@ -90,12 +90,14 @@ for %%s in ("msi" "exe") do call "%JAVA_HOME%\bin\jpackage" ^
   --win-per-user-install ^
   --win-menu ^
   --win-menu-group "%APP_VENDOR%" ^
-  --app-version %APP_VERSION% ^
+  --app-version "%APP_VERSION%" ^
   --vendor "%APP_VENDOR%" ^
   --copyright "Copyright © 2023 %APP_VENDOR%" ^
   --description "%APP_DESC%" ^
 
 
 rem ------ CHECKSUM FILE ------------------------------------------------------
-certutil -hashfile "build\installer\%APP_NAME%-%APP_VERSION%.msi" SHA256 > "build\installer\%APP_NAME%-%APP_VERSION%.msi.sha256"
-certutil -hashfile "build\installer\%APP_NAME%-%APP_VERSION%.exe" SHA256 > "build\installer\%APP_NAME%-%APP_VERSION%.exe.sha256"
+move "build\installer\%APP_NAME%-%APP_VERSION%.msi" "build\installer\%SPO_ARTIFACT_ID%-%APP_VERSION%.msi"
+move "build\installer\%APP_NAME%-%APP_VERSION%.exe" "build\installer\%SPO_ARTIFACT_ID%-%APP_VERSION%.exe"
+certutil -hashfile "build\installer\%SPO_ARTIFACT_ID%-%APP_VERSION%.msi" SHA256 > "build\installer\%SPO_ARTIFACT_ID%-%APP_VERSION%.msi.sha256"
+certutil -hashfile "build\installer\%SPO_ARTIFACT_ID%-%APP_VERSION%.exe" SHA256 > "build\installer\%SPO_ARTIFACT_ID%-%APP_VERSION%.exe.sha256"
