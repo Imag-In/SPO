@@ -37,11 +37,11 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         this.isExpandCell = isExpandCell;
         getStyleClass().add("image-grid-cell");
         loadingView = new ImageView(ImageUtils.LOADING);
-        loadingView.maxHeight(128);
-        loadingView.maxWidth(128);
+        loadingView.maxHeight(128 - 5);
+        loadingView.maxWidth(128 - 5);
         imageView = new ImageView();
-        imageView.fitHeightProperty().bind(this.heightProperty().subtract(3));
-        imageView.fitWidthProperty().bind(this.widthProperty().subtract(3));
+        imageView.fitHeightProperty().bind(this.heightProperty().subtract(5));
+        imageView.fitWidthProperty().bind(this.widthProperty().subtract(5));
         imageView.setPreserveRatio(true);
         imageView.setSmooth(true);
 //        root = Borders.wrap(this.imageView).lineBorder().innerPadding(5, 5, 5,5).color(Color.WHITE).build().build();

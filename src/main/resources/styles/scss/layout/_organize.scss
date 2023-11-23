@@ -12,7 +12,7 @@
       .image-grid-cell:selected {
         -fx-background-color: -color-base-6;
         -fx-border-style: solid;
-        -fx-border-width: 3 3 3 3; /* its make really one-pixel-border */
+        -fx-border-width: 0 0 0 0; /* its make really one-pixel-border */
         -fx-border-color: -color-base-0;
       }
     }

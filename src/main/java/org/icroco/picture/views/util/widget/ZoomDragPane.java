@@ -1,5 +1,6 @@
 package org.icroco.picture.views.util.widget;
 
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.Bounds;
@@ -107,8 +108,8 @@ public class ZoomDragPane extends BorderPane {
 
     private void rotate(short orientation) {
         ERotation[] rotates = ERotation.fromOrientation(orientation);
-        view.fitWidthProperty().bind(widthProperty());
-        view.fitHeightProperty().bind(heightProperty());
+        view.fitWidthProperty().bind(Bindings.min(widthProperty(), mediaFile.getDimension().width()));
+        view.fitHeightProperty().bind(Bindings.min(heightProperty(), mediaFile.getDimension().height()));
         for (ERotation r : rotates) {
             switch (r) {
                 case CW_90 -> {
