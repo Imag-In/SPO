@@ -48,7 +48,7 @@ public class NavigationView implements FxView<HBox> {
         root.getStyleClass().add(ViewConfiguration.V_NAVIGATION);
         root.getStyleClass().add("tabs");
         root.setAlignment(Pos.CENTER);
-        root.setPadding(new Insets(0, 0, 10, 0));
+        root.setPadding(new Insets(5, 0, 5, 0));
 
         organizeLbl.setText("Organize");
         importLbl.setDisable(false);
@@ -91,14 +91,16 @@ public class NavigationView implements FxView<HBox> {
         });
 
         selectedTab.set(organizeLbl);
+
         FontIcon settingsIcon = new FontIcon(Material2OutlinedMZ.SETTINGS);
-        settingsIcon.setIconSize(64);
-        settingsIcon.getStyleClass().add(Styles.LARGE);
+//        settingsIcon.setStyle("-fx-icon-size: 48px");
 //        settingsIcon.setIconSize(24);
+        settingsIcon.setId("settings");
 
         var settings = new Button(null, settingsIcon);
         settings.setTooltip(new Tooltip("Settings"));
         settings.setDisable(true);
+        settings.getStyleClass().add(Styles.LARGE);
         FxUtil.styleCircleButton(settings).setOnAction(this::openSettings);
 
         root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, repairLbl, peopleLbl, exportLbl, new Spacer(), settings);

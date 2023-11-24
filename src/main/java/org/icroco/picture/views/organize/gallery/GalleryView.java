@@ -148,7 +148,7 @@ public class GalleryView implements FxView<StackPane> {
         breadCrumbBar.setAutoNavigationEnabled(false);
         breadCrumbBar.setOnCrumbAction(bae -> {
             log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!");
-            if (Desktop.isDesktopSupported()) {
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE_FILE_DIR)) {
                 Unchecked.runnable(() -> Desktop.getDesktop().browseFileDirectory(bae.getSelectedCrumb().getValue().toFile())).run();
             }
         });

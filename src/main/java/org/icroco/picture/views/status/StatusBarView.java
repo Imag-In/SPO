@@ -4,30 +4,40 @@ import atlantafx.base.controls.Popover;
 import atlantafx.base.controls.Spacer;
 import atlantafx.base.theme.Styles;
 import jakarta.annotation.PostConstruct;
+import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleListProperty;
 import javafx.collections.ListChangeListener;
 import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.Tooltip;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.event.NewVersionEvent;
+import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.task.TaskView;
 import org.icroco.picture.views.util.FxView;
+import org.jooq.lambda.Unchecked;
+import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.material2.Material2OutlinedMZ;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
+import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URI;
 import java.time.temporal.ChronoUnit;
 
 
@@ -38,12 +48,16 @@ public class StatusBarView implements FxView<HBox> {
     private final TaskView      taskView;
     private final TaskScheduler scheduler;
 
-    private final HBox        root          = new HBox();
-    private final Tooltip     tooltip       = new Tooltip("");
-    private final Label       progressLabel = new Label();
-    private final ProgressBar progressBar   = new ProgressBar(0.5);
+    private final HBox        root             = new HBox();
+    private final Tooltip     tooltip          = new Tooltip("");
+    private final Label       progressLabel    = new Label();
+    //    private final Label       versionAvailable = new Label();
+    private final Hyperlink   versionAvailable = new Hyperlink();
+    private final ProgressBar progressBar      = new ProgressBar(0.5);
     private       ProgressBar memoryStatus;
     private       Popover     popOver;
+
+    private URI downloadUrl;
 
     @PostConstruct
     protected void initializedOnce() {
@@ -71,26 +85,42 @@ public class StatusBarView implements FxView<HBox> {
                 log.info("Memory cleaned");
             }
         });
-
+        versionAvailable.setManaged(false);
         tooltip.setShowDelay(Duration.seconds(4));
 
+        var icon = new FontIcon(Material2OutlinedMZ.NEW_RELEASES);
+        icon.getStyleClass().add(Styles.ACCENT);
+        versionAvailable.setGraphic(icon);
+        versionAvailable.setAlignment(Pos.CENTER_LEFT);
+        versionAvailable.getStyleClass().add(Styles.ACCENT);
+        ContextMenu contextMenu = new ContextMenu();
+        MenuItem    openRelease = new MenuItem("Release page");
+        openRelease.setOnAction(this::goToReleaseUrl);
+
+        MenuItem download = new MenuItem("Download");
+        download.setOnAction(this::openRelease);
+        download.setDisable(true);
+
+        contextMenu.getItems().addAll(openRelease, download);
+        versionAvailable.setOnAction(event -> contextMenu.show(versionAvailable, Side.TOP, 0, 0));
+
         memoryStatus.setTooltip(tooltip);
-        root.getChildren().addAll(memory, memoryStatus, new Spacer(), progressLabel, progressBar);
+        root.getChildren().addAll(memory, memoryStatus, new Spacer(), progressLabel, progressBar, versionAvailable);
         scheduler.scheduleAtFixedRate(this::updateMemory, java.time.Duration.of(5, ChronoUnit.SECONDS));
     }
 
     private void updateMemory() {
-        Runtime      jvmRuntime             = Runtime.getRuntime();
-        long         totalMemory            = jvmRuntime.totalMemory();
-        long         maxMemory              = jvmRuntime.maxMemory();
-        long         usedMemory             = totalMemory - jvmRuntime.freeMemory();
-        long         totalMemoryInMebibytes = totalMemory / (1024 * 1024);
-        long         maxMemoryInMebibytes   = maxMemory / (1024 * 1024);
-        long         usedMemoryInMebibytes  = usedMemory / (1024 * 1024);
+        Runtime jvmRuntime             = Runtime.getRuntime();
+        long    totalMemory            = jvmRuntime.totalMemory();
+        long    maxMemory              = jvmRuntime.maxMemory();
+        long    usedMemory             = totalMemory - jvmRuntime.freeMemory();
+        long    totalMemoryInMebibytes = totalMemory / (1024 * 1024);
+        long    maxMemoryInMebibytes   = maxMemory / (1024 * 1024);
+        long    usedMemoryInMebibytes  = usedMemory / (1024 * 1024);
         double
                 usedPct =
                 new BigDecimal((double) usedMemory / (double) totalMemory).setScale(2, RoundingMode.HALF_UP).doubleValue();
-        final String textToShow             = usedMemoryInMebibytes + "MiB of " + totalMemoryInMebibytes + "MiB";
+        final String textToShow = usedMemoryInMebibytes + "MiB of " + totalMemoryInMebibytes + "MiB";
         final String toolTipToShow = "Heap size: " + usedMemoryInMebibytes + "MiB of total: " + totalMemoryInMebibytes + "MiB max: "
                                      + maxMemoryInMebibytes + "MiB";
         log.debug("{}, percentage {}", textToShow, usedPct);
@@ -168,5 +198,25 @@ public class StatusBarView implements FxView<HBox> {
     @Override
     public HBox getRootContent() {
         return root;
+    }
+
+    @FxEventListener
+    public void newVersionAvailable(NewVersionEvent event) {
+        versionAvailable.setText("V" + event.getVersion() + " available");
+        versionAvailable.setManaged(true);
+        downloadUrl = event.getUrl();
+        FadeTransition fadeTransition = new FadeTransition(Duration.seconds(1), versionAvailable.getGraphic());
+        fadeTransition.setFromValue(1.0);
+        fadeTransition.setToValue(0.0);
+        fadeTransition.setCycleCount(100);
+        fadeTransition.play();
+    }
+
+    final void goToReleaseUrl(ActionEvent value) {
+        Unchecked.runnable(() -> Desktop.getDesktop().browse(downloadUrl)).run();
+    }
+
+    final void openRelease(ActionEvent value) {
+        // TODO
     }
 }
