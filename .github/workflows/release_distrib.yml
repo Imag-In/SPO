@@ -71,7 +71,7 @@ jobs:
             target/*.jar
           retention-days: 1
 
-      - name: Print build.env
+      - name: Save build.env
         run: cat target/build.env
 
       - name: Publish release

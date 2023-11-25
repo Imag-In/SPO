@@ -75,7 +75,21 @@ $JAVA_HOME/bin/jlink \
 # the end we will find all packages inside the build/installer directory.
 
 # Somehow before signing there needs to be another step: xattr -cr build/installer/JDKMon.app
+uname -p
 arch_name="$(uname -m)"
+echo "Arch: ${arch_name}"
+
+if [ "${arch_name}" = "x86_64" ]; then
+    if [ "$(sysctl -in sysctl.proc_translated)" = "1" ]; then
+        echo "Running on Rosetta 2"
+    else
+        echo "Running on native Intel"
+    fi
+elif [ "${arch_name}" = "arm64" ]; then
+    echo "Running on ARM"
+else
+    echo "Unknown architecture: ${arch_name}"
+fi
 
 #for type in "app-image" "dmg" "pkg"
 for type in "dmg" "pkg"

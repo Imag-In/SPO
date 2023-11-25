@@ -157,6 +157,7 @@ public class ImagInApp extends Application {
         applicationContext.close();
         Thread.sleep(100);
         Platform.exit();
+        System.exit(0);
     }
 
     private void showError(Thread thread, Throwable throwable) {
