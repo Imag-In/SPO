@@ -97,7 +97,7 @@ jobs:
           add: 'pom.xml'
   #          tag: "v${{ steps.get-version.outputs.SPO_VERSION }} --force"
 
-  build-osx-i:
+  build-osx-intel:
     runs-on: macos-latest
     permissions:
       contents: write
@@ -136,8 +136,8 @@ jobs:
           allowUpdates: "true"
           tag: v${{ env.SPO_VERSION }}
 
-  build-osx-m:
-    runs-on: macos-latest
+  build-osx-arm:
+    runs-on: macos-latest-xlarge
     permissions:
       contents: write
     needs: build-jar
@@ -149,6 +149,7 @@ jobs:
           distribution: 'zulu' # See 'Supported distributions' for available options
           java-version: '21'
           java-package: 'jdk+fx'
+      #          architecture: 'aarch64'
 
       - name: Download jar files
         uses: actions/download-artifact@v3
