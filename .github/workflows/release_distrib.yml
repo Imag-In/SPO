@@ -137,7 +137,7 @@ jobs:
           tag: v${{ env.SPO_VERSION }}
 
   build-osx-arm:
-    runs-on: macos-latest-xlarge
+    runs-on: macos-latest-xl
     permissions:
       contents: write
     needs: build-jar
