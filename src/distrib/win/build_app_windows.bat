@@ -93,6 +93,7 @@ for %%s in ("msi" "exe") do call "%JAVA_HOME%\bin\jpackage" ^
   --app-version "%APP_VERSION%" ^
   --vendor "%APP_VENDOR%" ^
   --copyright "Copyright © 2023 %APP_VENDOR%" ^
+  --license-file LICENSE.txt \
   --description "%APP_DESC%" ^
 
 

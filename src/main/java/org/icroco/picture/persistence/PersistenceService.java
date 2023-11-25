@@ -72,13 +72,13 @@ public class PersistenceService {
         try {
             wLock.lock();
             // Make sure only one thread is cleaning
-            log.info("Database cleaning - starting");
+            log.debug("Database cleaning - starting");
             List<Long> orphelans = thumbRepo.findOrphelans();
             log.warn("Found '{}' thumbnail(s) orphelan(s), 20th first: {}",
                      orphelans.size(),
                      orphelans.stream().limit(20).map(Object::toString).collect(Collectors.joining(",")));
             thumbRepo.deleteAllById(orphelans);
-            log.info("Database cleaning - end.");
+            log.debug("Database cleaning - end.");
         } finally {
             wLock.unlock();
         }

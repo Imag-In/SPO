@@ -100,7 +100,7 @@ public class GalleryView implements FxView<StackPane> {
         root.setMinSize(350, 250);
         root.setEventDispatcher(new DoubleClickEventDispatcher(root.getEventDispatcher()));
 
-        log.info("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
+        log.debug("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
                  gridView.getCellWidth(),
                  gridView.getCellHeight(),
                  gridView.getHorizontalCellSpacing(),
@@ -111,7 +111,7 @@ public class GalleryView implements FxView<StackPane> {
 //        gridCellHeight = Optional.ofNullable(pref.getUserPreference().getGrid().getCellHeight()).orElse((int)gridView.getCellHeight());
 //        gridCellWidth = 128; //gridView.getCellWidth() * 2;
 //        gridCellHeight = 128; //gridView.getCellHeight() * 2;
-        gridView.cellWidthProperty().addListener((observable, oldValue, newValue) -> log.info("Grid Cell Width: {}", newValue));
+//        gridView.cellWidthProperty().addListener((observable, oldValue, newValue) -> log.info("Grid Cell Width: {}", newValue));
 
         gridView.setCellWidth(128);
         gridView.setCellHeight(128);

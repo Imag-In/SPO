@@ -12,6 +12,8 @@ import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import net.codecrete.usb.USBDevice;
 import org.controlsfx.dialog.ExceptionDialog;
+import org.icroco.picture.persistence.MediaFileRepository;
+import org.icroco.picture.persistence.model.MediaFileEntity;
 import org.icroco.picture.splashscreen.LoaderProgressNotification;
 import org.icroco.picture.splashscreen.SpoPreLoader;
 import org.icroco.picture.util.Error;
@@ -27,17 +29,36 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.Banner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.awt.*;
 
-
-@SpringBootApplication()
+@SpringBootApplication
+//@Configuration
+//@ComponentScan()
+//@Import({ PropertyPlaceholderAutoConfiguration.class,
+//          TaskExecutionAutoConfiguration.class,
+//          TransactionAutoConfiguration.class,
+//          DataSourceAutoConfiguration.class,
+//          DataSourceTransactionManagerAutoConfiguration.class,
+//          JdbcClientAutoConfiguration.class,
+//          JdbcTemplateAutoConfiguration.class,
+//          JpaBaseConfiguration.class,
+//          JacksonAutoConfiguration.class,
+//          CacheAutoConfiguration.class,
+//          HibernateJpaAutoConfiguration.class,
+//          JpaRepositoriesAutoConfiguration.class,
+//          ProjectInfoAutoConfiguration.class,
+//          RestClientAutoConfiguration.class})
+@EnableJpaRepositories(basePackageClasses = MediaFileRepository.class)
+@EntityScan(basePackageClasses = MediaFileEntity.class)
 @EnableAsync(proxyTargetClass = true)
 //@ImportAutoConfiguration(classes = ViewAutoConfiguration.class)
 @Slf4j
@@ -93,7 +114,7 @@ public class ImagInApp extends Application {
                 genericApplicationContext.registerBean(HostServices.class, this::getHostServices);
                 genericApplicationContext.registerBean(ProgressBeanPostProcessor.class, ProgressBeanPostProcessor::new);
             };
-            applicationContext = new SpringApplicationBuilder().sources(getClass())
+            applicationContext = new SpringApplicationBuilder().sources(ImagInApp.class)
                                                                .bannerMode(Banner.Mode.OFF)
                                                                .headless(false)
                                                                .initializers(initializer)
@@ -135,7 +156,7 @@ public class ImagInApp extends Application {
     public final void stop() throws Exception {
         applicationContext.close();
         Thread.sleep(100);
-        System.exit(0);
+        Platform.exit();
     }
 
     private void showError(Thread thread, Throwable throwable) {

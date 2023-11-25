@@ -45,8 +45,8 @@ public class MainView implements FxView<StackPane> {
 
     @PostConstruct
     protected void initializedOnce() {
-        log.info("Primary screen: {}", Screen.getPrimary());
-        Screen.getScreens().forEach(screen -> log.info("Screen: {}", screen));
+        log.debug("Primary screen: {}", Screen.getPrimary());
+        Screen.getScreens().forEach(screen -> log.debug("Screen: {}", screen));
         root.setId(ViewConfiguration.V_MAIN);
         root.getStyleClass().add(ViewConfiguration.V_MAIN);
         var borderPane = new BorderPane();
