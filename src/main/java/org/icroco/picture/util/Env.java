@@ -17,8 +17,8 @@ public class Env {
 
     @PostConstruct
     void init() {
-        log.info("Default Profile: {}", String.join(", ", environment.getDefaultProfiles()));
-        log.info("Profiles: {}", String.join(", ", environment.getActiveProfiles()));
+//        log.info("Default Profile: {}", String.join(", ", environment.getDefaultProfiles()));
+        log.atDebug().log(() -> "Profiles: %s".formatted(String.join(", ", environment.getActiveProfiles())));
     }
 
     public boolean isDev() {

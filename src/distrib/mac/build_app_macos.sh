@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-APP_VERSION=${SPO_VERSION}
+APP_VERSION="${SPO_VERSION}"
 #APP_NAME=${SPO_ARTIFACT_ID}
 
 echo "java home: ${JAVA_HOME}"
@@ -24,7 +24,9 @@ rm -rfd build/installer/
 mkdir -p build/installer/input/libs/
 
 cp dependencies/BOOT-INF/lib/* build/installer/input/libs/
-cp ${MAIN_JAR} build/installer/input/libs/
+cp "${MAIN_JAR}" build/installer/input/libs/
+
+"${JAVA_HOME}"/bin/java --version
 
 # ------ REQUIRED MODULES -----------------------------------------------------
 # Use jlink to detect all modules that are required to run the application.
@@ -32,12 +34,12 @@ cp ${MAIN_JAR} build/installer/input/libs/
 # application.
 
 echo "detecting required modules"
-detected_modules=`$JAVA_HOME/bin/jdeps \
-  --multi-release ${JAVA_VERSION} \
+detected_modules=$("$JAVA_HOME"/bin/jdeps \
+  --multi-release "${JAVA_VERSION}" \
   --ignore-missing-deps \
   --print-module-deps \
   --class-path "build/installer/input/libs/*" \
-  ${MAIN_JAR}`
+  "${MAIN_JAR}")
 echo "detected modules: ${detected_modules}"
 
 
@@ -61,7 +63,7 @@ echo "manual modules: ${manual_modules}"
 # works with dependencies that are not fully modularized, yet.
 
 echo "creating java runtime image"
-$JAVA_HOME/bin/jlink \
+"${JAVA_HOME}"/bin/jlink \
   --no-header-files \
   --no-man-pages  \
   --compress=zip-6  \
@@ -75,14 +77,28 @@ $JAVA_HOME/bin/jlink \
 # the end we will find all packages inside the build/installer directory.
 
 # Somehow before signing there needs to be another step: xattr -cr build/installer/JDKMon.app
+uname -p
 arch_name="$(uname -m)"
+echo "Arch: ${arch_name}"
+
+if [ "${arch_name}" = "x86_64" ]; then
+    if [ "$(sysctl -in sysctl.proc_translated)" = "1" ]; then
+        echo "Running on Rosetta 2"
+    else
+        echo "Running on native Intel"
+    fi
+elif [ "${arch_name}" = "arm64" ]; then
+    echo "Running on ARM"
+else
+    echo "Unknown architecture: ${arch_name}"
+fi
 
 #for type in "app-image" "dmg" "pkg"
 for type in "dmg" "pkg"
 do
   echo "Creating installer of type ... $type"
 
-  $JAVA_HOME/bin/jpackage \
+  ${JAVA_HOME}/bin/jpackage \
   --type $type \
   --dest build/installer \
   --input build/installer/input/libs \
@@ -92,6 +108,9 @@ do
   --java-options -XX:+UseZGC \
   --java-options -Xms2g \
   --java-options '--enable-preview' \
+  --java-options -Xverify:none \
+  --java-options -Dspring.profiles.active=default \
+  --java-options -Dspring.config.location=classpath:/application.yml \
   --runtime-image build/java-runtime \
   --icon src/distrib/mac/spo.icns \
   --app-version "${APP_VERSION}" \
