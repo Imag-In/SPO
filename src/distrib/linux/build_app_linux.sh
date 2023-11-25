@@ -91,6 +91,9 @@ do
   --java-options '--enable-preview' \
   --java-options '-Djdk.gtk.verbose=true' \
   --java-options '-Djdk.gtk.version=3' \
+  --java-options -Xverify:none \
+  --java-options -Dspring.profiles.active=default \
+  --java-options -Dspring.config.location=classpath:/application.yml \
   --runtime-image ${BUILD_DIR}/java-runtime \
   --icon src/main/resources/images/spo-256x256.png \
   --linux-shortcut \

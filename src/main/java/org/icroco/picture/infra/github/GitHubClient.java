@@ -50,7 +50,7 @@ public class GitHubClient {
                      latestVersion);
             Optional.ofNullable(Semver.parse(latestVersion.tagName()))
                     .or(() -> Optional.ofNullable(Semver.parse(latestVersion.name())))
-                    .filter(v -> v.isLowerThan(currentVersion))
+                    .filter(v -> v.isGreaterThan(currentVersion))
                     .ifPresent(v -> taskService.sendEvent(NewVersionEvent.builder()
                                                                          .version(v.getVersion())
                                                                          .url(releaseHome)
