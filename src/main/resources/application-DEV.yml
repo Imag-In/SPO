@@ -2,3 +2,5 @@ spring:
   main:
     web-application-type: servlet
 
+  h2:
+    console.enabled: true

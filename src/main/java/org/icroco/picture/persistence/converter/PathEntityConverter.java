@@ -1,4 +1,4 @@
-package org.icroco.picture.persistence.model;
+package org.icroco.picture.persistence.converter;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;

@@ -13,9 +13,9 @@ import lombok.*;
 public class DimensionEntity {
     static DimensionEntity EMPTY_DIM = new DimensionEntity(0, 0);
 
-    @Column(name = "width")
+    @Column(name = "WIDTH")
     private int width;
 
-    @Column(name = "height")
+    @Column(name = "HEIGHT")
     private int height;
 }

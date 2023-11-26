@@ -12,14 +12,15 @@ import java.nio.file.Path;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "media_collection_entry")
+@Table(name = "MEDIA_COLLECTION_ENTRY")
 public class MediaCollectionEntryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ID")
     Long id;
 
-    @Column(length = 1024, nullable = false)
+    @Column(name = "PATH", length = 1024, nullable = false)
     @Type(PathType.class)
     private Path name;
 }

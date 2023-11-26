@@ -14,12 +14,12 @@ spring:
   jpa:
     #    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     open-in-view: false
     show-sql: false
 
   h2:
-    console.enabled: true
+    console.enabled: false
     console:
       path: /h2-console
       settings.trace: false

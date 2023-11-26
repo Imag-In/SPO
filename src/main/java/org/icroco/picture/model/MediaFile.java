@@ -30,7 +30,8 @@ public class MediaFile implements IMediaFile {
     private Short         orientation;
     private Camera        camera;
     private Integer       collectionId;
-
+    @Builder.Default
+    private EKeepOrThrow  keepOrThrow = EKeepOrThrow.UNKNOW;
     @NonNull
     @Builder.Default
     private EThumbnailType thumbnailType = EThumbnailType.ABSENT;

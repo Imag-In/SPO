@@ -11,8 +11,8 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class CameraEntity {
-    @Column(name = "make")
+    @Column(name = "MAKE")
     private String make;
-    @Column(name = "model")
+    @Column(name = "MODEL")
     private String model;
 }

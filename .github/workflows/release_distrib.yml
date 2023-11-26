@@ -136,38 +136,38 @@ jobs:
           allowUpdates: "true"
           tag: v${{ env.SPO_VERSION }}
 
-  build-osx-arm:
-    runs-on: macos-latest-xl
-    permissions:
-      contents: write
-    needs: build-jar
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu' # See 'Supported distributions' for available options
-          java-version: '21'
-          java-package: 'jdk+fx'
-      #          architecture: 'aarch64'
-
-      - name: Download jar files
-        uses: actions/download-artifact@v3
-        with:
-          name: release-jar
-
-      - uses: cardinalby/export-env-action@v2
-        with:
-          envFile: 'build.env'
-
-      - name: Extract dependencies
-        run: java -Djarmode=layertools -jar spo-full.jar extract
-
-      - name: Create Distribution
-        run: |
-          ./src/distrib/mac/build_app_macos.sh
-          ls -la build/installer
-
+  #  build-osx-arm:
+  #    runs-on: macos-latest-xl
+  #    permissions:
+  #      contents: write
+  #    needs: build-jar
+  #    steps:
+  #      - uses: actions/checkout@v4
+  #      - name: Set up JDK 21
+  #        uses: actions/setup-java@v3
+  #        with:
+  #          distribution: 'zulu' # See 'Supported distributions' for available options
+  #          java-version: '21'
+  #          java-package: 'jdk+fx'
+  #      #          architecture: 'aarch64'
+  #
+  #      - name: Download jar files
+  #        uses: actions/download-artifact@v3
+  #        with:
+  #          name: release-jar
+  #
+  #      - uses: cardinalby/export-env-action@v2
+  #        with:
+  #          envFile: 'build.env'
+  #
+  #      - name: Extract dependencies
+  #        run: java -Djarmode=layertools -jar spo-full.jar extract
+  #
+  #      - name: Create Distribution
+  #        run: |
+  #          ./src/distrib/mac/build_app_macos.sh
+  #          ls -la build/installer
+  #
   #      - name: Publish release
   #        uses: ncipollo/release-action@v1
   #        with:

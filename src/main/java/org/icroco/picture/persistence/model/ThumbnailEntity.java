@@ -17,20 +17,20 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "thumbnail", uniqueConstraints = {
-        @UniqueConstraint(name = "UK_THUMB_PATH", columnNames = { "full_path" }) })
+@Table(name = "THUMBNAIL", uniqueConstraints = {
+        @UniqueConstraint(name = "UK_THUMB_PATH", columnNames = { "FULL_PATH" }) })
 @Slf4j
 public class ThumbnailEntity {
     @Id
     Long mfId;
 
     @NotNull
-    @Column(length = 1024, name = "full_path")
+    @Column(length = 1024, name = "FULL_PATH")
     @Type(PathType.class)
     private Path fullPath;
 
     @Lob
-    @Column(name = "image", columnDefinition = "BLOB")
+    @Column(name = "IMAGE", columnDefinition = "BLOB")
     private byte[] image;
 
     @NonNull
@@ -39,7 +39,7 @@ public class ThumbnailEntity {
     private EThumbnailType origin = EThumbnailType.ABSENT;
 
     @NonNull
-    @Column(name = "last_update", columnDefinition = "DATE")
+    @Column(name = "LAST_UPDATE", columnDefinition = "DATE")
     private LocalDateTime lastUpdate;
 
 }

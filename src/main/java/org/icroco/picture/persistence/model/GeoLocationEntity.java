@@ -12,8 +12,8 @@ import lombok.*;
 @Builder
 @ToString
 public class GeoLocationEntity {
-    @Column(name = "latitude", scale = 10)
+    @Column(name = "LATITUDE")
     private double latitude;
-    @Column(name = "longitude", scale = 10)
+    @Column(name = "LONGITUDE")
     private double longitude;
 }

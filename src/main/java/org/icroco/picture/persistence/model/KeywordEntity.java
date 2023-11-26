@@ -11,14 +11,14 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "keyword")
+@Table(name = "KEYWORD")
 public class KeywordEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Integer id;
 
-    @Column(name = "name", length = 64, unique = true)
+    @Column(name = "NAME", length = 64, unique = true)
     private String name;
 
     //    @ManyToMany(fetch = FetchType.LAZY)

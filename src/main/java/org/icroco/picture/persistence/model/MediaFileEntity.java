@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.Type;
+import org.icroco.picture.model.EKeepOrThrow;
 import org.icroco.picture.model.EThumbnailType;
+import org.icroco.picture.persistence.converter.KeepOrThrowConverter;
+import org.icroco.picture.persistence.converter.ThumbnailTypeConverter;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -17,7 +20,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "media")
+@Table(name = "MEDIA")
 public class MediaFileEntity {
 
     @Id
@@ -25,29 +28,28 @@ public class MediaFileEntity {
     Long id;
 
     @NotNull
-    @Column(length = 1024, unique = true)
+    @Column(name = "FULL_PATH", length = 1024, unique = true)
     @Type(PathType.class)
-//    @Convert(converter = DbPathConverter.class)
     private Path fullPath;
 
     @NotNull
-    @Column(length = 128)
+    @Column(name = "FILE_NAME", length = 128)
     private String fileName;
 
     @NotNull
-    @Column()
+    @Column(name = "ORIGINAL_DATE")
     private LocalDateTime originalDate;
 
-    @Column(name = "hash")
+    @Column(name = "HASH")
     private String hash;
 
-    @Column(name = "hash_creation", columnDefinition = "DATE")
+    @Column(name = "HASH_CREATION", columnDefinition = "DATE")
     private LocalDate hashDate;
 
-    @Column(name = "last_access", columnDefinition = "DATE")
+    @Column(name = "LAST_ACCESS", columnDefinition = "DATE")
     private LocalDate lastAccess;
 
-    @Column(name = "collection_id")
+    @Column(name = "COLLECTION_ID")
     private Integer collectionId;
     //    @ManyToOne(fetch = FetchType.LAZY)
 
@@ -55,13 +57,14 @@ public class MediaFileEntity {
 //    @JoinTable(name = "MF_TAGS", joinColumns = @JoinColumn(name = "tag_id"))
 //    @JoinColumn(name = "tag_id", referencedColumnName = "id")
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "mf_keywords",
-               joinColumns = @JoinColumn(name = "mf_id"),
-               inverseJoinColumns = @JoinColumn(name = "kw_id"))
+    @JoinTable(name = "MF_KEYWORDS",
+               joinColumns = @JoinColumn(name = "MF_ID"),
+               inverseJoinColumns = @JoinColumn(name = "KW_ID"))
     private Set<KeywordEntity> keywords;
 
     @NonNull
-    @Enumerated(EnumType.STRING)
+    @Column(name = "THUMBNAIL_TYPE")
+    @Convert(converter = ThumbnailTypeConverter.class)
     @Builder.Default
     private EThumbnailType thumbnailType = EThumbnailType.ABSENT;
 
@@ -72,9 +75,14 @@ public class MediaFileEntity {
     private GeoLocationEntity geoLocation;
 
     @Builder.Default
-    @Column(name = "orientation")
+    @Column(name = "ORIENTATION", columnDefinition = "TINYINT")
     private Short orientation = 0;
 
     @NotNull
     private CameraEntity camera;
+
+    @Builder.Default
+    @Column(name = "KEEP_OR_THROW", columnDefinition = "TINYINT")
+    @Convert(converter = KeepOrThrowConverter.class)
+    private EKeepOrThrow keepOrThrow = EKeepOrThrow.UNKNOW;
 }
