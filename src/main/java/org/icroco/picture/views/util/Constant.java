@@ -11,6 +11,7 @@ public class Constant {
 
     public static final int     NB_CORE       = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
     public              Pattern SUPPORTED_EXT = Pattern.compile(".*\\.(png|jpg|jpeg)$", Pattern.CASE_INSENSITIVE);
+//    public              Pattern SUPPORTED_EXT = Pattern.compile(".*\\.(png|jpg|jpeg|tiff|tif)$", Pattern.CASE_INSENSITIVE);
 
     private static final double HALF          = 0.5d;
     /**

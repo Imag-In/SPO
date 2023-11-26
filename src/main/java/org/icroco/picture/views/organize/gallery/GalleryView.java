@@ -474,7 +474,6 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void escapePressed(KeyEvent keyEvent) {
-        log.info("Escape: {}", dblCickState);
         if (dblCickState == EGalleryClickState.ZOOM) {
             displayNext(photo.getMediaFile());
         } else if (dblCickState.isImage()) {
