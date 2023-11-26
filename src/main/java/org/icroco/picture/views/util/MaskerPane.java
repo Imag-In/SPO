@@ -51,11 +51,11 @@ public class MaskerPane<T extends Node> {
 
     public void stop() {
         ring.progressProperty().unbind();
-        ring.setVisible(false);
+        progressPane.setVisible(false);
 //        ring.setProgress(1);
         var t = Animations.fadeIn(content, Duration.millis(1000));
         t.playFromStart();
-        t.setOnFinished(event -> ring.setProgress(0));
+        t.setOnFinished(_ -> ring.setProgress(0));
     }
 
     private Pane createMasker() {

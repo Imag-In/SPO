@@ -18,6 +18,7 @@ import org.icroco.picture.event.ImportDirectoryEvent;
 import org.icroco.picture.event.ShowOrganizeEvent;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
+import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.widget.FxUtil;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -41,9 +42,13 @@ public class NavigationView implements FxView<HBox> {
     private final Label exportLbl   = new Label();
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
 
+    private final UserPreferenceService preferenceService;
+
     public NavigationView(@Qualifier(ViewConfiguration.CURRENT_VIEW)
-                          SimpleStringProperty currentView) {
+                          SimpleStringProperty currentView,
+                          UserPreferenceService preferenceService) {
         this.currentView = currentView;
+        this.preferenceService = preferenceService;
         root.setId(ViewConfiguration.V_NAVIGATION);
         root.getStyleClass().add(ViewConfiguration.V_NAVIGATION);
         root.getStyleClass().add("tabs");
@@ -93,15 +98,14 @@ public class NavigationView implements FxView<HBox> {
         selectedTab.set(organizeLbl);
 
         FontIcon settingsIcon = new FontIcon(Material2OutlinedMZ.SETTINGS);
-//        settingsIcon.setStyle("-fx-icon-size: 48px");
-//        settingsIcon.setIconSize(24);
         settingsIcon.setId("settings");
 
         var settings = new Button(null, settingsIcon);
         settings.setTooltip(new Tooltip("Settings"));
-        settings.setDisable(true);
+        settings.setDisable(false);
         settings.getStyleClass().add(Styles.LARGE);
         FxUtil.styleCircleButton(settings).setOnAction(this::openSettings);
+//        settings.setOnMouseClicked(_ -> preferenceService.show());
 
         root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, repairLbl, peopleLbl, exportLbl, new Spacer(), settings);
 

@@ -2,7 +2,7 @@
 
 package org.icroco.picture.views.theme;
 
-import atlantafx.base.theme.*;
+import atlantafx.base.theme.Theme;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -15,7 +15,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
-import lombok.RequiredArgsConstructor;
+import lombok.Getter;
+import org.icroco.picture.util.Env;
 import org.icroco.picture.util.Resources;
 import org.icroco.picture.views.util.JColor;
 import org.springframework.stereotype.Component;
@@ -28,19 +29,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.icroco.picture.util.Resources.getResource;
 
 @Component
-@RequiredArgsConstructor
 public final class ThemeManager {
-
     static final String                      DUMMY_STYLESHEET = getResource("/styles/empty.css").toString();
-    static final String[]                    APP_STYLESHEETS  = new String[]{
+    static final String[]                    APP_STYLESHEETS  = new String[] {
             Resources.resolve("/styles/index.css")
     };
-    static final Set<Class<? extends Theme>> PROJECT_THEMES   = Set.of(
-            PrimerLight.class, PrimerDark.class,
-            NordLight.class, NordDark.class,
-            CupertinoLight.class, CupertinoDark.class,
-            Dracula.class
-    );
 
     private static final PseudoClass DARK        = PseudoClass.getPseudoClass("dark");
     private static final PseudoClass USER_CUSTOM = PseudoClass.getPseudoClass("user-custom");
@@ -56,22 +49,24 @@ public final class ThemeManager {
     private final Map<String, String> customCSSDeclarations = new LinkedHashMap<>(); // -fx-property | value;
     private final Map<String, String> customCSSRules        = new LinkedHashMap<>(); // .foo | -fx-property: value;
 
-    private final ThemeRepository repository;
 
-    private Scene scene;
+    @Getter
+    private final ThemeRepository repository;
+    @Getter
+    private       Scene           scene;
 
     private SamplerTheme currentTheme = null;
+    @Getter
     private String       fontFamily   = DEFAULT_FONT_FAMILY_NAME;
+    @Getter
     private int          fontSize     = DEFAULT_FONT_SIZE;
+    @Getter
     private int          zoom         = DEFAULT_ZOOM;
+    @Getter
     private AccentColor  accentColor  = DEFAULT_ACCENT_COLOR;
 
-    public ThemeRepository getRepository() {
-        return repository;
-    }
-
-    public Scene getScene() {
-        return scene;
+    public ThemeManager(Env env) {
+        this.repository = new ThemeRepository(env);
     }
 
     // MUST BE SET ON STARTUP
@@ -85,7 +80,7 @@ public final class ThemeManager {
     }
 
     public SamplerTheme getDefaultTheme() {
-        return getRepository().getAll().get(0);
+        return getRepository().getDefault();
     }
 
     /**
@@ -110,10 +105,6 @@ public final class ThemeManager {
 //        EVENT_BUS.publish(new ThemeEvent(EventType.THEME_CHANGE));
     }
 
-    public String getFontFamily() {
-        return fontFamily;
-    }
-
     public void setFontFamily(String fontFamily) {
         Objects.requireNonNull(fontFamily);
         setCustomDeclaration("-fx-font-family", "\"" + fontFamily + "\"");
@@ -126,10 +117,6 @@ public final class ThemeManager {
 
     public boolean isDefaultFontFamily() {
         return Objects.equals(DEFAULT_FONT_FAMILY_NAME, getFontFamily());
-    }
-
-    public int getFontSize() {
-        return fontSize;
     }
 
     public void setFontSize(int size) {
@@ -160,10 +147,6 @@ public final class ThemeManager {
         return DEFAULT_FONT_SIZE == fontSize;
     }
 
-    public int getZoom() {
-        return zoom;
-    }
-
     public void setZoom(int zoom) {
         if (!SUPPORTED_ZOOM.contains(zoom)) {
             throw new IllegalArgumentException(
@@ -173,10 +156,6 @@ public final class ThemeManager {
 
         setFontSize((int) Math.ceil(zoom != 100 ? (DEFAULT_FONT_SIZE * zoom) / 100.0f : DEFAULT_FONT_SIZE));
         this.zoom = zoom;
-    }
-
-    public AccentColor getAccentColor() {
-        return accentColor;
     }
 
     public void setAccentColor(AccentColor color) {

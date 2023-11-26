@@ -5,7 +5,6 @@ package org.icroco.picture.views.theme;
 import atlantafx.base.theme.*;
 import org.icroco.picture.util.Env;
 import org.icroco.picture.util.Resources;
-import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -18,29 +17,30 @@ import java.util.stream.Collectors;
 
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 
-@Component
 public final class ThemeRepository {
 
     public final         Env                      env;
     private static final Comparator<SamplerTheme> THEME_COMPARATOR = Comparator.comparing(SamplerTheme::getName);
+
+    public static List<Theme> THEMES = Arrays.asList(new PrimerLight(),
+                                                     new PrimerDark(),
+                                                     new NordLight(),
+                                                     new NordDark(),
+                                                     new CupertinoLight(),
+                                                     new CupertinoDark(),
+                                                     new Dracula()
+    );
 
     private final List<SamplerTheme> internalThemes;
 
     private final List<SamplerTheme> externalThemes   = new ArrayList<>();
     private final Preferences        themePreferences = Resources.getPreferences().node("theme");
 
-    public ThemeRepository(Env env) {
+    ThemeRepository(Env env) {
         this.env = env;
-        internalThemes = Arrays.asList(
-                new SamplerTheme(new PrimerLight(), env),
-                new SamplerTheme(new PrimerDark(), env),
-                new SamplerTheme(new NordLight(), env),
-                new SamplerTheme(new NordDark(), env),
-                new SamplerTheme(new CupertinoLight(), env),
-                new SamplerTheme(new CupertinoDark(), env),
-                new SamplerTheme(new Dracula(), env)
-        );
+        internalThemes = THEMES.stream().map(t -> new SamplerTheme(t, env)).toList();
     }
+
 
 
 //    public ThemeRepository() {
@@ -56,6 +56,10 @@ public final class ThemeRepository {
         var list = new ArrayList<>(internalThemes);
         list.addAll(externalThemes);
         return list;
+    }
+
+    public SamplerTheme getDefault() {
+        return getAll().get(5);
     }
 
     public SamplerTheme addFromFile(File file) {

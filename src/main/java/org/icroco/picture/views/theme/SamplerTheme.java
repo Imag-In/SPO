@@ -98,7 +98,7 @@ public final class SamplerTheme implements Theme {
 
     // Checks whether wrapped theme is a project theme or user external theme.
     public boolean isProjectTheme() {
-        return ThemeManager.PROJECT_THEMES.contains(theme.getClass());
+        return ThemeRepository.THEMES.stream().map(Object::getClass).anyMatch(c -> c.equals(theme.getClass()));
     }
 
     // Tries to parse theme CSS and extract conventional looked-up colors. There are few limitations:

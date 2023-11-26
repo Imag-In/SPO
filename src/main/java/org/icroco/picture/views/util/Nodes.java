@@ -102,11 +102,6 @@ public class Nodes {
         stage.setY(y);
         stage.setWidth(width);
         stage.setHeight(height);
-
-        stage.setOnCloseRequest(event -> {
-            // save user pref.
-        });
-
     }
 
     public static Screen getScreen(Scene scene) {

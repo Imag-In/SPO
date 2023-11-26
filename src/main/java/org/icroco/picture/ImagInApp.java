@@ -1,14 +1,11 @@
 package org.icroco.picture;
 
-import atlantafx.base.theme.PrimerLight;
-import atlantafx.base.util.Animations;
 import jakarta.persistence.EntityManagerFactory;
-import javafx.application.*;
-import javafx.scene.Scene;
-import javafx.scene.SceneAntialiasing;
+import javafx.application.Application;
+import javafx.application.HostServices;
+import javafx.application.Platform;
+import javafx.application.Preloader;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
-import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import net.codecrete.usb.USBDevice;
 import org.controlsfx.dialog.ExceptionDialog;
@@ -17,15 +14,11 @@ import org.icroco.picture.persistence.model.MediaFileEntity;
 import org.icroco.picture.splashscreen.LoaderProgressNotification;
 import org.icroco.picture.splashscreen.SpoPreLoader;
 import org.icroco.picture.util.Error;
-import org.icroco.picture.util.Resources;
-import org.icroco.picture.views.MainView;
+import org.icroco.picture.util.StageReadyEvent;
 import org.icroco.picture.views.pref.UserPreference;
-import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.util.ImageUtils;
 import org.icroco.picture.views.util.Nodes;
-import org.scenicview.ScenicView;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.Banner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -67,11 +60,7 @@ public class ImagInApp extends Application {
     // Application startup analysis: https://www.amitph.com/spring-boot-startup-monitoring/#applicationstartup_metrics_with_java_flight_recorder
     // Icon IRes: https://dlsc.com/2017/08/29/javafx-tip-27-hires-retina-icons/
 
-    @Autowired
-    UserPreferenceService userPref;
 
-    @Autowired
-    MainView mainView;
 
     /**
      * The application context created by the JavaFX starter.
@@ -134,12 +123,8 @@ public class ImagInApp extends Application {
             log.debug("Start: {}", getClass().getSimpleName());
             Thread.setDefaultUncaughtExceptionHandler(this::showError);
             preStart(primaryStage);
-            primaryStage.setOnCloseRequest(this::closeRequest);
-//            Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));
+            applicationContext.publishEvent(new StageReadyEvent(primaryStage));
 
-            primaryStage.getScene().getRoot().setOpacity(0);
-            primaryStage.show();
-            Animations.fadeIn(primaryStage.getScene().getRoot(), Duration.millis(1000)).playFromStart();
 //            Platform.runLater(primaryStage::show);
 //            USB.setOnDeviceConnected((device) -> printDetails(device, "Connected"));
 //            USB.setOnDeviceDisconnected((device) -> printDetails(device, "Disconnected"));
@@ -181,25 +166,7 @@ public class ImagInApp extends Application {
                 taskbar.setIconImage(dockIcon);
             }
         }
-        primaryStage.setTitle("Imag'In");
-//        Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
-        Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
 
-        var antialiasing = Platform.isSupported(ConditionalFeature.SCENE3D)
-                           ? SceneAntialiasing.BALANCED
-                           : SceneAntialiasing.DISABLED;
-        var scene = new Scene(mainView.getRootContent(), 1200, 800, false, antialiasing);
-        Nodes.setStageSizeAndPos(primaryStage,
-                                 userPref.getUserPreference().getMainWindow().getPosX(),
-                                 userPref.getUserPreference().getMainWindow().getPosY(),
-                                 userPref.getUserPreference().getMainWindow().getWidth(),
-                                 userPref.getUserPreference().getMainWindow().getHeight());
-        primaryStage.setScene(scene);
-
-        scene.getStylesheets().addAll(Resources.resolve("/styles/index.css"));
-        if (Boolean.getBoolean("SCENIC")) {
-            ScenicView.show(scene);
-        }
     }
 
     protected void showErrorToUser(final Throwable throwable) {
@@ -208,14 +175,14 @@ public class ImagInApp extends Application {
         Nodes.showDialog(dlg);
     }
 
-    protected void closeRequest(final WindowEvent windowEvent) {
-        if (windowEvent.getTarget() instanceof Stage stage) {
-            userPref.getUserPreference().getMainWindow().setPosX(stage.getX());
-            userPref.getUserPreference().getMainWindow().setPosY(stage.getY());
-            userPref.getUserPreference().getMainWindow().setWidth(stage.getWidth());
-            userPref.getUserPreference().getMainWindow().setHeight(stage.getHeight());
-        }
-    }
+//    protected void closeRequest(final WindowEvent windowEvent) {
+//        if (windowEvent.getTarget() instanceof Stage stage) {
+//            userPref.getUserPreference().getMainWindow().setPosX(stage.getX());
+//            userPref.getUserPreference().getMainWindow().setPosY(stage.getY());
+//            userPref.getUserPreference().getMainWindow().setWidth(stage.getWidth());
+//            userPref.getUserPreference().getMainWindow().setHeight(stage.getHeight());
+//        }
+//    }
 
     public static void main(String[] args) {
         launch(ImagInApp.class, args);

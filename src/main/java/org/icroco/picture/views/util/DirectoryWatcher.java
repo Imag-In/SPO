@@ -1,7 +1,6 @@
 package org.icroco.picture.views.util;
 
 import jakarta.annotation.PreDestroy;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.config.ImagInConfiguration;
 import org.icroco.picture.event.FilesChangesDetectedEvent;
@@ -39,7 +38,8 @@ public class DirectoryWatcher {
                             @Qualifier(ImagInConfiguration.DIRECTORY_WATCHER) ExecutorService executorService) throws IOException {
         this(taskService, null, true);
         executorService.submit(this::processEvents);
-        drainerVThread = Thread.ofVirtual().name("File-Watcher-drainer").start(this::drainFiles);
+        drainerVThread = Thread.ofVirtual().name("File-Watcher-drainer")
+                               .start(this::drainFiles);
     }
 
     @PreDestroy
@@ -115,6 +115,7 @@ public class DirectoryWatcher {
      */
     void processEvents() {
         try {
+            //noinspection InfiniteLoopStatement
             for (; ; ) {
                 // wait for key to be signalled
                 WatchKey key;
@@ -178,49 +179,53 @@ public class DirectoryWatcher {
         log.error("Thread stopped");
     }
 
-    @SneakyThrows
     private void drainFiles() {
         var ofSeconds = Duration.ofSeconds(10);
-        for (; ; ) {
-            Thread.sleep(ofSeconds);
-            if (!changes.isEmpty()) {
-                log.info("Drain files changes detected: nb changes: '{}': ten first: {}",
-                         changes.size(),
-                         changes.stream().limit(10).toList());
-                var event = FilesChangesDetectedEvent.builder()
-                                                     .created(changes.stream()
-                                                                     .filter(fc -> fc.type == FileChangeType.CREATED)
-                                                                     .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                   Constant.isSupportedExtension(fc.path))
-                                                                     .map(FileChange::path)
-                                                                     .toList())
-                                                     .modified(changes.stream()
-                                                                      .filter(fc -> fc.type == FileChangeType.MODIFIED)
-                                                                      .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                    Constant.isSupportedExtension(fc.path))
-                                                                      .map(FileChange::path)
-                                                                      .toList())
-                                                     .deleted(
-                                                             changes.stream()
-                                                                    .filter(fc -> fc.type == FileChangeType.DELETED)
-                                                                    .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                  Constant.isSupportedExtension(fc.path))
-                                                                    .map(FileChange::path)
-                                                                    .toList())
-                                                     .source(this)
-                                                     .build();
+        try {
+            //noinspection InfiniteLoopStatement
+            for (; ; ) {
+                Thread.sleep(ofSeconds);
+                if (!changes.isEmpty()) {
+                    log.info("Drain files changes detected: nb changes: '{}': ten first: {}",
+                             changes.size(),
+                             changes.stream().limit(10).toList());
+                    var event = FilesChangesDetectedEvent.builder()
+                                                         .created(changes.stream()
+                                                                         .filter(fc -> fc.type == FileChangeType.CREATED)
+                                                                         .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                       Constant.isSupportedExtension(fc.path))
+                                                                         .map(FileChange::path)
+                                                                         .toList())
+                                                         .modified(changes.stream()
+                                                                          .filter(fc -> fc.type == FileChangeType.MODIFIED)
+                                                                          .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                        Constant.isSupportedExtension(fc.path))
+                                                                          .map(FileChange::path)
+                                                                          .toList())
+                                                         .deleted(
+                                                                 changes.stream()
+                                                                        .filter(fc -> fc.type == FileChangeType.DELETED)
+                                                                        .filter(fc -> Files.isDirectory(fc.path) ||
+                                                                                      Constant.isSupportedExtension(fc.path))
+                                                                        .map(FileChange::path)
+                                                                        .toList())
+                                                         .source(this)
+                                                         .build();
 
-                if (event.isNotEmpty()) {
-                    log.info("Drain files changes detected: valid changes are: '{}' creation, '{}' deletion, '{}' updates",
-                             event.getCreated().size(),
-                             event.getDeleted().size(),
-                             event.getModified().size());
-                    taskService.sendEvent(event);
-                } else {
-                    log.info("Drain files changes detected: no valid changes");
+                    if (event.isNotEmpty()) {
+                        log.info("Drain files changes detected: valid changes are: '{}' creation, '{}' deletion, '{}' updates",
+                                 event.getCreated().size(),
+                                 event.getDeleted().size(),
+                                 event.getModified().size());
+                        taskService.sendEvent(event);
+                    } else {
+                        log.info("Drain files changes detected: no valid changes");
+                    }
+                    changes.clear();
                 }
-                changes.clear();
             }
+        } catch (InterruptedException e) {
+            log.warn("Thread interruped");
         }
     }
 }
