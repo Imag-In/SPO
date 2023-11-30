@@ -27,9 +27,7 @@ public class SpoPreLoader extends Preloader {
     private final StackPane   root        = new StackPane();
     private final ProgressBar progressBar = new ProgressBar(0);
     private final Label       progressLbl = new Label("");
-
     private Stage stage;
-
 
     public static List<Image> getIcons() {
         return Stream.of("spo-1024x1024.png",

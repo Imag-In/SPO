@@ -1,5 +1,55 @@
 // SPDX-License-Identifier: MIT
 
+//* {
+//  -fx-text-fill: -color-fg-default;
+//  -fx-highlight-text-fill:  -color-fg-default;
+//  -fx-highlight-fill: -color-neutral-muted;
+//  -fx-prompt-text-fill: -color-neutral-muted;
+//  -fx-text-box-border:-color-neutral-muted;
+//  -fx-control-inner-background: -color-neutral-muted;
+//  -fx-body-color: -color-neutral-muted;
+//  -fx-inner-border: -color-accent-fg;
+//  -fx-background-color: -color-bg-default;
+//}
+.property-sheet .scroll-pane .property-pane {
+  -fx-background-color: -color-bg-default;
+}
+
+.property-sheet .scroll-pane {
+  -fx-background-color: -color-bg-default;
+  -fx-background-insets: 0;
+  -fx-padding: 0;
+}
+
+*.custom-text-field {
+  -color-input-bg: -color-bg-default;
+  -color-input-fg: -color-fg-default;
+  -color-input-border: -color-border-default;
+  -color-input-bg-focused: -color-bg-default;
+  -color-input-border-focused: -color-accent-emphasis;
+  -color-input-bg-readonly: -color-bg-subtle;
+  -color-input-bg-highlight: -color-accent-subtle;
+  -color-input-fg-highlight: -color-fg-default;
+  -fx-background-color: -color-input-border, -color-input-bg;
+  -fx-background-insets: 0, 1px;
+  -fx-background-radius: 6px, 5px;
+  -fx-text-fill: -color-input-fg;
+  -fx-highlight-fill: -color-input-bg-highlight;
+  -fx-highlight-text-fill: -color-input-fg-highlight;
+  -fx-prompt-text-fill: -color-fg-subtle;
+  -fx-padding: 6px 12px 6px 12px;
+  -fx-cursor: text;
+}
+
+
+//*.custom-text-field:focused {
+//  -fx-background-color: -color-bg-default;
+//}
+
+//*.property-sheet > .scroll-pane {
+//  -fx-background-color: transparent;
+//}
+
 .bordered {
   -fx-border-width: 1px;
   -fx-border-color: -color-border-muted;

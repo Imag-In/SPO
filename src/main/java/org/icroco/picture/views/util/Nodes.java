@@ -6,9 +6,12 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.stage.Screen;
@@ -20,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -43,7 +47,6 @@ public class Nodes {
         } catch (Exception ignored) {
             // yes, ignored
         }
-
         return alert.showAndWait();
     }
 
@@ -75,18 +78,20 @@ public class Nodes {
         for (final Screen screen : screens) {
             log.debug("Find screen, bounds: {}, visualBounds: {}", screen.getBounds(), screen.getVisualBounds());
         }
-        log.debug("Bounds x: {}, y: {}, w: {}, h: {}", x, y, width, height);
+        log.info("Bounds x: {}, y: {}, w: {}, h: {}", x, y, width, height);
         final Screen lastScreen  = screens.get(screens.size() - 1);
         final Screen firstScreen = screens.get(0);
-
+        var          conf        = GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[0];
+        Window       window      = stage.getScene().getWindow();
+        var
+                     s           =
+                Screen.getScreensForRectangle(new Rectangle2D(window.getX(), window.getY(), window.getWidth(), window.getHeight()));
         if (lastScreen.getVisualBounds().getMaxX() < x + width) {
-            x = Math.max(firstScreen.getVisualBounds().getMinX(),
-                         x - ((x + width) - lastScreen.getVisualBounds().getMaxX()));
+            x = Math.max(firstScreen.getVisualBounds().getMinX(), x - ((x + width) - lastScreen.getVisualBounds().getMaxX()));
             width = Math.min(width, lastScreen.getVisualBounds().getMaxX());
         }
         if (lastScreen.getVisualBounds().getMaxY() < y + height) {
-            y = Math.max(firstScreen.getVisualBounds().getMinY(),
-                         y - ((y + height) - lastScreen.getVisualBounds().getMaxY()));
+            y = Math.max(firstScreen.getVisualBounds().getMinY(), y - ((y + height) - lastScreen.getVisualBounds().getMaxY()));
             height = Math.min(height, lastScreen.getVisualBounds().getMaxX());
         }
         if (x < firstScreen.getVisualBounds().getMinX()) {
@@ -97,7 +102,7 @@ public class Nodes {
             y = firstScreen.getVisualBounds().getMinY();
             height = Math.min(height, firstScreen.getVisualBounds().getMaxY());
         }
-        log.debug("Bounds adjusted x: {}, y: {}, w: {}, h: {}", x, y, width, height);
+        log.info("Bounds adjusted x: {}, y: {}, w: {}, h: {}", x, y, width, height);
         stage.setX(x);
         stage.setY(y);
         stage.setWidth(width);

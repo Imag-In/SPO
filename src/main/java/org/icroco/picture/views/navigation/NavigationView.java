@@ -16,9 +16,11 @@ import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.ImportDirectoryEvent;
 import org.icroco.picture.event.ShowOrganizeEvent;
+import org.icroco.picture.event.ShowSettingsEvent;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.pref.UserPreferenceService;
+import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.widget.FxUtil;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -43,12 +45,15 @@ public class NavigationView implements FxView<HBox> {
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
 
     private final UserPreferenceService preferenceService;
+    private final TaskService           taskService;
 
     public NavigationView(@Qualifier(ViewConfiguration.CURRENT_VIEW)
                           SimpleStringProperty currentView,
-                          UserPreferenceService preferenceService) {
+                          UserPreferenceService preferenceService,
+                          TaskService taskService) {
         this.currentView = currentView;
         this.preferenceService = preferenceService;
+        this.taskService = taskService;
         root.setId(ViewConfiguration.V_NAVIGATION);
         root.getStyleClass().add(ViewConfiguration.V_NAVIGATION);
         root.getStyleClass().add("tabs");
@@ -105,7 +110,10 @@ public class NavigationView implements FxView<HBox> {
         settings.setDisable(false);
         settings.getStyleClass().add(Styles.LARGE);
         FxUtil.styleCircleButton(settings).setOnAction(this::openSettings);
-//        settings.setOnMouseClicked(_ -> preferenceService.show());
+        settings.setOnMouseClicked(_ -> taskService.sendEvent(ShowSettingsEvent.builder()
+                                                                               .scene(getRootContent().getScene())
+                                                                               .source(this)
+                                                                               .build()));
 
         root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, repairLbl, peopleLbl, exportLbl, new Spacer(), settings);
 

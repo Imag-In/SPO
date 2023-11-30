@@ -2,6 +2,8 @@ package org.icroco.picture;
 
 import javafx.application.ConditionalFeature;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
 import javafx.stage.Screen;
@@ -16,7 +18,6 @@ import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.MainView;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.theme.ThemeManager;
-import org.icroco.picture.views.util.Nodes;
 import org.scenicview.ScenicView;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
@@ -37,7 +38,7 @@ public class StageInitializer {
     @FxEventListener
     public void onApplicationEvent(StageReadyEvent event) {
         Stage primaryStage = event.getStage();
-        primaryStage.setOnCloseRequest(this::closeRequest);
+        primaryStage.setOnCloseRequest(this::saveWindowDimension);
         primaryStage.setTitle("Imag'In");
 //        Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
 //        Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
@@ -47,25 +48,12 @@ public class StageInitializer {
                            ? SceneAntialiasing.BALANCED
                            : SceneAntialiasing.DISABLED;
         var scene = new Scene(mainView.getRootContent(), 1200, 800, false, antialiasing);
+        primaryStage.setScene(scene);
         themeManager.setScene(scene);
         themeManager.setTheme(Optional.ofNullable(userPref.getUserPreference().getMainWindow().getTheme())
                                       .orElseGet(themeManager::getDefaultTheme));
 
-        if (userPref.getUserPreference().getMainWindow().exist()) {
-            Nodes.setStageSizeAndPos(primaryStage,
-                                     userPref.getUserPreference().getMainWindow().getPosX(),
-                                     userPref.getUserPreference().getMainWindow().getPosY(),
-                                     userPref.getUserPreference().getMainWindow().getWidth(),
-                                     userPref.getUserPreference().getMainWindow().getHeight());
-        } else {
-            primaryStage.centerOnScreen();
-            primaryStage.setWidth(Screen.getPrimary().getBounds().getWidth() - 100);
-            primaryStage.setHeight(Screen.getPrimary().getBounds().getHeight() - 50);
-        }
-        if (userPref.getUserPreference().getMainWindow().isMaximized()) {
-            primaryStage.setMaximized(true);
-        }
-        primaryStage.setScene(scene);
+        restoreWindowDimension(scene, primaryStage);
 
         scene.getStylesheets().addAll(Resources.resolve("/styles/index.css"));
         if (Boolean.getBoolean("SCENIC")) {
@@ -80,15 +68,48 @@ public class StageInitializer {
 //        Animations.fadeIn(primaryStage.getScene().getRoot(), Duration.millis(1000)).playFromStart();
     }
 
-    protected void closeRequest(final WindowEvent windowEvent) {
+    private void restoreWindowDimension(Scene scene, Stage primaryStage) {
+        var windowSettings = userPref.getUserPreference().getMainWindow();
+        if (windowSettings.exist()) {
+            scene.getWindow().setX(windowSettings.getPosX());
+            scene.getWindow().setY(windowSettings.getPosY());
+            scene.getWindow().setWidth(windowSettings.getWidth());
+            scene.getWindow().setHeight(windowSettings.getHeight());
+        } else {
+            primaryStage.centerOnScreen();
+            primaryStage.setWidth(Screen.getPrimary().getBounds().getWidth() - 100);
+            primaryStage.setHeight(Screen.getPrimary().getBounds().getHeight() - 50);
+        }
+        if (userPref.getUserPreference().getMainWindow().isMaximized()) {
+            primaryStage.setMaximized(true);
+        }
+    }
+
+    protected void saveWindowDimension(final WindowEvent windowEvent) {
         if (windowEvent.getTarget() instanceof Stage stage) {
-            log.info("Save stage: {}.{}", stage.getX(), stage.getY());
-            userPref.getUserPreference().getMainWindow().setMaximized(stage.isMaximized());
-            userPref.getUserPreference().getMainWindow().setPosX(stage.getX());
-            userPref.getUserPreference().getMainWindow().setPosY(stage.getY());
-            userPref.getUserPreference().getMainWindow().setWidth(stage.getWidth());
-            userPref.getUserPreference().getMainWindow().setHeight(stage.getHeight());
-            userPref.getUserPreference().getMainWindow().setTheme(themeManager.getTheme());
+            var window         = stage.getScene().getWindow();
+            var windowSettings = userPref.getUserPreference().getMainWindow();
+            var firstScreen = Screen.getScreensForRectangle(new Rectangle2D(window.getX(),
+                                                                            window.getY(),
+                                                                            window.getWidth(),
+                                                                            window.getHeight()))
+                                    .stream()
+                                    .findFirst();
+
+            ObservableList<Screen> screens = Screen.getScreens();
+            windowSettings.setScreenIdx(-1);
+            for (int i = 0; i < screens.size(); i++) {
+                if (screens.get(i).equals(firstScreen.orElse(null))) {
+                    windowSettings.setScreenIdx(i);
+                    break;
+                }
+            }
+            windowSettings.setMaximized(stage.isMaximized());
+            windowSettings.setPosX(window.getX());
+            windowSettings.setPosY(window.getY());
+            windowSettings.setWidth(window.getWidth());
+            windowSettings.setHeight(window.getHeight());
+            windowSettings.setTheme(themeManager.getTheme());
         }
     }
 }

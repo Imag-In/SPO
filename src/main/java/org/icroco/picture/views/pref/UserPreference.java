@@ -6,7 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.model.Dimension;
 import org.icroco.picture.util.PathSerializer;
+import org.icroco.picture.util.PropertySettings;
 import org.icroco.picture.views.theme.SamplerTheme;
 
 import java.nio.file.Path;
@@ -27,7 +29,9 @@ public class UserPreference {
         private Double       posY;
         private Double       width;
         private Double       height;
+        private int          screenIdx   = -1;
         private boolean      isMaximized = false;
+        @PropertySettings(category = "Appearance", displayName = "Theme")
         private SamplerTheme theme;
 
         public Double getPosX() {
@@ -41,6 +45,14 @@ public class UserPreference {
         public boolean exist() {
             return !(posX == Double.MIN_VALUE || posY == Double.MIN_VALUE);
         }
+    }
+
+    @Setter
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SettingsDialog {
+        private Dimension dimension;
     }
 
     @Setter
@@ -64,21 +76,10 @@ public class UserPreference {
     }
 
 
-    @Setter
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class UserPrefSettings {
-        private Double width;
-        private Double height;
-        private Double divider;
-        private String theme;
-    }
-
-    private MainWindow       mainWindow = new MainWindow(Double.MIN_VALUE, Double.MIN_VALUE, 1024D, 800D, false, null);
-    private Collection       collection = new Collection(-1, null);
-    private Gallery          grid       = new Gallery(128, 128, 0);
-    private UserPrefSettings userPref   = new UserPrefSettings(800D, 500D, 0.2, null);
+    private MainWindow     mainWindow = new MainWindow(Double.MIN_VALUE, Double.MIN_VALUE, 1024D, 800D, -1, false, null);
+    private Collection     collection = new Collection(-1, null);
+    private Gallery        grid       = new Gallery(128, 128, 0);
+    private SettingsDialog settings   = new SettingsDialog(new Dimension(600, 400));
 
     public void setLastViewed(int id, Path path) {
         collection.setLastViewed(id);

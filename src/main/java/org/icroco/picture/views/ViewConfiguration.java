@@ -19,6 +19,7 @@ public class ViewConfiguration {
     public static final String V_MEDIA_DETAILS    = "v-media-details";
     public static final String V_STATUSBAR        = "v-status";
     public static final String V_TASKS            = "v-tasks";
+    public static final String V_PREFERENCES      = "v-preferences";
 
     @Bean(CURRENT_VIEW)
     SimpleStringProperty currentView() {

@@ -53,6 +53,8 @@ public class StatusBarView implements FxView<HBox> {
     private final Label       progressLabel    = new Label();
     //    private final Label       versionAvailable = new Label();
     private final Hyperlink   versionAvailable = new Hyperlink();
+
+    FontIcon versionAvailableIcon = new FontIcon(Material2OutlinedMZ.NEW_RELEASES);
     private final ProgressBar progressBar      = new ProgressBar(0.5);
     private       ProgressBar memoryStatus;
     private       Popover     popOver;
@@ -86,13 +88,12 @@ public class StatusBarView implements FxView<HBox> {
             }
         });
         versionAvailable.setManaged(false);
+        versionAvailableIcon.setManaged(false);
         tooltip.setShowDelay(Duration.seconds(4));
 
-        var icon = new FontIcon(Material2OutlinedMZ.NEW_RELEASES);
-        icon.getStyleClass().add(Styles.ACCENT);
-        versionAvailable.setGraphic(icon);
-        versionAvailable.setAlignment(Pos.CENTER_LEFT);
-        versionAvailable.getStyleClass().add(Styles.ACCENT);
+        versionAvailableIcon.getStyleClass().add(Styles.ACCENT);
+        versionAvailable.getStyleClass().add("-fx-alignment: center-right");
+//        versionAvailable.getStyleClass().add(Styles.ACCENT);
         ContextMenu contextMenu = new ContextMenu();
         MenuItem    openRelease = new MenuItem("Release page");
         openRelease.setOnAction(this::goToReleaseUrl);
@@ -105,7 +106,7 @@ public class StatusBarView implements FxView<HBox> {
         versionAvailable.setOnAction(event -> contextMenu.show(versionAvailable, Side.TOP, 0, 0));
 
         memoryStatus.setTooltip(tooltip);
-        root.getChildren().addAll(memory, memoryStatus, new Spacer(), progressLabel, progressBar, versionAvailable);
+        root.getChildren().addAll(memory, memoryStatus, new Spacer(), progressLabel, progressBar, versionAvailable, versionAvailableIcon);
         scheduler.scheduleAtFixedRate(this::updateMemory, java.time.Duration.of(5, ChronoUnit.SECONDS));
     }
 
@@ -204,8 +205,9 @@ public class StatusBarView implements FxView<HBox> {
     public void newVersionAvailable(NewVersionEvent event) {
         versionAvailable.setText("V" + event.getVersion() + " available");
         versionAvailable.setManaged(true);
+        versionAvailableIcon.setManaged(true);
         downloadUrl = event.getUrl();
-        FadeTransition fadeTransition = new FadeTransition(Duration.seconds(1), versionAvailable.getGraphic());
+        FadeTransition fadeTransition = new FadeTransition(Duration.seconds(1), versionAvailableIcon);
         fadeTransition.setFromValue(1.0);
         fadeTransition.setToValue(0.0);
         fadeTransition.setCycleCount(100);
