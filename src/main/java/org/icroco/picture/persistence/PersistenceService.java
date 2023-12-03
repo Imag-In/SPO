@@ -4,7 +4,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.config.ImagInConfiguration;
-import org.icroco.picture.event.CollectionUpdatedEvent;
 import org.icroco.picture.event.CollectionsLoadedEvent;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
@@ -68,6 +67,16 @@ public class PersistenceService {
     }
 
     private void checkDatase() {
+        deleteOrphanThumbnails();
+        cleanOprhanKeywords();
+    }
+
+    private void cleanOprhanKeywords() {
+        // TODO: Clean MF_KEYWORDS association table
+        // TODO: Clean Keyword table ? mught be useful for futur ?
+    }
+
+    private void deleteOrphanThumbnails() {
         var wLock = mcLock.writeLock();
         try {
             wLock.lock();
@@ -182,6 +191,7 @@ public class PersistenceService {
                 mc.medias().forEach(thCache::evict);
             });
             mcCache.evictIfPresent(mediaCollectionId);
+            deleteOrphanThumbnails();
         } finally {
             wLock.unlock();
         }
@@ -192,6 +202,7 @@ public class PersistenceService {
         var wLock = mcLock.writeLock();
         try {
             wLock.lock();
+            thumbRepo.deleteAllById(thumbnails.stream().map(Thumbnail::getMfId).toList());
             return thumbRepo.saveAllAndFlush(thumbnails.stream()
                                                        .map(thMapper::toEntity)
                                                        .toList())
@@ -259,50 +270,99 @@ public class PersistenceService {
 //        }
 //    }
 
+    public record UpdareResult(Collection<MediaFile> added,
+                               Collection<MediaFile> deleted,
+                               Collection<MediaFile> updated) {
+    }
+
     @Transactional
-    public void updateCollection(int id,
-                                 Collection<MediaFile> toBeAdded,
-                                 Collection<MediaFile> toBeDeleted,
-                                 boolean sendRefreshEvent) {
+    public UpdareResult updateCollection(int id,
+                                         Set<MediaFile> toBeAdded,
+                                         Set<MediaFile> toBeDeleted,
+                                         Set<MediaFile> hasBeenModified) {
         var wLock = mcLock.writeLock();
         try {
             wLock.lock();
             final var mc         = getMediaCollection(id);
             final var mediaFiles = mc.medias();
 
-            mfRepo.deleteAllById(toBeDeleted.stream().map(mfMapper::toEntity)
-                                            .map(mce -> mfRepo.findByFullPath(mce.getFullPath()).orElse(null))
-                                            .filter(Objects::nonNull)
-                                            .map(MediaFileEntity::getId)
-                                            .toList());
-            mediaFiles.removeIf(toBeDeleted::contains);
-
-            var mfEntities = toBeAdded.stream()
-                                      .map(mfMapper::toEntity)
-                                      .peek(dbMf -> dbMf.setCollectionId(mc.id()))
-                                      .toList();
-
-            mfEntities = mfRepo.saveAllAndFlush(mfEntities);
-            mediaFiles.removeAll(toBeAdded);
-
-            var toBeAddedSaved = mfEntities.stream().map(mfMapper::toDomain).toList();
-            mediaFiles.addAll(toBeAddedSaved);
-
-//            var newUpdated = mc.medias().stream()
-//                               .filter(toBeAdded::contains)
-//                               .toList();
-//            var delUpdated = mc.medias().stream()
-//                               .filter(toBeDeleted::contains)
-//                               .toList();
-            if (sendRefreshEvent) {
-                taskService.sendEvent(CollectionUpdatedEvent.builder()
-                                                            .mediaCollectionId(mc.id())
-                                                            .newItems(toBeAddedSaved)
-                                                            .deletedItems(toBeDeleted)
-                                                            .modifiedItems(Collections.emptySet())
-                                                            .source(this)
-                                                            .build());
+            // Proces items to DELETE
+            if (!toBeDeleted.isEmpty()) {
+                mfRepo.deleteAllById(toBeDeleted.stream().map(mfMapper::toEntity)
+                                                .map(mce -> mfRepo.findByFullPath(mce.getFullPath()).orElse(null))
+                                                .filter(Objects::nonNull)
+                                                .map(MediaFileEntity::getId)
+                                                .toList());
+                mediaFiles.removeIf(toBeDeleted::contains);
             }
+
+            // Proces items to ADD
+            List<MediaFile> toBeAddedSaved = Collections.emptyList();
+            if (!toBeAdded.isEmpty()) {
+                var toBeAddedEntities = toBeAdded.stream()
+                                                 .map(mfMapper::toEntity)
+                                                 .peek(dbMf -> dbMf.setCollectionId(mc.id()))
+                                                 .toList();
+                toBeAddedEntities = mfRepo.saveAllAndFlush(toBeAddedEntities);
+                mediaFiles.removeAll(toBeAdded);
+                toBeAddedSaved = toBeAddedEntities.stream().map(mfMapper::toDomain).toList();
+                mediaFiles.addAll(toBeAddedSaved);
+            }
+
+            // Proces items to UPDATE
+            List<MediaFile> toBeModifiedSaved = Collections.emptyList();
+            if (!hasBeenModified.isEmpty()) {
+//                thumbRepo.deleteAllById(hasBeenModified.stream().map(MediaFile::getId).toList()); // Remove previous thumbnails
+//                thumbRepo.flush();
+                var updatedMediaFiles = hasBeenModified.stream()
+                                                       .map(mediaFile -> {
+                                                           return mfRepo.findById(mediaFile.getId())
+                                                                        .map(entity -> {
+                                                                            mfMapper.toEntityFromDomain(mediaFile, entity);
+                                                                            entity.setCollectionId(mc.id());
+                                                                            return mfRepo.save(entity);
+                                                                        })
+                                                                        .map(mfMapper::toDomain)
+                                                                        .orElse(null);
+                                                       })
+                                                       .filter(Objects::nonNull)
+                                                       .toList();
+                mfRepo.flush();
+                updatedMediaFiles.forEach(mediaFile -> {
+                    mediaFiles.remove(mediaFile);
+                    mediaFiles.add(mediaFile);
+                });
+                toBeModifiedSaved = updatedMediaFiles;
+//                var modifiedEntities = hasBeenModified.stream()
+//                                                      .map(mfMapper::toEntity)
+//                                                      .peek(dbMf -> dbMf.setCollectionId(mc.id()))
+//                                                      .toList();
+//                modifiedEntities = mfRepo.saveAllAndFlush(modifiedEntities);
+////                mediaFiles.removeAll(hasBeenModified);
+//                toBeModifiedSaved = modifiedEntities.stream().map(mfMapper::toDomain).toList();
+//                toBeModifiedSaved.forEach(mediaFile -> {
+//                    mediaFiles.remove(mediaFile);
+//                    mediaFiles.add(mediaFile);
+//                });
+            }
+
+            return new UpdareResult(toBeAddedSaved, toBeDeleted, toBeModifiedSaved);
+//            if (sendRefreshEvent) {
+//                taskService.sendEvent(CustomExtractThumbnailEvent.builder()
+//                                                                 .mcId(mc.id())
+//                                                                 .newItems(toBeAddedSaved)
+//                                                                 .modifiedItems(toBeModifiedSaved)
+//                                                                 .source(this)
+//                                                                 .build());
+
+//                taskService.sendEvent(CollectionUpdatedEvent.builder()
+//                                                            .mediaCollectionId(mc.id())
+//                                                            .newItems(toBeAddedSaved)
+//                                                            .deletedItems(toBeDeleted)
+//                                                            .modifiedItems(toBeModifiedSaved)
+//                                                            .source(this)
+//                                                            .build());
+//            }
         } finally {
             wLock.unlock();
         }

@@ -189,6 +189,7 @@ public class DetailsView extends AbstractView<VBox> {
     @FxEventListener
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         var mf = event.getMf();
+        log.debug("Print details for item: {}", event);
         if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
             tabs.getSelectionModel().selectFirst();
             mediaLoader.getCachedValue(mf).ifPresent(t -> {

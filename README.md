@@ -28,11 +28,11 @@ other apps.
 - [x] Simple wizard to import photos from SD Card (No PTP)
     - [ ] Add tag while importing.
 - [ ] Simple duplicate detection.
-- [ ] Native installer.
+- [x] Native installer.
 - [x] Light / Dark Thems
-    - [ ] Preference option to switch dyamically.
+    - [x] Preference option to switch dyamically.
 - [ ] Preferences management.
-- [ ] Export collection (WEb / cloud / ...)
+- [ ] Export collection (WEB / cloud / ...)
 - [ ] Supported file type
     - [x] jpeg
     - [x] png

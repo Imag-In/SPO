@@ -16,6 +16,8 @@ import org.icroco.picture.views.util.CustomGridView;
 import org.icroco.picture.views.util.ImageUtils;
 import org.icroco.picture.views.util.MediaLoader;
 
+import static org.icroco.picture.views.util.LangUtils.EMPTY_STRING;
+
 @Slf4j
 public class MediaFileGridCell extends GridCell<MediaFile> {
     private final ImageView                 loadingView;
@@ -27,6 +29,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
     public final  BooleanProperty           isExpandCell;
     private       MediaFile                 oldValue = null;
     private final CustomGridView<MediaFile> grid;
+    private       String                    lastHash = EMPTY_STRING;
 
     public MediaFileGridCell(boolean preserveImageProperties,
                              MediaLoader mediaLoader,
@@ -57,12 +60,30 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 
         if (empty || item == null) {
             this.setGraphic(null);
+            lastHash = EMPTY_STRING;
+            log.debug("reset cell({})", this.hashCode());
         } else {
             updateSelected(grid.getSelectionModel().contains(this));
-            if (item.isLoadedInCache() || MediaFileGridCellFactory.isCellVisible(grid, this)) {
-                setImage(mediaLoader.getCachedValue(item)
-                                    .map(Thumbnail::getImage)
-                                    .orElse(ImageUtils.getNoThumbnailImage()));
+            item.getLastUpdated().addListener((observable, oldValue1, newValue) -> {
+                log.info("Update: {}:{}", item.getFullPath(), newValue);
+            });
+            if (item.isLoadedInCache()) {
+                if ((lastHash != null && !lastHash.equals(item.getHash()) || MediaFileGridCellFactory.isCellVisible(grid, this))) {
+                    lastHash = item.getHash();
+                    log.atDebug().log(() -> "Grid Cell updated(%s): %s: %s - %s - %s ('%s'/'%s') - %s".formatted(this.hashCode(),
+                                                                                                                 item.getFullPath(),
+                                                                                                                 item.getKeywords(),
+                                                                                                                 item.isLoadedInCache(),
+                                                                                                                 lastHash,
+                                                                                                                 item.getHash(),
+                                                                                                                 (!lastHash.equals(item.getHash())),
+                                                                                                                 MediaFileGridCellFactory.isCellVisible(
+                                                                                                                         grid,
+                                                                                                                         this)));
+                    setImage(mediaLoader.getCachedValue(item)
+                                        .map(Thumbnail::getImage)
+                                        .orElse(ImageUtils.getNoThumbnailImage()));
+                }
             } else {
                 setImage(ImageUtils.getNoThumbnailImage());
             }

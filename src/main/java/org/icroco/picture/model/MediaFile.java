@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Set;
 
 @Data
@@ -18,33 +19,36 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor
 public class MediaFile implements IMediaFile {
-    private Long          id;
-    private Path          fullPath;
-    private String        fileName;
-    private LocalDateTime originalDate;
+    private Long           id;
+    private Path           fullPath;
+    private String         fileName;
+    private LocalDateTime  originalDate;
     private Set<Keyword>  keywords;
-    private GeoLocation   geoLocation;
-    private String        hash;
-    private LocalDate     hashDate;
-    private Dimension     dimension;
-    private Short         orientation;
-    private Camera        camera;
-    private Integer       collectionId;
+    private GeoLocation    geoLocation;
+    private String         hash;
+    private LocalDate      hashDate;
+    private Dimension      dimension;
+    private Short          orientation;
+    private Camera         camera;
+    private Integer        collectionId;
     @Builder.Default
-    private EKeepOrThrow  keepOrThrow = EKeepOrThrow.UNKNOW;
+    private EKeepOrThrow   keepOrThrow   = EKeepOrThrow.UNKNOW;
     @NonNull
     @Builder.Default
     private EThumbnailType thumbnailType = EThumbnailType.ABSENT;
+
+    public static  Comparator<MediaFile> UPDATED_COMP = Comparator.comparing(MediaFile::getHash);
+    private static LocalDateTime         TIMESTAMP    = LocalDateTime.MIN.plusHours(1L);
 
     //    @NonNull
 //    @Builder.Default
 //    private SimpleObjectProperty<Thumbnail> thumbnail = new SimpleObjectProperty<>(null);
     @NonNull
     @Builder.Default
-    private final SimpleObjectProperty<LocalDateTime> thumbnailUpdateProperty = new SimpleObjectProperty<>(LocalDateTime.MIN.plusHours(1L));
+    private final SimpleObjectProperty<LocalDateTime> lastUpdated   = new SimpleObjectProperty<>(TIMESTAMP);
     @NonNull
     @Builder.Default
-    private final SimpleBooleanProperty               loadedInCache           = new SimpleBooleanProperty(false);
+    private final SimpleBooleanProperty               loadedInCache = new SimpleBooleanProperty(false);
 
     @NonNull
     @Builder.Default
@@ -52,6 +56,10 @@ public class MediaFile implements IMediaFile {
 
     private boolean selected;
 
+
+    public SimpleBooleanProperty loadedInCacheProperty() {
+        return loadedInCache;
+    }
 
     @Override
     public long id() {
@@ -107,7 +115,7 @@ public class MediaFile implements IMediaFile {
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[] { mf.loadedInCache, mf.thumbnailUpdateProperty };
+        return mf -> new Observable[] { mf.loadedInCache, mf.lastUpdated };
     }
 
     public void setId(Long id) {
@@ -122,6 +130,11 @@ public class MediaFile implements IMediaFile {
     public boolean isLoadedInCache() {
         return loadedInCache.get();
     }
+
+    public void setLastUpdated(LocalDateTime time) {
+        lastUpdated.set(time);
+    }
+
 }
 
 //public record MediaFile(long id,

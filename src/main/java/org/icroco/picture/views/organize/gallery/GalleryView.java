@@ -49,10 +49,10 @@ import org.springframework.stereotype.Component;
 
 import java.awt.*;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 import static javafx.application.Platform.runLater;
@@ -101,10 +101,10 @@ public class GalleryView implements FxView<StackPane> {
         root.setEventDispatcher(new DoubleClickEventDispatcher(root.getEventDispatcher()));
 
         log.debug("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
-                 gridView.getCellWidth(),
-                 gridView.getCellHeight(),
-                 gridView.getHorizontalCellSpacing(),
-                 gridView.getVerticalCellSpacing());
+                  gridView.getCellWidth(),
+                  gridView.getCellHeight(),
+                  gridView.getHorizontalCellSpacing(),
+                  gridView.getVerticalCellSpacing());
         sortedImages.setComparator(Comparator.comparing(MediaFile::getOriginalDate));
         gridView.setItems(sortedImages);
 //        gridCellWidth = Optional.ofNullable(pref.getUserPreference().getGrid().getCellWidth()).orElse((int)gridView.getCellWidth());
@@ -354,12 +354,7 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void updateImages(CollectionEvent event) {
-        // FIXME: Confilt with dir scanning.
-        MediaCollection mediaCollection = event.getMediaCollection();
-        log.info("CollectionEvent type {}, Collection: {}, mediaFiles size: {}",
-                 event.getType(),
-                 mediaCollection.id(),
-                 mediaCollection.medias().size());
+        log.info("CollectionEvent type {}, CollectionId: {},", event.getType(), event.getMcId());
 
         switch (event.getType()) {
             case DELETED -> {
@@ -367,11 +362,29 @@ public class GalleryView implements FxView<StackPane> {
                 // TODO: clear thumbnail cache ?
             }
             case SELECTED -> {
-                currentCatalog.set(mediaCollection);
+                currentCatalog.set(persistenceService.getMediaCollection(event.getMcId()));
                 // TODO: Warm thumbnail cache ?
             }
             case READY -> {
-                // Ingore right now.
+                var mc = persistenceService.getMediaCollection(event.getMcId())
+                                           .medias()
+                                           .stream()
+                                           .collect(Collectors.toMap(MediaFile::getId, Function.identity()));
+
+                gridView.getSelectionModel()
+                        .getSelection()
+                        .stream()
+                        .map(cell -> {
+                            var found = mc.get(cell.getItem().getId());
+                            if (found == null) {
+                                return null;
+                            } else {
+                                cell.setItem(found);
+                                return cell;
+                            }
+                        })
+                        .filter(Objects::nonNull)
+                        .forEach(gridView.getSelectionModel()::set);
             }
         }
     }
@@ -382,12 +395,13 @@ public class GalleryView implements FxView<StackPane> {
             return;
         }
         log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}'",
-                 event.getMediaCollectionId(),
-                 event.getModifiedItems(),
+                 event.getMcId(),
                  event.getNewItems().size(),
-                 event.getDeletedItems().size());
+                 event.getDeletedItems().size(),
+                 event.getModifiedItems());
         images.addAll(event.getNewItems());
         images.removeAll(event.getDeletedItems());
+//        event.getModifiedItems().forEach(mf -> mf.setLoadedInCache(false));
         // TODO: Implements updates
     }
 

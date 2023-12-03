@@ -353,5 +353,13 @@ public class CustomGridView<T> extends GridView<T> {
             return Set.copyOf(selection);
         }
 
+        public void refreshSelection() {
+            selection.stream().findFirst().ifPresent(cell ->
+                                                             taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                                                                     .mf(cell.getItem())
+                                                                                                     .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+                                                                                                     .source(this)
+                                                                                                     .build()));
+        }
     }
 }

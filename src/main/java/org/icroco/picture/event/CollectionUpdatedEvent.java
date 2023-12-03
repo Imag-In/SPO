@@ -11,7 +11,7 @@ import java.util.Collection;
 @ToString(exclude = { "newItems", "deletedItems" })
 @SuperBuilder
 public class CollectionUpdatedEvent extends IiEvent {
-    private final int                   mediaCollectionId;
+    private final int mcId;
     private final Collection<MediaFile> newItems;
     private final Collection<MediaFile> deletedItems;
     private final Collection<MediaFile> modifiedItems;

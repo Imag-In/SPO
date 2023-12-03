@@ -7,6 +7,8 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class ExtractThumbnailEvent extends IiEvent {
     private final int mcId;
+    private final boolean update;
+
 
     @Override
     public String toString() {

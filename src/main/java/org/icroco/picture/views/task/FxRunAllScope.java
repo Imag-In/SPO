@@ -37,7 +37,8 @@ public class FxRunAllScope<T> extends StructuredTaskScope<T> {
                 return null;
             }
         }).orElseThrow();
-        taskService.vSupply(task, true);
+
+        Thread.ofVirtual().name("FxRunAllScope").start(task);
     }
 
     @Override

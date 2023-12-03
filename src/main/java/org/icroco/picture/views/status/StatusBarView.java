@@ -88,12 +88,13 @@ public class StatusBarView implements FxView<HBox> {
             }
         });
         versionAvailable.setManaged(false);
-        versionAvailableIcon.setManaged(false);
-        tooltip.setShowDelay(Duration.seconds(4));
+        versionAvailable.setPadding(new Insets(0, 0, 0, 10));
 
+        tooltip.setShowDelay(Duration.seconds(4));
+        versionAvailable.getStyleClass().add(Styles.ACCENT);
+        versionAvailableIcon.setManaged(false);
         versionAvailableIcon.getStyleClass().add(Styles.ACCENT);
-        versionAvailable.getStyleClass().add("-fx-alignment: center-right");
-//        versionAvailable.getStyleClass().add(Styles.ACCENT);
+
         ContextMenu contextMenu = new ContextMenu();
         MenuItem    openRelease = new MenuItem("Release page");
         openRelease.setOnAction(this::goToReleaseUrl);

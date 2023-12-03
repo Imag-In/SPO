@@ -38,7 +38,7 @@ public class SpoPreLoader extends Preloader {
                          "spo-32x32.png",
                          "spo-16x16.png")
                      .map(s -> "/images/" + s)
-                     .map(s -> new Image(s))
+                     .map(Image::new)
                      .toList();
     }
 

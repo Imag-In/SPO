@@ -285,7 +285,7 @@ public class ImportView extends AbstractView<StackPane> {
                        .thenAccept(paths -> {
                            var files = paths.stream()
                                             .peek(path -> log.debug("Importing: '{}'", path))
-                                            .flatMap(f -> collectionManager.create(now, f).stream())
+                                            .flatMap(f -> collectionManager.create(now, f, false).stream())
                                             .map(mf -> new RenameFile(mf, createDestinationPath(mf, strategy)))
                                             .toList();
                            Task<List<MediaFile>> copyFiles = importFiles(files);

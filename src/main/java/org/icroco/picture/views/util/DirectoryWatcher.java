@@ -18,18 +18,21 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Predicate;
 
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardWatchEventKinds.*;
 
 @Slf4j
 @Component
+// TODO: clean watched dir when a collection is removed.
 public class DirectoryWatcher {
     private final WatchService    watcher;
     private final boolean         recursive;
     private final TaskService     taskService;
-    private final Set<FileChange> changes = ConcurrentHashMap.newKeySet();
+    private final Set<FileChange> changes      = ConcurrentHashMap.newKeySet();
     private       Thread          drainerVThread;
+    private final Predicate<Path> excludeFiles = p -> p.getFileName().equals(Path.of(".DS_Store"));
 
 
     @Autowired
@@ -75,9 +78,9 @@ public class DirectoryWatcher {
      */
     private void register(Path dir) throws IOException {
         // TODO: Filter out based on a list of name.
-        if (!".DS_Store".equals(dir.getFileName().toString())) {
+        if (!excludeFiles.test(dir.getFileName())) {
             dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-            log.debug("Watch: '{}'", dir);
+            log.info("Watch: '{}'", dir);
         }
     }
 

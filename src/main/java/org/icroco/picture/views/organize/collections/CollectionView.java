@@ -152,12 +152,12 @@ public class CollectionView implements FxView<VBox> {
 
     private Pair<MediaCollection, TreeItem<CollectionNode>> createTreeView(final MediaCollection mediaCollection) {
         var pathTreeItem = new TreeItem<>(new CollectionNode(mediaCollection.path(), mediaCollection.id(), true));
-        log.info("Add collection: {}", mediaCollection.path());
+        log.info("Add collection: '{}', into tree view.", mediaCollection.path());
         rootTreeItem.getChildren().add(pathTreeItem);
         mediaCollection.subPaths().forEach(c -> {
             var p = c.name();//mediaCollection.path().relativize(c.name());
             addSubDir(pathTreeItem, p, mediaCollection.id());
-            log.debug("Path: {}", p);
+            log.debug("Path: '{}'", p);
         });
 
         final TitledPane title = new TitledPane(mediaCollection.path().getFileName().toString(), treeView);
@@ -219,7 +219,7 @@ public class CollectionView implements FxView<VBox> {
                               Nodes.show(dlg, getRootContent().getScene())
                                    .filter(buttonType -> buttonType == ButtonType.OK)
                                    .ifPresent(_ -> collectionManager.deleteCollection(mc,
-                                                                                      _ -> catalogSizeProp.set(persistenceService.countMediaFiles())));
+                                                                                      () -> catalogSizeProp.set(persistenceService.countMediaFiles())));
                           });
     }
 
@@ -244,10 +244,10 @@ public class CollectionView implements FxView<VBox> {
                 return;
             }
 
+            disablePathActions.set(true);
             taskService.supply(ModernTask.builder()
-                                         .execute(() -> detectParentCollection(newColPath))
-                                         .onSuccess(_ -> {
-                                             disablePathActions.set(true);
+                                         .execute(_ -> detectParentCollection(newColPath))
+                                         .onSuccess((myself, _) -> {
                                              // TODO: Ask question if newCollection is on a network volume or if @item is > 1000 ?
                                              var task = collectionManager.newCollection(newColPath, this::askConfirmation);
                                              task.setOnSucceeded(_ -> {
@@ -260,7 +260,6 @@ public class CollectionView implements FxView<VBox> {
                                          .build());
         }
     }
-
 
     boolean askConfirmation(long nbFilesToImport) {
         // TODO: Add into preferences
@@ -284,8 +283,7 @@ public class CollectionView implements FxView<VBox> {
                     .stream()
                     .map(ti -> persistenceService.getMediaCollection(ti.getValue().id()))
                     .filter(mc -> mc.path().startsWith(newColPath))
-                    .forEach(mc -> collectionManager.deleteCollection(mc, _ -> {
-                    }));
+                    .forEach(collectionManager::deleteCollection);
 //                    .ifPresent(collectionManager::deleteCollection); // TODO: Ask user confirmation ?
 
         return null;
@@ -348,15 +346,15 @@ public class CollectionView implements FxView<VBox> {
         if (Objects.requireNonNull(event.getType()) == EventType.READY) {
             rootTreeItem.getChildren()
                         .stream()
-                        .filter(treeItem -> treeItem.getValue().id() == event.getMediaCollection().id())
+                        .filter(treeItem -> treeItem.getValue().id() == event.getMcId())
                         .findFirst()
                         .ifPresent(treeItem -> {
                             treeItem.setExpanded(true);
                             treeView.getSelectionModel().select(treeItem);
                         });
         } else if (Objects.requireNonNull(event.getType()) == EventType.DELETED) {
-            catalogSizeProp.set(persistenceService.countMediaFiles());
-            rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().path().equals(event.getMediaCollection().path()));
+//            catalogSizeProp.set(persistenceService.countMediaFiles());
+            rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().id() == event.getMcId());
         }
 //        else if (EventType.SELECTED == event.getType()) {
 //            treeView.getSelectionModel().clearSelection();
@@ -368,13 +366,13 @@ public class CollectionView implements FxView<VBox> {
         if (event.isEmpty()) {
             return;
         }
-        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}",
-                 event.getMediaCollectionId(),
+        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}'",
+                 event.getMcId(),
                  event.getNewItems().size(),
-                 event.getModifiedItems().size(),
-                 event.getDeletedItems().size());
+                 event.getDeletedItems().size(),
+                 event.getModifiedItems().size());
         if (!event.getNewItems().isEmpty()) {
-            var mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
+            var mc = persistenceService.getMediaCollection(event.getMcId());
             var directories = event.getNewItems()
                                    .stream()
                                    .map(mediaFile -> mediaFile.getFullPath().normalize().getParent())
@@ -390,7 +388,7 @@ public class CollectionView implements FxView<VBox> {
 
             rootTreeItem.getChildren()
                         .stream()
-                        .filter(treeItem -> treeItem.getValue().id() == event.getMediaCollectionId())
+                        .filter(treeItem -> treeItem.getValue().id() == event.getMcId())
                         .findFirst()
                         .ifPresent(treeItem -> updateTreeView(treeItem, mcSaved));
         }
