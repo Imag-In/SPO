@@ -3,11 +3,14 @@ package org.icroco.picture.views.util;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.config.ImagInConfiguration;
+import org.icroco.picture.event.CollectionEvent;
 import org.icroco.picture.event.FilesChangesDetectedEvent;
 import org.icroco.picture.persistence.CollectionRepository;
 import org.icroco.picture.views.task.TaskService;
+import org.jooq.lambda.Unchecked;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.event.EventListener;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -27,12 +31,13 @@ import static java.nio.file.StandardWatchEventKinds.*;
 @Component
 // TODO: clean watched dir when a collection is removed.
 public class DirectoryWatcher {
-    private final WatchService    watcher;
-    private final boolean         recursive;
-    private final TaskService     taskService;
-    private final Set<FileChange> changes      = ConcurrentHashMap.newKeySet();
-    private       Thread          drainerVThread;
-    private final Predicate<Path> excludeFiles = p -> p.getFileName().equals(Path.of(".DS_Store"));
+    private final WatchService        watcher;
+    private final boolean             recursive;
+    private final TaskService         taskService;
+    private final Set<FileChange>     changes      = ConcurrentHashMap.newKeySet();
+    private final Map<Path, WatchKey> keys         = new ConcurrentHashMap<>();
+    private       Thread              drainerVThread;
+    private final Predicate<Path>     excludeFiles = p -> p.getFileName().equals(Path.of(".DS_Store"));
 
 
     @Autowired
@@ -76,11 +81,11 @@ public class DirectoryWatcher {
     /**
      * Register the given directory with the WatchService
      */
-    private void register(Path dir) throws IOException {
+    private void register(Path dir) {
         // TODO: Filter out based on a list of name.
         if (!excludeFiles.test(dir.getFileName())) {
-            dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-            log.info("Watch: '{}'", dir);
+            keys.computeIfAbsent(dir, Unchecked.function(d -> d.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY)));
+            log.debug("Watch: '{}'", dir);
         }
     }
 
@@ -156,7 +161,7 @@ public class DirectoryWatcher {
                             } else if (kind == ENTRY_DELETE) {
                                 log.info("Un-watch dir: {}", child);
                             } else if (kind == ENTRY_MODIFY) {
-                                log.info("Dir modified: {}", child);
+                                log.debug("Dir modified: {}", child);
                             }
                         } else {
                             if (kind == ENTRY_CREATE) {
@@ -229,6 +234,18 @@ public class DirectoryWatcher {
             }
         } catch (InterruptedException e) {
             log.warn("Thread interruped");
+        }
+    }
+
+    @EventListener
+    void collectionDeleted(CollectionEvent event) {
+        if (event.getType() == CollectionEvent.EventType.DELETED) {
+            LangUtils.safeStream(event.getSubDirs()).forEach(path -> {
+                var watchKey = keys.remove(path);
+                if (watchKey != null) {
+                    watchKey.cancel();
+                }
+            });
         }
     }
 }

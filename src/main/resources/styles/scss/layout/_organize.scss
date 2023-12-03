@@ -4,13 +4,13 @@
   .v-gallery {
     .grid-view {
       .grid-cell:hover {
-        -fx-background-color: -color-base-6;
+        -fx-background-color: -color-fg-default;
         -fx-background-radius: 3.0;
         -fx-padding: 8;
       }
 
       .image-grid-cell:selected {
-        -fx-background-color: -color-base-6;
+        -fx-background-color: -color-fg-default;
         -fx-border-style: solid;
         -fx-border-width: 0 0 0 0; /* its make really one-pixel-border */
         -fx-border-color: -color-base-0;

@@ -19,11 +19,14 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor
 public class MediaFile implements IMediaFile {
+    public static  Comparator<MediaFile> UPDATED_COMP = Comparator.comparing(MediaFile::getHash);
+    private static LocalDateTime         TIMESTAMP    = LocalDateTime.MIN.plusHours(1L);
+
     private Long           id;
     private Path           fullPath;
     private String         fileName;
     private LocalDateTime  originalDate;
-    private Set<Keyword>  keywords;
+    private Set<Keyword>   keywords;
     private GeoLocation    geoLocation;
     private String         hash;
     private LocalDate      hashDate;
@@ -31,14 +34,13 @@ public class MediaFile implements IMediaFile {
     private Short          orientation;
     private Camera         camera;
     private Integer        collectionId;
+    private boolean        selected;
     @Builder.Default
     private EKeepOrThrow   keepOrThrow   = EKeepOrThrow.UNKNOW;
     @NonNull
     @Builder.Default
     private EThumbnailType thumbnailType = EThumbnailType.ABSENT;
 
-    public static  Comparator<MediaFile> UPDATED_COMP = Comparator.comparing(MediaFile::getHash);
-    private static LocalDateTime         TIMESTAMP    = LocalDateTime.MIN.plusHours(1L);
 
     //    @NonNull
 //    @Builder.Default
@@ -53,8 +55,6 @@ public class MediaFile implements IMediaFile {
     @NonNull
     @Builder.Default
     private SimpleLongProperty idProperty = new SimpleLongProperty(0);
-
-    private boolean selected;
 
 
     public SimpleBooleanProperty loadedInCacheProperty() {
@@ -135,6 +135,25 @@ public class MediaFile implements IMediaFile {
         lastUpdated.set(time);
     }
 
+    public void initFrom(MediaFile source) {
+        if (source.id != null) {
+            this.id = source.id;
+        }
+        this.fullPath = source.fullPath;
+        this.fileName = source.fileName;
+        this.originalDate = source.originalDate;
+        this.keywords = source.keywords;
+        this.geoLocation = source.geoLocation;
+        this.hash = source.hash;
+        this.hashDate = source.hashDate;
+        this.dimension = source.dimension;
+        this.orientation = source.orientation;
+        this.camera = source.camera;
+        this.collectionId = source.collectionId;
+        this.selected = source.selected;
+        this.keepOrThrow = source.keepOrThrow;
+        this.thumbnailType = source.thumbnailType;
+    }
 }
 
 //public record MediaFile(long id,

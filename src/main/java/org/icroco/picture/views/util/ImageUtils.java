@@ -49,7 +49,7 @@ public class ImageUtils {
         if (Platform.isFxApplicationThread()) {
             var image = NO_THUMBNAIL.get();
             if (NO_THUMBNAIL.get() == null) {
-                image = createImage("No thumbail\navailable\ninside image.");
+                image = createImage("No thumbail\nembeded\ninto image.");
                 NO_THUMBNAIL.set(image);
             }
             return image;

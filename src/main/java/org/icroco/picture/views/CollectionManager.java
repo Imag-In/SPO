@@ -131,11 +131,16 @@ public class CollectionManager {
         // We skip if changes are only about fide date changes.
         return mfUpdated.stream()
                         .map(mf -> create(now, mf.fullPath(), true)
+                                // TODO: do not create a new MedialFile pointer, copy new one into current.
                                 .filter(newMf -> MediaFile.UPDATED_COMP.compare(newMf, mf) != 0)
                                 .map(newMf -> {
-                                    newMf.setId(mf.getId());
-                                    return newMf;
+                                    mf.initFrom(newMf);
+                                    return mf;
                                 })
+//                                .map(newMf -> {
+//                                    newMf.setId(mf.getId());
+//                                    return newMf;
+//                                })
                                 .orElse(null))
                         .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
@@ -387,6 +392,10 @@ public class CollectionManager {
                                          taskService.sendEvent(CollectionEvent.builder()
                                                                               .mcId(mc.id())
                                                                               .type(CollectionEvent.EventType.DELETED)
+                                                                              .subDirs(mc.subPaths()
+                                                                                         .stream()
+                                                                                         .map(MediaCollectionEntry::name)
+                                                                                         .toList())
                                                                               .source(this)
                                                                               .build());
                                          myself.updateMessage("Deleting database items ...");

@@ -1,5 +1,8 @@
 package org.icroco.picture.model;
 
+import lombok.Builder;
+
+@Builder
 public record Dimension(int width, int height) {
 
     public Dimension(double witdh, double height) {

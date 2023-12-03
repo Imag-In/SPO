@@ -71,10 +71,14 @@ public class StatusBarView implements FxView<HBox> {
         memoryStatus = new ProgressBar(0);
         memoryStatus.setPrefWidth(100);
 
+        progressBar.setVisible(false);
         progressBar.setMinWidth(200);
         progressBar.setMaxWidth(200);
         progressBar.getStyleClass().add(Styles.SMALL);
+        progressBar.setPadding(new Insets(0, 0, 0, 5));
+
         progressLabel.setMinWidth(250);
+        progressBar.setVisible(false);
         SimpleListProperty<Task<?>> list = new SimpleListProperty<>(taskView.getTasks());
         progressBar.progressProperty().bind(Bindings.valueAt(list, 0).flatMap(Task::progressProperty));
         taskView.getTasks().addListener(getTaskListChangeListener());

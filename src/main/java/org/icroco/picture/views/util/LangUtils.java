@@ -5,7 +5,9 @@ import org.springframework.lang.Nullable;
 import org.threeten.extra.AmountFormats;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 public class LangUtils {
 
@@ -21,5 +23,12 @@ public class LangUtils {
 
     public static String wordBased(Duration duration) {
         return AmountFormats.wordBased(duration, Locale.getDefault());
+    }
+
+
+    public static <T> Stream<T> safeStream(Collection<T> collection) {
+        return collection == null || collection.isEmpty()
+               ? Stream.empty()
+               : collection.stream();
     }
 }

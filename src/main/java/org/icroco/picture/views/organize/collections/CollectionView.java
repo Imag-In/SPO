@@ -342,7 +342,7 @@ public class CollectionView implements FxView<VBox> {
 
     @FxEventListener
     public void catalogEvent(final CollectionEvent event) {
-        log.info("Catalog Event: {}", event);
+        log.info("Catalog CollectionEvent: {}", event);
         if (Objects.requireNonNull(event.getType()) == EventType.READY) {
             rootTreeItem.getChildren()
                         .stream()
@@ -350,15 +350,13 @@ public class CollectionView implements FxView<VBox> {
                         .findFirst()
                         .ifPresent(treeItem -> {
                             treeItem.setExpanded(true);
-                            treeView.getSelectionModel().select(treeItem);
+                            if (treeView.getSelectionModel().isEmpty()) {
+                                treeView.getSelectionModel().select(treeItem);
+                            }
                         });
         } else if (Objects.requireNonNull(event.getType()) == EventType.DELETED) {
-//            catalogSizeProp.set(persistenceService.countMediaFiles());
             rootTreeItem.getChildren().removeIf(pathTreeItem -> pathTreeItem.getValue().id() == event.getMcId());
         }
-//        else if (EventType.SELECTED == event.getType()) {
-//            treeView.getSelectionModel().clearSelection();
-//        }
     }
 
     @FxEventListener
@@ -366,7 +364,7 @@ public class CollectionView implements FxView<VBox> {
         if (event.isEmpty()) {
             return;
         }
-        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}'",
+        log.info("Recieved CollectionUpdatedEvent on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}'",
                  event.getMcId(),
                  event.getNewItems().size(),
                  event.getDeletedItems().size(),
@@ -397,6 +395,7 @@ public class CollectionView implements FxView<VBox> {
 
     @FxEventListener
     public void selectCollectionAndDirectory(ShowOrganizeEvent event) {
+        log.info("Receive ShowOrganizeEvent: {}", event);
         Nodes.searchTreeItemByPredicate(rootTreeItem, collectionNode -> collectionNode.path().equals(event.getDirectory()))
              .ifPresent(ti -> treeView.getSelectionModel().select(ti));
     }

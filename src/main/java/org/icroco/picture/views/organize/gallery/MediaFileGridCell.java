@@ -61,12 +61,8 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         if (empty || item == null) {
             this.setGraphic(null);
             lastHash = EMPTY_STRING;
-            log.debug("reset cell({})", this.hashCode());
         } else {
             updateSelected(grid.getSelectionModel().contains(this));
-            item.getLastUpdated().addListener((observable, oldValue1, newValue) -> {
-                log.info("Update: {}:{}", item.getFullPath(), newValue);
-            });
             if (item.isLoadedInCache()) {
                 if ((lastHash != null && !lastHash.equals(item.getHash()) || MediaFileGridCellFactory.isCellVisible(grid, this))) {
                     lastHash = item.getHash();
@@ -78,8 +74,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
                                                                                                                  item.getHash(),
                                                                                                                  (!lastHash.equals(item.getHash())),
                                                                                                                  MediaFileGridCellFactory.isCellVisible(
-                                                                                                                         grid,
-                                                                                                                         this)));
+                                                                                                                         grid, this)));
                     setImage(mediaLoader.getCachedValue(item)
                                         .map(Thumbnail::getImage)
                                         .orElse(ImageUtils.getNoThumbnailImage()));
@@ -88,14 +83,6 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
                 setImage(ImageUtils.getNoThumbnailImage());
             }
             setGraphic(root);
-//            if (MediaFileGridCellFactory.isCellVisible(grid, this)) {
-//                setImage(mediaLoader.getCachedValue(item)
-//                                    .map(Thumbnail::getImage)
-//                                    .orElseGet(() -> {
-//                                        mediaLoader.loadAndCachedValue(item);
-//                                        return MediaLoader.LOADING;
-//                                    }));
-//            }
         }
     }
 
@@ -119,5 +106,4 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
 
         return imageView;
     }
-
 }

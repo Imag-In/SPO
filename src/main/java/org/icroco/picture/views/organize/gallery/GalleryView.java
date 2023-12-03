@@ -327,31 +327,6 @@ public class GalleryView implements FxView<StackPane> {
         event.consume();
     }
 
-//    @FxEventListener
-//    public void stageReady(StageReadyEvent event) {
-//        var width = Math.max(gridView.getCellWidth(), (root.getWidth() - 100) / (gridView.getItemsInRow() - 1));
-//        width = Math.max(128, root.getWidth() / 8);
-//
-//        log.info("Parent width: {}, nbColumn: {}, currentWidth: {}, newWidth: {}",
-//                 gridView.getWidth(),
-//                 gridView.getItemsInRow(),
-//                 gridView.getCellWidth(),
-//                 width);
-////        gridView.cellWidthProperty().bind(Bindings.max(128, Bindings.divide(root.widthProperty(), 8)));
-//
-////        root.widthProperty().addListener((observable, oldValue, newValue) -> {
-////            gridCellWidth = Math.max(128, newValue.doubleValue() / 8);
-//////            log.info("Parent width: {}, cell width: {}", newValue, gridCellWidth);
-//////            gridView.setCellHeight(gridCellWidth);
-//////            gridView.setCellWidth(gridCellWidth);
-////        });
-//
-////        gridCellHeight = gridCellWidth = width;
-////        gridView.setCellWidth(width);
-////        gridView.setCellHeight(width);
-//        gridView.requestFocus();
-//    }
-
     @FxEventListener
     public void updateImages(CollectionEvent event) {
         log.info("CollectionEvent type {}, CollectionId: {},", event.getType(), event.getMcId());
@@ -394,15 +369,16 @@ public class GalleryView implements FxView<StackPane> {
         if (event.isEmpty()) {
             return;
         }
-        log.info("Recieved update on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}'",
+        log.info("Recieved CollectionUpdatedEvent on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}'",
                  event.getMcId(),
                  event.getNewItems().size(),
                  event.getDeletedItems().size(),
                  event.getModifiedItems());
         images.addAll(event.getNewItems());
         images.removeAll(event.getDeletedItems());
-//        event.getModifiedItems().forEach(mf -> mf.setLoadedInCache(false));
-        // TODO: Implements updates
+        // TODO: find a smoother way to update.
+        images.removeAll(event.getModifiedItems());
+        images.addAll(event.getModifiedItems());
     }
 
 
@@ -431,8 +407,8 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void updatePhotoSelected(PhotoSelectedEvent event) {
+        log.info("Receive PhotoSelectedEvent: {}", event);
         if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
-//            log.info("GridView item in row: {}", gridView.getItemsInRow());
             final var source = ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
             final var mf     = event.getMf();
             log.atDebug().log(() -> {
@@ -449,13 +425,7 @@ public class GalleryView implements FxView<StackPane> {
                                    cache.map(Thumbnail::getOrigin).orElse(null)
                         );
             });
-//            TreeItem<Path> root = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
-//            log.info("root: {}, mv: {}", root, mf.getFullPath());
-//            Path           subPath = root.getValue().relativize(mf.getFullPath());
             resetBcbModel(mf.getFullPath());
-        } else {
-//            TreeItem<Path> root = Nodes.getRoot(breadCrumbBar.getSelectedCrumb());
-//            resetBcbModel(null);
         }
     }
 
@@ -543,20 +513,6 @@ public class GalleryView implements FxView<StackPane> {
             expandCell.set(!expandCell.getValue());
         }
     }
-
-//    //    @FxEventListener
-//    public void refreshGrid(GalleryRefreshEvent event) {
-//        if (event.getMediaCollectionId() == Optional.ofNullable(currentCatalog.get())
-//                                                    .map(MediaCollection::id)
-//                                                    .orElse(event.getMediaCollectionId())) {
-//            log.info("Refresh collection id: '{}'", event.getMediaCollectionId());
-//            MediaCollection mc = persistenceService.getMediaCollection(event.getMediaCollectionId());
-//            images.clear();
-//            images.addAll(mc.medias());
-//            currentCatalog.set(mc);
-////                gridView.refreshItems();
-//        }
-//    }
 
     @Override
     public StackPane getRootContent() {
