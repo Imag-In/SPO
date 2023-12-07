@@ -11,6 +11,7 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.util.Env;
 import org.icroco.picture.util.Resources;
 import org.icroco.picture.util.SceneReadyEvent;
 import org.icroco.picture.util.StageReadyEvent;
@@ -32,17 +33,14 @@ public class StageInitializer {
     private final ConfigurableApplicationContext context;
     private final UserPreferenceService          userPref;
     private final ThemeManager                   themeManager;
-
-    private final MainView mainView;
+    private final MainView                       mainView;
+    private final Env                            env;
 
     @FxEventListener
     public void onApplicationEvent(StageReadyEvent event) {
         Stage primaryStage = event.getStage();
         primaryStage.setOnCloseRequest(this::saveWindowDimension);
         primaryStage.setTitle("Imag'In");
-//        Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
-//        Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
-
 
         var antialiasing = Platform.isSupported(ConditionalFeature.SCENE3D)
                            ? SceneAntialiasing.BALANCED
@@ -60,6 +58,9 @@ public class StageInitializer {
             ScenicView.show(scene);
         }
 
+        if (env.isDev()) {
+            scene.focusOwnerProperty().addListener((_, _, newValue) -> log.info("Focus onwer: {}", newValue));
+        }
         context.publishEvent(new SceneReadyEvent(scene, primaryStage));
 
 //            Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));

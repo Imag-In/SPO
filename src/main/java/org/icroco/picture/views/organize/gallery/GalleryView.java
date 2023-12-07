@@ -14,12 +14,13 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.CacheHint;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
-import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
-import javafx.scene.control.Slider;
+import javafx.scene.control.*;
 import javafx.scene.input.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -28,10 +29,12 @@ import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
 import org.icroco.picture.event.*;
+import org.icroco.picture.model.EKeepOrThrow;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.persistence.PersistenceService;
+import org.icroco.picture.util.SceneReadyEvent;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
@@ -42,7 +45,10 @@ import org.icroco.picture.views.util.widget.Zoom;
 import org.icroco.picture.views.util.widget.ZoomDragPane;
 import org.jooq.lambda.Unchecked;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.javafx.StackedFontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
+import org.kordamp.ikonli.material2.Material2OutlinedAL;
+import org.kordamp.ikonli.material2.Material2OutlinedMZ;
 import org.slf4j.Logger;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
@@ -89,7 +95,11 @@ public class GalleryView implements FxView<StackPane> {
     private       int                                   zoomLevel      = 0;
     private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
     private       EGalleryClickState                    dblCickState   = EGalleryClickState.GALLERY;
-
+    private       HBox                                  toolBar;
+    FontIcon        thumbsUpDownIcon = new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
+    FontIcon        blockIcon        = new FontIcon(Material2OutlinedAL.BLOCK);
+    StackedFontIcon keepOrThrowIcon  = new StackedFontIcon();
+    Label           keepOrThrowLabel = new Label();
 
     @PostConstruct
     protected void postConstruct() {
@@ -120,7 +130,12 @@ public class GalleryView implements FxView<StackPane> {
         ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(this::applyGridCellWidthFactor);
         gridView.setHorizontalCellSpacing(0D);
         gridView.setVerticalCellSpacing(0D);
-        gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader, taskService, expandCell, this::cellDoubleClick));
+        keepOrThrowLabel.setOpacity(0.4);
+        gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader,
+                                                             taskService,
+                                                             expandCell,
+                                                             this::cellDoubleClick,
+                                                             Bindings.greaterThan(keepOrThrowLabel.opacityProperty(), 0.4)));
         gridView.setOnZoom(this::zoomOnGrid);
         currentCatalog.addListener(this::collectionChanged);
         carousel.addEventHandler(CustomMouseEvent.MOUSE_DOUBLE_CLICKED, this::onImageClick);
@@ -136,11 +151,17 @@ public class GalleryView implements FxView<StackPane> {
 //        carousel.setBottom(carouselIcons);
 
         addInputMap(root, sequence(consume(keyPressed(KeyCode.ESCAPE), this::escapePressed)));
-        addInputMap(root, sequence(consume(keyPressed(KeyCode.LEFT), this::leftPressed)));
-        addInputMap(root, sequence(consume(keyPressed(KeyCode.RIGHT), this::rightPressed)));
-        addInputMap(root, sequence(consume(keyPressed(KeyCode.UP), this::skipPressed)));
-        addInputMap(root, sequence(consume(keyPressed(KeyCode.DOWN), this::skipPressed)));
-
+//        addInputMap(root, sequence(consume(keyPressed(KeyCode.LEFT), this::leftPressed)));
+//        addInputMap(root, sequence(consume(keyPressed(KeyCode.RIGHT), this::rightPressed)));
+//        addInputMap(root, sequence(consume(keyPressed(KeyCode.UP), this::skipPressed)));
+//        addInputMap(root, sequence(consume(keyPressed(KeyCode.DOWN), this::skipPressed)));
+        addInputMap(root, sequence(consume(keyPressed(KeyCode.K), this::kPressed)));
+//        addInputMap(root, sequence(consume(keyPressed(KeyCode.P), keyEvent -> log.info("P pressed"))));
+//        addInputMap(root, sequence(consume(keyPressed(KeyCode.DIGIT4), keyEvent -> log.info("Shift pressed"))));
+//
+//        root.setOnKeyPressed(ev2 -> {if (ev2.getCode() == KeyCode.DIGIT2) {
+//            log.info("2222");
+//        }});
 //        photo.fitHeightProperty().bind(photoContainer.heightProperty().subtract(10));
 //        photo.fitWidthProperty().bind(photoContainer.widthProperty().subtract(10));
 
@@ -154,14 +175,15 @@ public class GalleryView implements FxView<StackPane> {
         });
         breadCrumbBar.setDividerFactory(GalleryView::bcbDividerFactory);
 
-        expandCell.addListener((observable, oldValue, newValue) -> gridView.refreshItems());
+//        expandCell.addListener((observable, oldValue, newValue) -> gridView.refreshItems());
 
+        toolBar = createBottomBar();
+        gallery.getStyleClass().setAll("gallery-center");
         gallery.setCenter(gridView);
-        gallery.setBottom(createBottomBar());
+        gallery.setBottom(toolBar);
         carousel.setVisible(false);
         root.getChildren().addAll(gallery, carousel);
     }
-
 
     private static Node bcbDividerFactory(Breadcrumbs.BreadCrumbItem<Path> item) {
         if (item == null) {
@@ -195,23 +217,36 @@ public class GalleryView implements FxView<StackPane> {
         HBox bar = new HBox();
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().setAll("tool-bar");
-        bar.setId("gallery-toolbar");
 
         Label expand = new Label();
+        expand.setCursor(Cursor.HAND);
         expand.setPrefHeight(10D);
         FontIcon icon = new FontIcon();
 //        icon.setIconSize(32);
-        icon.setId("fitGridCell");
+        icon.setId("grid-cell-collapse");
         expand.setGraphic(icon);
         expand.setOnMouseClicked(this::expandGridCell);
 
+//        expand.setPrefHeight(10D);
 
+        thumbsUpDownIcon.getStyleClass().add("inner-icon");
+        blockIcon.getStyleClass().add("outer-icon");
+        keepOrThrowIcon.getChildren().addAll(thumbsUpDownIcon, blockIcon);
+//        new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
+//        icon.setIconSize(32);
+//        icon.setId("fitGridCell");
+        keepOrThrowLabel.setGraphic(thumbsUpDownIcon);
+        keepOrThrowLabel.setOnMouseClicked(this::keepOrThrowClick);
+        keepOrThrowLabel.setCursor(Cursor.HAND);
+//        keepOrThrowLabel.setDisable(true);
+        keepOrThrowLabel.setOpacity(.4);
+        keepOrThrowLabel.setTooltip(new Tooltip("Press 'k' to enable / disable 'Keep or Throw"));
 //        zoomThumbnails.getStyleClass().add(Styles.SMALL);
         zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
         ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(zoomThumbnails::setValue);
         zoomThumbnails.setBlockIncrement(1);
         zoomThumbnails.valueProperty()
-                      .addListener((ObservableValue<? extends Number> ov, Number oldValue, Number newValue) -> {
+                      .addListener((ObservableValue<? extends Number> _, Number _, Number newValue) -> {
                           zoomLevel = newValue.intValue();
                           log.debug("Zoom Level: {}", zoomLevel);
                           applyGridCellWidthFactor(zoomLevel);
@@ -222,9 +257,21 @@ public class GalleryView implements FxView<StackPane> {
                       });
         HBox.setHgrow(breadCrumbBar, Priority.ALWAYS);
         Label nbImages = new Label();
-        nbImages.textProperty().bind(Bindings.size(images).map(number -> number + " files"));
+        nbImages.textProperty().bind(Bindings.size(sortedImages).map(number -> number + " files"));
 
-        bar.getChildren().addAll(expand, zoomThumbnails, breadCrumbBar, new Spacer(), nbImages);
+        Label nbKeep = new Label();
+        nbKeep.setGraphic(new FontIcon(Material2OutlinedMZ.THUMB_UP));
+        nbKeep.textProperty()
+              .bind(Bindings.size(sortedImages.filtered(mf -> mf.getKeepOrThrow() == EKeepOrThrow.KEEP)).map(Object::toString));
+        Label nbThrow = new Label();
+        nbThrow.setGraphic(new FontIcon(Material2OutlinedMZ.THUMB_DOWN));
+        nbThrow.textProperty()
+               .bind(Bindings.size(sortedImages.filtered(mf -> mf.getKeepOrThrow() == EKeepOrThrow.THROW)).map(Object::toString));
+        nbKeep.visibleProperty().bind(keepOrThrowLabel.opacityProperty().map(number -> number.doubleValue() > 0.4));
+        nbThrow.visibleProperty().bind(keepOrThrowLabel.opacityProperty().map(number -> number.doubleValue() > 0.4));
+
+        bar.getChildren().addAll(expand, keepOrThrowLabel, zoomThumbnails, breadCrumbBar, new Spacer(), nbKeep, nbThrow, new Separator(
+                Orientation.VERTICAL), nbImages);
 
         return bar;
     }
@@ -430,6 +477,11 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     @FxEventListener
+    public void sceanREady(SceneReadyEvent event) {
+        root.requestFocus();
+    }
+
+    @FxEventListener
     public void imageLoading(ImageLoadingdEvent event) {
         photo.getMaskerPane().start(event.getProgress());
     }
@@ -501,17 +553,30 @@ public class GalleryView implements FxView<StackPane> {
         keyEvent.consume();
     }
 
+    private void kPressed(KeyEvent keyEvent) {
+        log.info("'K' pressed: {}", keepOrThrowLabel.getOpacity());
+        if (keepOrThrowLabel.getOpacity() == 0.4) {
+            keepOrThrowLabel.setOpacity(1);
+        } else {
+            keepOrThrowLabel.setOpacity(0.4);
+        }
+//        keepOrThrowLabel.setDisable(!keepOrThrowLabel.isDisable());
+    }
 
     public void expandGridCell(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 1) {
             Label l = (Label) mouseEvent.getSource();
             if (expandCell.getValue()) {
-                l.getGraphic().setId("fitGridCell");
+                l.getGraphic().setId("grid-cell-expand");
             } else {
-                l.getGraphic().setId("fas-expand-alt");
+                l.getGraphic().setId("grid-cell-collapse");
             }
             expandCell.set(!expandCell.getValue());
         }
+    }
+
+    public void keepOrThrowClick(MouseEvent mouseEvent) {
+        kPressed(null);
     }
 
     @Override

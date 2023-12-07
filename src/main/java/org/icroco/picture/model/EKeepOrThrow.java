@@ -4,10 +4,26 @@ import lombok.Getter;
 
 @Getter
 public enum EKeepOrThrow {
-    KEEP((short) 1),
-    UNKNOW((short) 0),
-    THROW((short) -1);
+    KEEP((short) 1) {
+        @Override
+        public EKeepOrThrow next() {
+            return THROW;
+        }
+    },
+    UNKNOW((short) 0) {
+        @Override
+        public EKeepOrThrow next() {
+            return KEEP;
+        }
+    },
+    THROW((short) -1) {
+        @Override
+        public EKeepOrThrow next() {
+            return UNKNOW;
+        }
+    };
 
+    public abstract EKeepOrThrow next();
     private final short code;
 
     EKeepOrThrow(short code) {

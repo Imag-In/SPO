@@ -34,6 +34,7 @@ public class OrganizeView implements FxView<BorderPane> {
 
         collectionView.getPathSelectionProperty().addListener(galleryView::collectionPathChange);
         collectionView.getPathSelectionProperty().addListener(detailsView::collectionPathChange);
+        galleryView.getRootContent().requestFocus();
     }
 
     private void rootVisibleCb(ObservableValue<? extends Boolean> observableValue, Boolean oldValue, Boolean newValue) {

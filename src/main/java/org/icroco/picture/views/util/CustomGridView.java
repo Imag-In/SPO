@@ -41,12 +41,11 @@ public class CustomGridView<T> extends GridView<T> {
         // add UP and DOWN arrow key listener, to set scroll position
         addEventHandler(KeyEvent.KEY_PRESSED, e -> {
             switch (e.getCode()) {
-                case UP -> oneRowUp();
-                case DOWN -> oneRowDown();
-                case LEFT -> oneRowLeft();
-                case RIGHT -> oneRowRight();
+                case UP -> Nodes.runAndConsume(e, this::oneRowUp);
+                case DOWN -> Nodes.runAndConsume(e, this::oneRowDown);
+                case LEFT -> Nodes.runAndConsume(e, this::oneRowLeft);
+                case RIGHT -> Nodes.runAndConsume(e, this::oneRowRight);
             }
-            e.consume();
         });
     }
 

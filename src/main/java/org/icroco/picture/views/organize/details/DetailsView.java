@@ -16,6 +16,7 @@ import javafx.scene.layout.VBox;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.PhotoSelectedEvent;
+import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.EThumbnailType;
@@ -28,15 +29,13 @@ import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
-import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
-import org.kordamp.ikonli.materialdesign2.MaterialDesignK;
-import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
-import org.kordamp.ikonli.materialdesign2.MaterialDesignT;
+import org.kordamp.ikonli.materialdesign2.*;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Arrays;
@@ -76,6 +75,7 @@ public class DetailsView extends AbstractView<VBox> {
     DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
     private       Path                  path        = null;
+    private final FontIcon              printImageDetails = FontIcon.of(MaterialDesignI.IMAGE_TEXT);
 
     @PostConstruct
     private void postConstruct() {
@@ -134,6 +134,7 @@ public class DetailsView extends AbstractView<VBox> {
         grid.setPadding(new Insets(10, 10, 10, 10));
         grid.setHgap(10);
         grid.setVgap(10);
+        grid.setAlignment(Pos.TOP_LEFT);
 
         // Stsrt filling the grid:
         int rowIdx = 0;
@@ -147,6 +148,12 @@ public class DetailsView extends AbstractView<VBox> {
 //            grid.add(txtDbId, 2, rowIdx);
             grid.add(dbId, 1, rowIdx);
             rowIdx++;
+            grid.add(FontIcon.of(MaterialDesignI.IMAGE_SIZE_SELECT_LARGE), 0, rowIdx);
+            grid.add(thumbnailType, 1, rowIdx);
+            rowIdx++;
+            grid.add(printImageDetails, 0, rowIdx);
+
+            rowIdx += 2;
         }
         grid.add(FontIcon.of(FontAwesomeRegular.FILE), 0, rowIdx);
         grid.add(name, 1, rowIdx);
@@ -155,11 +162,11 @@ public class DetailsView extends AbstractView<VBox> {
         grid.add(size, 1, rowIdx);
         rowIdx += 2;
 
-        grid.add(FontIcon.of(FontAwesomeRegular.CALENDAR), 0, rowIdx);
+        grid.add(FontIcon.of(MaterialDesignC.CALENDAR_BLANK), 0, rowIdx);
         grid.add(creationDate, 1, rowIdx);
         rowIdx += 2;
 
-        grid.add(FontIcon.of(FontAwesomeSolid.LOCATION_ARROW), 0, rowIdx);
+        grid.add(FontIcon.of(MaterialDesignM.MAP_MARKER_OUTLINE), 0, rowIdx);
         grid.add(gps, 1, rowIdx);
         rowIdx += 2;
 
@@ -173,14 +180,11 @@ public class DetailsView extends AbstractView<VBox> {
         if (env.isDev()) {
             grid.add(FontIcon.of(MaterialDesignP.PHONE_ROTATE_LANDSCAPE), 0, rowIdx);
             grid.add(orientation, 1, rowIdx);
-            rowIdx += 2;
+            rowIdx += 1;
         }
 
         grid.add(FontIcon.of(MaterialDesignT.TAG_OUTLINE), 0, rowIdx);
         grid.add(keywords, 1, rowIdx);
-
-
-        grid.setAlignment(Pos.TOP_RIGHT);
 
         return grid;
     }
@@ -191,6 +195,8 @@ public class DetailsView extends AbstractView<VBox> {
         var mf = event.getMf();
         log.debug("Print details for item: {}", event);
         if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
+            printImageDetails.setOnMouseClicked(_ -> DefaultMetadataExtractor.printInformation(mf.getFullPath()));
+
             tabs.getSelectionModel().selectFirst();
             mediaLoader.getCachedValue(mf).ifPresent(t -> {
                 thumbnailType.setText(mf.getThumbnailType().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
@@ -198,9 +204,13 @@ public class DetailsView extends AbstractView<VBox> {
                     thumbnailSize.setText("%d x %d".formatted((int) t.getImage().getWidth(), (int) t.getImage().getHeight()));
                 }
             });
+            log.info("Header: {}", metadataExtractor.header(mf.getFullPath()));
             dbId.setText(Long.toString(mf.getId()));
             name.setText(mf.getFileName());
-            creationDate.setText(dateTimeFormatter.format(mf.originalDate()));
+            log.info("MIN: {}, current: {}", LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.ofHours(0)), mf.originalDate());
+            if (!mf.originalDate().isEqual(LocalDateTime.MIN)) {
+                creationDate.setText(dateTimeFormatter.format(mf.originalDate()));
+            }
             if (mf.getGeoLocation().isSomewhere()) {
                 gps.setText(mf.getGeoLocation().toDMSString());
             }
@@ -215,6 +225,7 @@ public class DetailsView extends AbstractView<VBox> {
             keywords.setText(mf.getKeywords().stream().map(Keyword::name).collect(Collectors.joining(",")));
             root.setVisible(true);
         } else {
+            printImageDetails.setOnMouseClicked(null);
             root.setVisible(false);
             thumbnailType.setText(EThumbnailType.ABSENT.toString());
             thumbnailSize.setText("");

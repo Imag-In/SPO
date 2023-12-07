@@ -3,19 +3,43 @@
 .v-organize {
   .v-gallery {
     .grid-view {
+      .grid-cell {
+        .ikonli-font-icon {
+          -fx-icon-color: white;
+          -fx-background-color: rgba(255, 255, 255, 0.2);
+        }
+      }
+
       .grid-cell:hover {
-        -fx-background-color: -color-fg-default;
+        -fx-background-color: -color-base-2;
         -fx-background-radius: 3.0;
         -fx-padding: 8;
       }
 
       .image-grid-cell:selected {
-        -fx-background-color: -color-fg-default;
+        -fx-background-color: -color-base-2;
         -fx-border-style: solid;
         -fx-border-width: 0 0 0 0; /* its make really one-pixel-border */
         -fx-border-color: -color-base-0;
       }
     }
+
+    .gallery-center {
+      .tool-bar {
+        #grid-cell-expand {
+          -fx-icon-code: mdi2a-arrow-expand;
+          -fx-icon-color: -color-fg-default;
+          -fx-icon-size: 18;
+        }
+
+        #grid-cell-collapse {
+          -fx-icon-code: mdi2a-arrow-collapse;
+          -fx-icon-color: -color-fg-default;
+          -fx-icon-size: 18;
+        }
+      }
+    }
+
   }
 }
 

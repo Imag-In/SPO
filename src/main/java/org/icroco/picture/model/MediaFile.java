@@ -154,6 +154,10 @@ public class MediaFile implements IMediaFile {
         this.keepOrThrow = source.keepOrThrow;
         this.thumbnailType = source.thumbnailType;
     }
+
+    public void setNextKeepOrThrow() {
+        keepOrThrow = keepOrThrow.next();
+    }
 }
 
 //public record MediaFile(long id,

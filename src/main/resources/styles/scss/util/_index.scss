@@ -22,6 +22,15 @@
   -fx-padding: 0;
 }
 
+.stacked-ikonli-font-icon > .outer-icon {
+  -fx-icon-size: 40px;
+  -fx-icon-color: -color-base-3;
+}
+
+.stacked-ikonli-font-icon > .inner-icon {
+  -fx-icon-size: 18px;
+}
+
 //
 //*.custom-text-field {
 //  -color-input-bg: -color-bg-default;

@@ -1,5 +1,6 @@
 package org.icroco.picture.views;
 
+import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
 import lombok.RequiredArgsConstructor;
@@ -202,6 +203,12 @@ public class CollectionManager {
                                                                                                         Collections.emptyList(),
                                                                                                         files));
         });
+    }
+
+    @EventListener
+    public void mediaFileUpdate(UpdateMedialFileEvent event) {
+        persistenceService.saveMediaFile(event.getMediaFile().getCollectionId(), event.getMediaFile());
+        Platform.runLater(() -> event.getMediaFile().setLastUpdated(LocalDateTime.now()));
     }
 
     private Map<MediaCollection, List<Path>> groupByCollection(Collection<Path> files) {

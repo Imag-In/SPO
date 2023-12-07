@@ -13,6 +13,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -34,6 +35,11 @@ import java.util.function.Predicate;
 @UtilityClass
 @Slf4j
 public class Nodes {
+
+    public static void runAndConsume(KeyEvent kEvt, Runnable runnable) {
+        runnable.run();
+        kEvt.consume();
+    }
 
     public static <R> Optional<R> show(Dialog<R> alert, Scene scene) {
         alert.initOwner(scene.getWindow());
@@ -84,7 +90,7 @@ public class Nodes {
         var          conf        = GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[0];
         Window       window      = stage.getScene().getWindow();
         var
-                     s           =
+                s =
                 Screen.getScreensForRectangle(new Rectangle2D(window.getX(), window.getY(), window.getWidth(), window.getHeight()));
         if (lastScreen.getVisualBounds().getMaxX() < x + width) {
             x = Math.max(firstScreen.getVisualBounds().getMinX(), x - ((x + width) - lastScreen.getVisualBounds().getMaxX()));

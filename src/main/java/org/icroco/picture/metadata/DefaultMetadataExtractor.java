@@ -56,6 +56,8 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             return Collections.toStream(metadata.getDirectories())
                               .flatMap(d -> d.getTags().stream())
                               .filter(Objects::nonNull)
+                              .filter(tag -> tag.getDescription() != null)
+                              .filter(tag -> tag.getTagName() != null)
                               .collect(Collectors.toMap(Tag::getTagName, Tag::getDescription, (o, o2) -> {
                                   log.warn("File: '{}', Duplicate metadata values: {} <-> {}", path, o, o2);
                                   return o2;
@@ -65,6 +67,20 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
         }
 
         return java.util.Collections.emptyMap();
+    }
+
+    public static void printInformation(Path path) {
+        Unchecked.runnable(() -> {
+            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+            Collections.toStream(metadata.getDirectories())
+                       .forEach(d -> {
+                           log.info("Directory: {}", d.getClass());
+                           d.getTags()
+                            .forEach(t -> {
+                                log.info("   tags: {}({}) = {}", t.getTagName(), t.getTagType(), t.getDescription());
+                            });
+                       });
+        }).run();
     }
 
     @Override
@@ -99,7 +115,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                                                                   .map(gl -> new org.icroco.picture.model.GeoLocation(gl.getLatitude(),
                                                                                                                       gl.getLongitude()))
                                                                   .orElse(NO_WHERE))
-                                             .size(extractSize(metadata, path, edb))
+                                             .size(extractSize(metadata, path, edb, firstExifIFD0Directory))
                                              .camera(extractCamera(path, firstExifIFD0Directory))
                                              .keywords(extractKeywords(path,
                                                                        ofNullable(metadata.getFirstDirectoryOfType(IptcDirectory.class))))
@@ -163,41 +179,66 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 //    }
 
 
-    public Dimension extractSize(Metadata metadata, Path path, Optional<? extends ExifDirectoryBase> directory) {
-        return directory.map(_ -> new Dimension(getTagAsInt(directory,
-                                                            ExifDirectoryBase.TAG_EXIF_IMAGE_WIDTH,
-                                                            () -> 0,
-                                                            t -> log.warn("'{}' Cannot read width", path)),
-                                                getTagAsInt(directory,
-                                                            ExifDirectoryBase.TAG_EXIF_IMAGE_HEIGHT,
-                                                            () -> 0,
-                                                            t -> log.warn("'{}' Cannot read height", path))))
-                        .orElseGet(() -> extractPngSize(metadata, path, ofNullable(metadata.getFirstDirectoryOfType(PngDirectory.class))));
+    public Dimension extractSize(Metadata metadata, Path path, Optional<ExifSubIFDDirectory> directory,
+                                 Optional<ExifIFD0Directory> firstExifIFD0Directory) {
+        return extractSizeDD(path, directory)
+                .or(() -> extractSizeD0(path, firstExifIFD0Directory))
+                .or(() -> extractPngSize(metadata, path, ofNullable(metadata.getFirstDirectoryOfType(PngDirectory.class))))
+                .or(() -> extractJpgSize(metadata, path, ofNullable(metadata.getFirstDirectoryOfType(JpegDirectory.class))))
+                .orElse(Dimension.EMPTY_DIM);
     }
 
-    public Dimension extractPngSize(Metadata metadata, Path path, Optional<? extends PngDirectory> directory) {
-        return directory.map(_ -> new Dimension(getTagAsInt(directory,
-                                                            PngDirectory.TAG_IMAGE_WIDTH,
-                                                            () -> 0,
-                                                            t -> log.warn("'{}' Cannot read width", path)),
-                                                getTagAsInt(directory,
-                                                            PngDirectory.TAG_IMAGE_HEIGHT,
-                                                            () -> 0,
-                                                            t -> log.warn("'{}' Cannot read height", path))))
-                        .orElseGet(() -> extractJpgSize(metadata, path, ofNullable(metadata.getFirstDirectoryOfType(JpegDirectory.class))));
+    Optional<Dimension> extractSizeDD(Path path, Optional<ExifSubIFDDirectory> directory) {
+        Optional<Integer> width = getTagAsInt(directory,
+                                              ExifSubIFDDirectory.TAG_IMAGE_WIDTH,
+                                              t -> log.warn("'{}' Cannot read width into ExifSubIFDDirectory", path));
+        Optional<Integer> height = getTagAsInt(directory,
+                                               ExifSubIFDDirectory.TAG_IMAGE_WIDTH,
+                                               t -> log.warn("'{}' Cannot read height into ExifSubIFDDirectory", path));
+        if (height.isPresent() && width.isPresent()) {
+            return Optional.of(new Dimension(width.get(), height.get()));
+        }
+        return Optional.empty();
+    }
+
+    Optional<Dimension> extractSizeD0(Path path, Optional<ExifIFD0Directory> directory) {
+        Optional<Integer> width = getTagAsInt(directory,
+                                              ExifIFD0Directory.TAG_IMAGE_WIDTH,
+                                              t -> log.warn("'{}' Cannot read width into ExifIFD0Directory", path));
+        Optional<Integer> height = getTagAsInt(directory,
+                                               ExifIFD0Directory.TAG_IMAGE_HEIGHT,
+                                               t -> log.warn("'{}' Cannot read height into ExifIFD0Directory", path));
+        if (height.isPresent() && width.isPresent()) {
+            return Optional.of(new Dimension(width.get(), height.get()));
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Dimension> extractPngSize(Metadata metadata, Path path, Optional<? extends PngDirectory> directory) {
+        Optional<Integer> width = getTagAsInt(directory,
+                                              PngDirectory.TAG_IMAGE_WIDTH,
+                                              t -> log.warn("'{}' Cannot read width into PngDirectory", path));
+        Optional<Integer> height = getTagAsInt(directory,
+                                               PngDirectory.TAG_IMAGE_HEIGHT,
+                                               t -> log.warn("'{}' Cannot read height into PngDirectory", path));
+        if (height.isPresent() && width.isPresent()) {
+            return Optional.of(new Dimension(width.get(), height.get()));
+        }
+        return Optional.empty();
     }
 
 
-    public Dimension extractJpgSize(Metadata metadata, Path path, Optional<? extends JpegDirectory> directory) {
-        return directory.map(_ -> new Dimension(getTagAsInt(directory,
-                                                            JpegDirectory.TAG_IMAGE_WIDTH,
-                                                            () -> 0,
-                                                            t -> log.warn("'{}' Cannot read width", path)),
-                                                getTagAsInt(directory,
-                                                            JpegDirectory.TAG_IMAGE_HEIGHT,
-                                                            () -> 0,
-                                                            t -> log.warn("'{}' Cannot read height", path))))
-                        .orElse(Dimension.EMPTY_DIM);
+    public Optional<Dimension> extractJpgSize(Metadata metadata, Path path, Optional<? extends JpegDirectory> directory) {
+        Optional<Integer> width = getTagAsInt(directory,
+                                              JpegDirectory.TAG_IMAGE_WIDTH,
+                                              t -> log.warn("'{}' Cannot read width into JpegDirectory", path));
+        Optional<Integer> height = getTagAsInt(directory,
+                                               JpegDirectory.TAG_IMAGE_HEIGHT,
+                                               t -> log.warn("'{}' Cannot read height into JpegDirectory", path));
+        if (height.isPresent() && width.isPresent()) {
+            return Optional.of(new Dimension(width.get(), height.get()));
+        }
+        return Optional.empty();
     }
 
     public short extractOrientation(Path path, Optional<? extends ExifDirectoryBase> exif) {
@@ -225,9 +266,17 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                                                  int tagId,
                                                  Supplier<Integer> defaultValueSupplier,
                                                  Consumer<Throwable> errorConsummer) {
+
         return directory.filter(d -> d.containsTag(tagId))
                         .map(d -> Unchecked.function(d::getInt, errorConsummer).apply(tagId))
                         .orElseGet(defaultValueSupplier);
+    }
+
+    static <T extends Directory> Optional<Integer> getTagAsInt(Optional<T> directory,
+                                                               int tagId,
+                                                               Consumer<Throwable> errorConsummer) {
+        return directory.filter(d -> d.containsTag(tagId))
+                        .map(d -> Unchecked.function(d::getInt, errorConsummer).apply(tagId));
     }
 
     static <T extends Directory> String getTagAsString(Optional<T> directory,

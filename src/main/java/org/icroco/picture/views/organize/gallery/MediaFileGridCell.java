@@ -1,25 +1,37 @@
 package org.icroco.picture.views.organize.gallery;
 
 import atlantafx.base.util.Animations;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Cursor;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridCell;
+import org.icroco.picture.event.UpdateMedialFileEvent;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
+import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.CustomGridView;
 import org.icroco.picture.views.util.ImageUtils;
 import org.icroco.picture.views.util.MediaLoader;
+import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.material2.Material2OutlinedMZ;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignH;
 
 import static org.icroco.picture.views.util.LangUtils.EMPTY_STRING;
 
 @Slf4j
 public class MediaFileGridCell extends GridCell<MediaFile> {
+    private final TaskService               taskService;
     private final ImageView                 loadingView;
     @Getter
     private final ImageView                 imageView;
@@ -27,14 +39,22 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
     private final MediaLoader               mediaLoader;
     public final  StackPane                 root;
     public final  BooleanProperty           isExpandCell;
-    private       MediaFile                 oldValue = null;
+    private       MediaFile                 oldValue      = null;
     private final CustomGridView<MediaFile> grid;
-    private       String                    lastHash = EMPTY_STRING;
+    private       String                    lastHash      = EMPTY_STRING;
+    private final FontIcon                  keepIcon      = new FontIcon(Material2OutlinedMZ.THUMB_UP);
+    private final FontIcon                  throwIcon     = new FontIcon(Material2OutlinedMZ.THUMB_DOWN);
+    private final FontIcon                  undecidedIcon = new FontIcon(MaterialDesignH.HEAD_QUESTION_OUTLINE);
 
-    public MediaFileGridCell(boolean preserveImageProperties,
+    private final Label                keepOrThrow = new Label();
+    private final SimpleDoubleProperty gap         = new SimpleDoubleProperty(5);
+
+    public MediaFileGridCell(TaskService taskService, boolean preserveImageProperties,
                              MediaLoader mediaLoader,
                              BooleanProperty isExpandCell,
-                             CustomGridView<MediaFile> grid) {
+                             CustomGridView<MediaFile> grid,
+                             BooleanBinding keepOrThrow) {
+        this.taskService = taskService;
         this.preserveImageProperties = preserveImageProperties;
         this.mediaLoader = mediaLoader;
         this.isExpandCell = isExpandCell;
@@ -43,13 +63,35 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         loadingView.maxHeight(128 - 5);
         loadingView.maxWidth(128 - 5);
         imageView = new ImageView();
-        imageView.fitHeightProperty().bind(this.heightProperty().subtract(5));
-        imageView.fitWidthProperty().bind(this.widthProperty().subtract(5));
+        imageView.fitHeightProperty().bind(this.heightProperty().subtract(gap));
+        imageView.fitWidthProperty().bind(this.widthProperty().subtract(gap));
         imageView.setPreserveRatio(true);
         imageView.setSmooth(true);
+
+        this.keepOrThrow.setId("keepOrThrow");
+        this.keepOrThrow.setGraphic(undecidedIcon);
 //        root = Borders.wrap(this.imageView).lineBorder().innerPadding(5, 5, 5,5).color(Color.WHITE).build().build();
-        root = new StackPane(imageView);
+//        root = new StackPane(imageView);
+        StackPane.setAlignment(this.keepOrThrow, Pos.BOTTOM_RIGHT);
+        this.keepOrThrow.setTranslateX(this.keepOrThrow.getTranslateX() - gap.getValue() * 2);
+        this.keepOrThrow.setTranslateY(this.keepOrThrow.getTranslateY() - gap.getValue() * 2);
+        this.keepOrThrow.setOnMouseClicked(this::keepOrThrowClick);
+        this.keepOrThrow.setCursor(Cursor.HAND);
+        this.keepOrThrow.visibleProperty().bind(keepOrThrow);
+
+        root = new StackPane(imageView, this.keepOrThrow);
+        root.getStyleClass().add("stack-pane");
         this.grid = grid;
+    }
+
+    private void keepOrThrowClick(MouseEvent event) {
+        if (event.getClickCount() == 1) {
+            getItem().setNextKeepOrThrow();
+            log.info("keepOrThrow: {}", getItem().getKeepOrThrow());
+            displayKeepOrThrowIcon();
+            taskService.sendEvent(UpdateMedialFileEvent.builder().mediaFile(getItem()).source(this).build());
+        }
+        event.consume();
     }
 
     @Override
@@ -62,7 +104,13 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
             this.setGraphic(null);
             lastHash = EMPTY_STRING;
         } else {
-            updateSelected(grid.getSelectionModel().contains(this));
+            boolean contains = grid.getSelectionModel().contains(this);
+            if (contains) {
+                gap.set(15);
+            } else {
+                gap.set(5);
+            }
+            updateSelected(contains);
             if (item.isLoadedInCache()) {
                 if ((lastHash != null && !lastHash.equals(item.getHash()) || MediaFileGridCellFactory.isCellVisible(grid, this))) {
                     lastHash = item.getHash();
@@ -78,11 +126,22 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
                     setImage(mediaLoader.getCachedValue(item)
                                         .map(Thumbnail::getImage)
                                         .orElse(ImageUtils.getNoThumbnailImage()));
+                    if (keepOrThrow.isVisible()) {
+                        displayKeepOrThrowIcon();
+                    }
                 }
             } else {
                 setImage(ImageUtils.getNoThumbnailImage());
             }
             setGraphic(root);
+        }
+    }
+
+    void displayKeepOrThrowIcon() {
+        switch (getItem().getKeepOrThrow()) {
+            case UNKNOW -> keepOrThrow.setGraphic(undecidedIcon);
+            case KEEP -> keepOrThrow.setGraphic(keepIcon);
+            case THROW -> keepOrThrow.setGraphic(throwIcon);
         }
     }
 

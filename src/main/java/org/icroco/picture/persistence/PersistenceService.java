@@ -158,7 +158,7 @@ public class PersistenceService {
             var entity = mfMapper.toEntity(mf);
             entity.setCollectionId(mediaCollectionId);
             var entitySaved = mfRepo.saveAndFlush(entity);
-            var updatedMf   = mfMapper.toDomain(entitySaved);
+            var updatedMf   = mfMapper.toDomainFromEntity(entitySaved, mf);
 
             findMediaCollection(mediaCollectionId).ifPresent(mcCache -> {
                 mcCache.medias().remove(updatedMf);
