@@ -31,4 +31,8 @@ public class LangUtils {
                ? Stream.empty()
                : collection.stream();
     }
+
+    public static boolean isNullOrEmpty(Collection<?> collection) {
+        return collection == null || collection.isEmpty();
+    }
 }

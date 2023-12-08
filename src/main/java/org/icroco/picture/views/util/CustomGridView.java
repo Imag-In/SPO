@@ -1,13 +1,20 @@
 package org.icroco.picture.views.util;
 
 import impl.org.controlsfx.skin.GridViewSkin;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.WeakListChangeListener;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Cell;
 import javafx.scene.control.IndexedCell;
+import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.input.KeyEvent;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridView;
@@ -15,23 +22,30 @@ import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.task.TaskService;
 import org.jooq.lambda.Seq;
-import org.springframework.lang.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static java.util.Optional.ofNullable;
+
 @Slf4j
 public class CustomGridView<T> extends GridView<T> {
     int selectedRow = 0; // current "selected" GridView row.
-    @Getter
-    private final GridCellSelectionModel selectionModel;
+//    @Getter
+//    private final GridCellSelectionModel selectionModel;
 
     public CustomGridView(TaskService taskService, ObservableList<T> items) {
         super(items);
-        selectionModel = new GridCellSelectionModel(taskService);
+//        selectionModel = new GridCellSelectionModel(taskService);
         setCenterShape(true);
+        setSelectionModel(new GridViewSelectionModel<>(this));
+        getSelectionModel().selectedIndexProperty().addListener((_, _, newValue) -> {
+            if (newValue != null && newValue.intValue() >= 0) {
+                updateSelectedRow(newValue.intValue());
+            }
+        });
     }
 
     public void addScrollAndKeyhandler() {
@@ -117,58 +131,6 @@ public class CustomGridView<T> extends GridView<T> {
     }
 
 
-    private void oneRowUp() {
-//        log.info("*** KeyEvent before oneRowUp: {}  ***", selectedRow);
-
-        // get the underlying VirtualFlow object
-        VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
-        if (flow.getCellCount() == 0) {
-            return; // check that rows exist
-        }
-
-        var overTop = --selectedRow < 0;
-        if (overTop) {
-            selectedRow = 0;
-        }
-        if (selectedRow >= flow.cellCountProperty().get()) {
-            selectedRow = flow.getCellCount() - 1;
-        }
-        flow.scrollTo(selectedRow);
-        if (!overTop) {
-            getSelectionModel().get().ifPresent(cell -> {
-                var idx = getItems().indexOf(cell.getItem()) - getItemsInRow();
-                if (idx >= 0) {
-                    findItem(flow, getItems().get(idx))
-                            .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
-                }
-            });
-        }
-    }
-
-    private void oneRowDown() {
-//        log.info("*** KeyEvent before oneRowDown: {}  ***", selectedRow);
-        // get the underlying VirtualFlow object
-        VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
-        if (flow.getCellCount() == 0) {
-            return; // check that rows exist
-        }
-        var overLast = ++selectedRow >= flow.cellCountProperty().get();
-        if (overLast) {
-            selectedRow = flow.getCellCount() - 1;
-        }
-
-        flow.scrollTo(selectedRow);
-        if (!overLast) {
-            getSelectionModel().get().ifPresent(cell -> {
-                var idx = getItems().indexOf(cell.getItem()) + getItemsInRow();
-                if (idx < getItems().size()) {
-                    findItem(flow, getItems().get(idx))
-                            .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
-                }
-            });
-        }
-    }
-
     public Optional<T> getLeft(T mediaFile) {
         return getLeftIndex(getIndex(mediaFile));
     }
@@ -201,16 +163,75 @@ public class CustomGridView<T> extends GridView<T> {
         return Seq.concat(getLeftIndex(idx), getRightIndex(idx), getLeftIndex(idx - 1), getRightIndex(idx + 1)).toList();
     }
 
+    private void oneRowUp() {
+//        log.info("*** KeyEvent before oneRowUp: {}  ***", selectedRow);
+
+        // get the underlying VirtualFlow object
+        VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
+        if (flow.getCellCount() == 0) {
+            return; // check that rows exist
+        }
+
+        var overTop = --selectedRow < 0;
+        if (overTop) {
+            selectedRow = 0;
+        }
+        if (selectedRow >= flow.cellCountProperty().get()) {
+            selectedRow = flow.getCellCount() - 1;
+        }
+        flow.scrollTo(selectedRow);
+        if (!overTop) {
+            ofNullable(getSelectionModel().getSelectedItem()).ifPresent(item -> {
+//                log.info("U idx: {}",getSelectionModel().getSelectedIndex());
+                getSelectionModel().clearSelection();
+                var idx = getItems().indexOf(item) - getItemsInRow();
+                if (idx >= 0) {
+                    findItem(flow, getItems().get(idx))
+                            .ifPresent(mediaFileCell -> getSelectionModel().select(mediaFileCell.getItem()));
+                }
+            });
+        }
+    }
+
+    private void oneRowDown() {
+//        log.info("*** KeyEvent before oneRowDown: {}  ***", selectedRow);
+        // get the underlying VirtualFlow object
+        VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
+        if (flow.getCellCount() == 0) {
+            return; // check that rows exist
+        }
+        var overLast = ++selectedRow >= flow.cellCountProperty().get();
+        if (overLast) {
+            selectedRow = flow.getCellCount() - 1;
+        }
+
+        flow.scrollTo(selectedRow);
+        if (!overLast) {
+            ofNullable(getSelectionModel().getSelectedItem()).ifPresent(item -> {
+//                log.info("D idx: {}",getSelectionModel().getSelectedIndex());
+                getSelectionModel().clearSelection();
+                var idx = getItems().indexOf(item) + getItemsInRow();
+                if (idx < getItems().size()) {
+                    findItem(flow, getItems().get(idx))
+                            .ifPresent(mediaFileCell -> getSelectionModel().select(mediaFileCell.getItem()));
+                }
+            });
+        }
+    }
+
+
     public void oneRowLeft() {
         VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
         if (flow.getCellCount() == 0) {
             return; // check that rows exist
         }
-        getSelectionModel().get().ifPresent(cell -> {
-            var idx = getItems().indexOf(cell.getItem());
+        ofNullable(getSelectionModel().getSelectedItem()).ifPresent(item -> {
+//            log.info("L idx: {}",getSelectionModel().getSelectedIndex());
+            getSelectionModel().clearSelection();
+            var idx = getItems().indexOf(item);
             if (idx > 0) {
                 findItem(flow, getItems().get(--idx))
-                        .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
+                        .ifPresent(mediaFileCell -> getSelectionModel().select(mediaFileCell.getItem()));
             }
         });
     }
@@ -221,23 +242,29 @@ public class CustomGridView<T> extends GridView<T> {
         if (flow.getCellCount() == 0) {
             return; // check that rows exist
         }
-        getSelectionModel().get().ifPresent(cell -> {
-            var idx = getItems().indexOf(cell.getItem());
+        ofNullable(getSelectionModel().getSelectedItem()).ifPresent(item -> {
+//            log.info("R idx: {}",getSelectionModel().getSelectedIndex());
+            getSelectionModel().clearSelection();
+            var idx = getItems().indexOf(item);
             if (idx + 1 < getItems().size()) {
                 findItem(flow, getItems().get(++idx))
-                        .ifPresent(mediaFileCell -> getSelectionModel().set((Cell<MediaFile>) mediaFileCell));
+                        .ifPresent(mediaFileCell -> getSelectionModel().select(mediaFileCell.getItem()));
             }
         });
     }
 
-    void updateSelectedRow(Cell<?> node) {
-        selectedRow = getItems().indexOf(node.getItem()) / getItemsInRow();
+    void updateSelectedRow(T item) {
+        selectedRow = getItems().indexOf(item) / getItemsInRow();
+    }
+
+    void updateSelectedRow(int idx) {
+        selectedRow = idx / getItemsInRow();
     }
 
     public Optional<Cell<T>> getFirstVisible() {
         VirtualFlow<?> flow = getVirtualFlow();
         if (flow.getCellCount() > 0) {
-            return Optional.ofNullable(flow.getFirstVisibleCell());
+            return ofNullable(flow.getFirstVisibleCell());
         } else {
             return Optional.empty();
         }
@@ -264,43 +291,143 @@ public class CustomGridView<T> extends GridView<T> {
         ((GridViewSkin<?>) getSkin()).updateGridViewItems();
     }
 
+    private final ObjectProperty<SingleSelectionModel<T>> selectionModel = new SimpleObjectProperty<>(this, "selectionModel") {
+        private SingleSelectionModel<T> oldSM = null;
+
+        @Override
+        protected void invalidated() {
+            if (oldSM != null) {
+                oldSM.selectedItemProperty().removeListener(selectedItemListener);
+            }
+            SingleSelectionModel<T> sm = get();
+            oldSM = sm;
+            if (sm != null) {
+                sm.selectedItemProperty().addListener(selectedItemListener);
+            }
+        }
+    };
+
+    public final void setSelectionModel(SingleSelectionModel<T> value) {
+        selectionModel.set(value);
+    }
+
+    public final SingleSelectionModel<T> getSelectionModel() {
+        return selectionModel.get();
+    }
+
+    public final ObjectProperty<SingleSelectionModel<T>> selectionModelProperty() {
+        return selectionModel;
+    }
+
+    // Listen to changes in the selectedItem property of the SelectionModel.
+    // When it changes, set the selectedItem in the value property.
+    private final ChangeListener<T> selectedItemListener = new ChangeListener<>() {
+        @Override
+        public void changed(ObservableValue<? extends T> ov, T t, T t1) {
+            if (t1 != null) {
+                findItem(getVirtualFlow(), t).ifPresent(Parent::requestLayout);
+                findItem(getVirtualFlow(), t1).ifPresent(Parent::requestLayout);
+            }
+        }
+    };
+
+    @RequiredArgsConstructor
+    static class GridViewSelectionModel<T> extends SingleSelectionModel<T> implements ListChangeListener<T> {
+        private final CustomGridView<T>         grid;
+        private final WeakListChangeListener<T> weakItemsContentObserver = new WeakListChangeListener<>(this);
+
+        @Override
+        protected T getModelItem(int index) {
+            if (index < 0 || LangUtils.isNullOrEmpty(grid.getItems())) {
+                return null;
+            }
+            return grid.getItems().get(index);
+        }
+
+        @Override
+        protected int getItemCount() {
+            if (grid.getItems() == null || grid.getItems().isEmpty()) {
+                return 0;
+            }
+            return grid.getItems().size();
+        }
+
+
+        @Override
+        public void onChanged(Change<? extends T> c) {
+            if (LangUtils.isNullOrEmpty(grid.getItems())) {
+                setSelectedIndex(-1);
+            } else if (getSelectedIndex() == -1 && getSelectedItem() != null) {
+                int newIndex = grid.getItems().indexOf(getSelectedItem());
+                if (newIndex != -1) {
+                    setSelectedIndex(newIndex);
+                }
+            }
+            int shift = 0;
+            while (c.next()) {
+                if (c.wasReplaced()) {
+                    // no-op
+                } else if (c.wasAdded() || c.wasRemoved()) {
+                    if (c.getFrom() <= getSelectedIndex() && getSelectedIndex() != -1) {
+                        shift += c.wasAdded() ? c.getAddedSize() : -c.getRemovedSize();
+                    }
+                }
+            }
+
+            if (shift != 0) {
+                clearAndSelect(getSelectedIndex() + shift);
+            } else if (getSelectedIndex() >= 0 && getSelectedItem() != null) {
+                // try to find the previously selected item
+//                T selectedItem = getSelectedItem();
+//                for (int i = 0; i < grid.getItems().size(); i++) {
+//                    if (selectedItem.equals(grid.getItems().get(i))) {
+//                        grid.setValue(null);
+//                        setSelectedItem(null);
+//                        setSelectedIndex(i);
+//                        break;
+//                    }
+//                }
+            }
+        }
+    }
+
     @RequiredArgsConstructor
     public class GridCellSelectionModel {
         private final TaskService          taskService;
         private final Set<Cell<MediaFile>> selection = new HashSet<>();
 
-        public void add(@Nullable Cell<MediaFile> node) {
-            if (node != null) {
-                selection.add(node);
-                node.updateSelected(true);
-                updateSelectedRow(node);
-                taskService.sendEvent(PhotoSelectedEvent.builder()
-                                                        .mf(node.getItem())
-                                                        .type(PhotoSelectedEvent.ESelectionType.SELECTED)
-                                                        .source(this)
-                                                        .build());
-            }
-        }
+//        public void add(@Nullable Cell<MediaFile> node) {
+//            if (node != null) {
+//                selection.add(node);
+//                node.updateSelected(true);
+//                updateSelectedRow(node);
+//                taskService.sendEvent(PhotoSelectedEvent.builder()
+//                                                        .mf(node.getItem())
+//                                                        .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+//                                                        .source(this)
+//                                                        .build());
+//            }
+//        }
 
         Optional<Cell<MediaFile>> get() {
             return selection.stream().findFirst();
         }
 
 
-        public void set(Cell<MediaFile> node) {
-            selection.forEach(c -> c.updateSelected(false));
-            selection.clear();
-            selection.add(node);
-            node.updateSelected(true);
-            updateSelectedRow(node);
-            node.getItem().setSelected(true);
-//        node.setStyle("aaa");
-            taskService.sendEvent(PhotoSelectedEvent.builder()
-                                                    .mf(node.getItem())
-                                                    .type(PhotoSelectedEvent.ESelectionType.SELECTED)
-                                                    .source(this)
-                                                    .build());
-        }
+//        public void set(Cell<MediaFile> node) {
+//            selection.forEach(c -> c.updateSelected(false));
+//            selection.clear();
+//            selection.add(node);
+//            node.updateSelected(true);
+//            updateSelectedRow(node);
+//            node.getItem().setSelected(true);
+////        node.setStyle("aaa");
+//            taskService.sendEvent(PhotoSelectedEvent.builder()
+//                                                    .mf(node.getItem())
+//                                                    .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+//                                                    .source(this)
+//                                                    .build());
+//        }
 
         public void addOrRemove(Cell<MediaFile> node) {
             if (selection.remove(node)) {

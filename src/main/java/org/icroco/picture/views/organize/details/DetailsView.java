@@ -229,6 +229,7 @@ public class DetailsView extends AbstractView<VBox> {
 
     @FxEventListener
     public void updatePhotoSelected(PhotoSelectedEvent event) {
+        clearForm();
         mediaFile = event.getMf();
         log.debug("Print details for item: {}", event);
         if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
@@ -280,26 +281,28 @@ public class DetailsView extends AbstractView<VBox> {
             tabs.getSelectionModel().selectFirst();
             fillForm();
             root.setVisible(true);
-        } else {
-            if (mediaFile != null) {
-                mediaFile.getLastUpdated().removeListener(reloadNeeded);
-            }
-            printImageDetails.setOnMouseClicked(null);
-            refreshThumbnail.setOnMouseClicked(null);
-            saveThumbnail.setOnMouseClicked(null);
-            root.setVisible(false);
-            thumbnailType.setText(EThumbnailType.ABSENT.toString());
-            thumbnailSize.setText("");
-            size.setText("");
-            gps.setText("");
-            orientation.setText("");
-            cameraMake.setText("");
-            cameraModel.setText("");
-            keywords.setText("");
-            thumbnailSize.setText("");
-            mediaFile = null;
         }
         maskerPane.stop();
+    }
+
+    private void clearForm() {
+        if (mediaFile != null) {
+            mediaFile.getLastUpdated().removeListener(reloadNeeded);
+        }
+        printImageDetails.setOnMouseClicked(null);
+        refreshThumbnail.setOnMouseClicked(null);
+        saveThumbnail.setOnMouseClicked(null);
+        root.setVisible(false);
+        thumbnailType.setText(EThumbnailType.ABSENT.toString());
+        thumbnailSize.setText("");
+        size.setText("");
+        gps.setText("");
+        orientation.setText("");
+        cameraMake.setText("");
+        cameraModel.setText("");
+        keywords.setText("");
+        thumbnailSize.setText("");
+        mediaFile = null;
     }
 
     private void fillForm() {

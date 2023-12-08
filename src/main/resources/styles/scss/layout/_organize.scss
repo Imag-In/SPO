@@ -11,13 +11,13 @@
       }
 
       .grid-cell:hover {
-        -fx-background-color: -color-base-2;
+        -fx-background-color: -color-accent-fg;
         -fx-background-radius: 3.0;
         -fx-padding: 8;
       }
 
       .image-grid-cell:selected {
-        -fx-background-color: -color-base-2;
+        -fx-background-color: -color-accent-emphasis;
         -fx-border-style: solid;
         -fx-border-width: 0 0 0 0; /* its make really one-pixel-border */
         -fx-border-color: -color-base-0;

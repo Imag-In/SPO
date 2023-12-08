@@ -58,8 +58,10 @@ import org.springframework.stereotype.Component;
 
 import java.awt.*;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.*;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -106,6 +108,16 @@ public class GalleryView implements FxView<StackPane> {
         root.getStyleClass().add(ViewConfiguration.V_GALLERY);
         root.setId(ViewConfiguration.V_GALLERY);
         gridView = new CustomGridView<>(taskService, FXCollections.emptyObservableList());
+        gridView.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && newValue.intValue() >= 0) {
+                taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                        .mf(gridView.getItems().get(newValue.intValue()))
+                                                        .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+                                                        .source(this)
+                                                        .build());
+            }
+        });
+
         gridView.addScrollAndKeyhandler();
         root.setMinSize(350, 250);
         root.setEventDispatcher(new DoubleClickEventDispatcher(root.getEventDispatcher()));
@@ -191,10 +203,12 @@ public class GalleryView implements FxView<StackPane> {
                                                      optMf.map(MediaFile::getFullPath).orElse(null)));
         optMf.ifPresent(mf -> {
             if (event.getClickCount() == 1) {
-                gridView.getSelectionModel().set(cell);
+                gridView.getSelectionModel().clearSelection();
+                gridView.getSelectionModel().select(cell.getItem());
                 cell.requestLayout();
             } else if (event.getClickCount() == 2) {
-                gridView.getSelectionModel().set(cell);
+                gridView.getSelectionModel().clearSelection();
+                gridView.getSelectionModel().select(cell.getItem());
                 displayNext(mf);
             }
         });
@@ -287,7 +301,7 @@ public class GalleryView implements FxView<StackPane> {
                            MediaCollection newValue) {
         if (newValue != null) {
             images.clear();
-            gridView.getSelectionModel().clear();
+            gridView.getSelectionModel().clearSelection();
             resetBcbModel(null);
             filteredImages.setPredicate(null);
             images.addAll(newValue.medias());
@@ -382,20 +396,20 @@ public class GalleryView implements FxView<StackPane> {
                                            .stream()
                                            .collect(Collectors.toMap(MediaFile::getId, Function.identity()));
 
-                gridView.getSelectionModel()
-                        .getSelection()
-                        .stream()
-                        .map(cell -> {
-                            var found = mc.get(cell.getItem().getId());
-                            if (found == null) {
-                                return null;
-                            } else {
-                                cell.setItem(found);
-                                return cell;
-                            }
-                        })
-                        .filter(Objects::nonNull)
-                        .forEach(gridView.getSelectionModel()::set);
+//                gridView.getSelectionModel()
+//                        .getSelection()
+//                        .stream()
+//                        .map(cell -> {
+//                            var found = mc.get(cell.getItem().getId());
+//                            if (found == null) {
+//                                return null;
+//                            } else {
+//                                cell.setItem(found);
+//                                return cell;
+//                            }
+//                        })
+//                        .filter(Objects::nonNull)
+//                        .forEach(gridView.getSelectionModel()::set);
             }
         }
     }

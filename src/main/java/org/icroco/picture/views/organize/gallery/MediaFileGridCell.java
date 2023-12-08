@@ -102,9 +102,9 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
             this.setGraphic(null);
             lastHash = EMPTY_STRING;
         } else {
-            boolean contains = grid.getSelectionModel().contains(this);
+            boolean contains = grid.getSelectionModel().getSelectedItem() == item;
             if (contains) {
-                gap.set(15);
+                gap.set(10);
             } else {
                 gap.set(5);
             }
