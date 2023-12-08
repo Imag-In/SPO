@@ -229,7 +229,7 @@ public class GalleryView implements FxView<StackPane> {
         keepOrThrowLabel.setCursor(Cursor.HAND);
 //        keepOrThrowLabel.setDisable(true);
         keepOrThrowLabel.setOpacity(.4);
-        keepOrThrowLabel.setTooltip(new Tooltip("Press 'e' to enter intoe edit mode"));
+        keepOrThrowLabel.setTooltip(new Tooltip("Press 'e' to enter into edit mode (metadata)"));
 //        zoomThumbnails.getStyleClass().add(Styles.SMALL);
         zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
         ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(zoomThumbnails::setValue);

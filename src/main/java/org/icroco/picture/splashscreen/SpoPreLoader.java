@@ -47,30 +47,17 @@ public class SpoPreLoader extends Preloader {
         stage = primaryStage;
         primaryStage.setTitle("Simple Photo Organizer loading ....");
         primaryStage.getIcons().addAll(getIcons());
-
         primaryStage.initStyle(StageStyle.TRANSPARENT);
-
-//        root.setStyle("-fx-background-radius: 15; -fx-background-color: transparent");
-//        root.setStyle("-fx-background-radius: 15; -fx-background-color: rgba(229, 36, 66, 0.8)");
 
 //        ImageView imageView = new ImageView("/images/IMG_0373-EDIT.jpg");
         ImageView imageView = new ImageView("/images/PXL_20230115_220040106-EDIT.jpg");
-//        imageView.setFitWidth(500);;
         imageView.setFitHeight(400);
 
         imageView.setPreserveRatio(true);
 
-//        progressBar.setPrefWidth(450);
         progressBar.setOpacity(.9);
-//        progressBar.setStyle("-fx-background-insets: 1, 1, 2, 1; -fx-padding: 0.20em");
         progressLbl.getStyleClass().add(Styles.SMALL);
 
-//        progressLbl.setPrefWidth(450);
-//        progressLbl.setTextFill(Color.WHITE);
-
-//        StackPane.setMargin(imageView, new Insets(0, 20, 0, 20));
-//        StackPane.setMargin(progressLbl, new Insets(200, 20, 0, 20));
-//        StackPane.setMargin(progressBar, new Insets(250, 20, 0, 20));
         BorderPane borderPane = new BorderPane();
         borderPane.setPadding(new Insets(2));
 
@@ -81,8 +68,6 @@ public class SpoPreLoader extends Preloader {
         HBox.setHgrow(progressBar, Priority.ALWAYS);
         borderPane.setBottom(hb);
 
-//        imageView.setStyle("-fx-background-color: transparent; -fx-background-radius: 10;");
-//        borderPane.setStyle("-fx-background-color: transparent; -fx-background-radius: 10;");
         root.setStyle(
                 "-fx-background-color: rgba(255, 255, 255, 0);" +
                 "-fx-effect: dropshadow(gaussian, white, 50, 0, 0, 0);" +
@@ -94,12 +79,10 @@ public class SpoPreLoader extends Preloader {
         scene.getStylesheets().add(getClass().getResource("/styles/splash.css").toExternalForm());
         scene.setFill(Color.TRANSPARENT);
         primaryStage.setHeight(400);
-//        primaryStage.initStyle(StageStyle.TRANSPARENT);
         primaryStage.setScene(scene);
         primaryStage.setAlwaysOnTop(true);
         progressBar.setPrefWidth(.1);
         primaryStage.show();
-//        ScenicView.show(scene);
     }
 
     @Override

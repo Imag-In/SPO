@@ -30,18 +30,18 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class PersistenceService {
-    private final CollectionRepository   collectionRepo;
-    private final MediaFileRepository    mfRepo;
-    private final ThumbnailRepository    thumbRepo;
-    private final MediaCollectionMapper  colMapper;
-    private final MediaFileMapper        mfMapper;
-    private final ThumbnailMapper        thMapper;
+    private final CollectionRepository      collectionRepo;
+    private final MediaFileRepository       mfRepo;
+    private final ThumbnailRepository       thumbRepo;
+    private final MediaCollectionMapper     colMapper;
+    private final MediaFileMapper           mfMapper;
+    private final ThumbnailMapper           thMapper;
     @Qualifier(ImagInConfiguration.CACHE_CATALOG)
-    private final Cache                  mcCache;
-    @Qualifier(ImagInConfiguration.CACHE_THUMBNAILS)
-    private final Cache                  thCache;
-    private final TaskService            taskService;
-    private final ReentrantReadWriteLock mcLock = new ReentrantReadWriteLock();
+    private final Cache                     mcCache;
+    @Qualifier(ImagInConfiguration.CACHE_THUMBNAILS_RAW)
+    private final Map<MediaFile, Thumbnail> thCache;
+    private final TaskService               taskService;
+    private final ReentrantReadWriteLock    mcLock = new ReentrantReadWriteLock();
 
     @EventListener(ApplicationStartedEvent.class)
     public void loadAllMediaCollection() {
@@ -185,7 +185,7 @@ public class PersistenceService {
             findMediaCollection(mediaCollectionId).ifPresent(mc -> {
                 thumbRepo.deleteAllById(mc.medias().stream().map(MediaFile::getId).toList());
                 thumbRepo.flush();
-                mc.medias().forEach(thCache::evict);
+                mc.medias().forEach(thCache::remove);
             });
             mcCache.evictIfPresent(mediaCollectionId);
             deleteOrphanThumbnails();
@@ -214,7 +214,7 @@ public class PersistenceService {
 
 
     public Optional<Thumbnail> getThumbnailFromCache(MediaFile mediaFile) {
-        return Optional.ofNullable(thCache.get(mediaFile, Thumbnail.class));
+        return Optional.ofNullable(thCache.get(mediaFile));
     }
 
     public Optional<Thumbnail> findByPathOrId(MediaFile mediaFile) {

@@ -45,12 +45,12 @@ import static java.util.Optional.ofNullable;
 public class MediaLoader {
     public static double PRIMARY_SCREEN_WIDTH = Screen.getPrimary().getVisualBounds().getWidth();
 
-    private final IThumbnailGenerator thumbnailGenerator;
-    private final ImageLoader         imageLoader;
-    final         Cache               thCache;
-    final         Cache               imagesCache;
-    private final TaskService         taskService;
-    private final IHashGenerator      hashGenerator;
+    private final IThumbnailGenerator       thumbnailGenerator;
+    private final ImageLoader               imageLoader;
+    final         Map<MediaFile, Thumbnail> thCache;
+    final         Cache                     imagesCache;
+    private final TaskService               taskService;
+    private final IHashGenerator            hashGenerator;
 
     private final PersistenceService persistenceService;
     private final Map<Integer, Lock> catalogLock         = new ConcurrentHashMap<>();
@@ -61,7 +61,7 @@ public class MediaLoader {
 
     public MediaLoader(IThumbnailGenerator thumbnailGenerator,
                        ImageLoader imageLoader,
-                       @Qualifier(ImagInConfiguration.CACHE_THUMBNAILS) Cache thCache,
+                       @Qualifier(ImagInConfiguration.CACHE_THUMBNAILS_RAW) Map<MediaFile, Thumbnail> thCache,
                        @Qualifier(ImagInConfiguration.CACHE_IMAGE_FULL_SIZE) Cache imagesCache,
                        TaskService taskService,
                        IHashGenerator hashGenerator, PersistenceService persistenceService) {
@@ -81,49 +81,16 @@ public class MediaLoader {
     }
 
     public Optional<Thumbnail> getCachedValue(MediaFile mf) {
-        return ofNullable(thCache.get(mf, Thumbnail.class));
-//                       .or(() -> {
-//                           log.debug("thumbnailCache missed for: {}:'{}', size: '{}'",
-//                                     mf.getId(),
-//                                     mf.getFullPath().getFileName(),
-//                                     ((com.github.benmanes.caffeine.cache.Cache<?, ?>) thumbnailCache.getNativeCache()).estimatedSize()
-//                           );
-//                           return persistenceService.findByPathOrId(mf)
-//                                                    .map(t -> {
-//                                                        thumbnailCache.put(mf, t);
-//                                                        return t;
-//                                                    });
-//                       });
+        return ofNullable(thCache.get(mf));
     }
 
     public void loadAndCachedValue(final MediaFile mf) {
         taskService.supply(cacheOrLoad, mf)
                    .thenAcceptAsync(t -> Platform.runLater(() -> mf.setLoadedInCache(true)))
-                   .exceptionally(throwable -> {
+                   .exceptionally(_ -> {
                        Platform.runLater(() -> mf.setLoadedInCache(false));
                        return null;
                    });
-//        Task<Optional<Thumbnail>> t = new AbstractTask<>() {
-//            @Override
-//            protected Optional<Thumbnail> call() {
-//                return getCachedValue(mf).or(() -> {
-////                                             log.debug("thumbnailCache missed for: {}:'{}', size: '{}'",
-////                                                       mf.getId(),
-////                                                       mf.getFullPath().getFileName(),
-////                                                       ((com.github.benmanes.caffeine.cache.Cache<?, ?>) thCache.getNativeCache()).estimatedSize()
-////                                             );
-//                    return persistenceService.findByPathOrId(mf)
-//                                             .map(t -> {
-//                                                 thCache.put(mf, t);
-//                                                 return t;
-//                                             });
-//                });
-//            }
-//        };
-//        t.setOnSucceeded(unused -> t.getValue().ifPresentOrElse(u -> mf.setLoadedInCahce(true), () -> mf.setLoadedInCahce(false)));
-//        t.setOnFailed(unused -> t.getValue().ifPresent(u -> mf.setLoadedInCahce(false)));
-//        t.setOnCancelled(unused -> t.getValue().ifPresent(u -> mf.setLoadedInCahce(false)));
-//        taskService.supply(t, true);
     }
 
 
@@ -139,7 +106,7 @@ public class MediaLoader {
                                                           .build());
             thumbnail.setMfId(mf.getId());
             mf.setThumbnailType(thumbnail.getOrigin());
-            thCache.evict(mf);
+            thCache.remove(mf);
         } catch (Exception e) {
             log.error("invalid mf: '{}'", mf, e);
             thumbnail = Thumbnail.builder().fullPath(mf.getFullPath())
@@ -270,7 +237,7 @@ public class MediaLoader {
                 updateProgress(0, files.size());
                 return EntryStream.of(new ArrayList<>(files))
                                   .map(entry -> {
-                                      var thumbnail = thCache.get(entry.getValue(), Thumbnail.class);
+                                      var thumbnail = thCache.get(entry.getValue());
                                       if (thumbnail == null) {
                                           thumbnail = persistenceService.findByPathOrId(entry.getValue()).orElse(null);
                                           if (thumbnail != null) {
@@ -321,7 +288,7 @@ public class MediaLoader {
 
     public void removeFromCache(MediaFile oldValue) {
         if (oldValue != null) {
-            thCache.evict(oldValue);
+            thCache.remove(oldValue);
         }
     }
 
@@ -403,7 +370,7 @@ public class MediaLoader {
                                                                 mf.setHash(hashGenerator.compute(mf.fullPath()).orElse(""));
                                                                 mf.setHashDate(LocalDate.now());
                                                             } else {
-                                                                thumbnail = thCache.get(mf, Thumbnail.class);
+                                                                thumbnail = thCache.get(mf);
                                                             }
                                                             if (thumbnail == null) {
                                                                 // Second Database Cache
@@ -452,7 +419,7 @@ public class MediaLoader {
         };
     }
 
-    record ThumbnailUpdate(MediaFile mf, Thumbnail thumbnail, Image update) {
+    public record ThumbnailUpdate(MediaFile mf, Thumbnail thumbnail, Image update) {
     }
 
     @EventListener(ForceGenerateThumbnailEvent.class)
@@ -543,7 +510,7 @@ public class MediaLoader {
                                                         .map(entry -> {
                                                             var mf = entry.getValue();
                                                             updateProgress(entry.getKey(), size);
-                                                            var tu = ofNullable(thCache.get(mf, Thumbnail.class))
+                                                            var tu = ofNullable(thCache.get(mf))
                                                                     .or(() -> persistenceService.findByPathOrId(mf))
                                                                     .filter(t -> mf.getThumbnailType() != EThumbnailType.GENERATED)
                                                                     .map(t -> new ThumbnailUpdate(mf, t, thumbnailGenerator.generate(t)))
@@ -552,8 +519,12 @@ public class MediaLoader {
                                                         })
                                                         .filter(Objects::nonNull)
                                                         .filter(tu -> tu.update() != null)
-                                                        .peek(tu -> tu.thumbnail.setOrigin(EThumbnailType.GENERATED))
-                                                        .peek(tu -> tu.thumbnail.setImage(tu.update))
+                                                        .peek(tu -> {
+                                                            tu.thumbnail.setOrigin(EThumbnailType.GENERATED);
+                                                            tu.thumbnail.setImage(tu.update);
+                                                            tu.thumbnail.setDimension(new Dimension(tu.update.getWidth(),
+                                                                                                    tu.update.getHeight()));
+                                                        })
                                                         .toList())
                                            .flatMap(tus -> {
                                                log.debug("Update '{}' high res thumbnails", tus.size());
@@ -563,7 +534,7 @@ public class MediaLoader {
 
                                                return tus.stream()
                                                          .peek(tu -> tu.mf.setThumbnailType(tu.thumbnail.getOrigin()))
-                                                         .peek(tr -> thCache.evict(tr.mf)) // to make sure grid reload latest version.
+                                                         .peek(tr -> thCache.remove(tr.mf)) // to make sure grid reload latest version.
                                                          .map(tr -> tr.mf);
                                            })
                                            .toList();

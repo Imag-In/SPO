@@ -38,15 +38,13 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
     private final MediaLoader               mediaLoader;
     public final  StackPane                 root;
     public final  BooleanProperty           isExpandCell;
-    private       MediaFile                 oldValue      = null;
     private final CustomGridView<MediaFile> grid;
     private       String                    lastHash      = EMPTY_STRING;
     private final FontIcon                  keepIcon      = new FontIcon(Material2OutlinedMZ.THUMB_UP);
     private final FontIcon                  throwIcon     = new FontIcon(Material2OutlinedMZ.THUMB_DOWN);
     private final FontIcon                  undecidedIcon = new FontIcon(MaterialDesignH.HEAD_QUESTION_OUTLINE);
-
-    private final Label                keepOrThrow = new Label();
-    private final SimpleDoubleProperty gap         = new SimpleDoubleProperty(5);
+    private final Label                     keepOrThrow   = new Label();
+    private final SimpleDoubleProperty      gap           = new SimpleDoubleProperty(5);
 
     public MediaFileGridCell(TaskService taskService, boolean preserveImageProperties,
                              MediaLoader mediaLoader,
@@ -57,6 +55,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         this.preserveImageProperties = preserveImageProperties;
         this.mediaLoader = mediaLoader;
         this.isExpandCell = isExpandCell;
+        isExpandCell.addListener((_, _, _) -> requestLayout());
         getStyleClass().add("image-grid-cell");
         loadingView = new ImageView(ImageUtils.LOADING);
         loadingView.maxHeight(128 - 5);
