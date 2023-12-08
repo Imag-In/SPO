@@ -21,7 +21,10 @@ import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.*;
-import javafx.scene.input.*;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ZoomEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -62,10 +65,6 @@ import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 import static javafx.application.Platform.runLater;
-import static org.fxmisc.wellbehaved.event.EventPattern.keyPressed;
-import static org.fxmisc.wellbehaved.event.InputMap.consume;
-import static org.fxmisc.wellbehaved.event.InputMap.sequence;
-import static org.fxmisc.wellbehaved.event.Nodes.addInputMap;
 
 @Component
 @RequiredArgsConstructor
@@ -94,6 +93,7 @@ public class GalleryView implements FxView<StackPane> {
     //    private       double                                gridCellHeight;
     private       int                                   zoomLevel      = 0;
     private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
+    private final SimpleBooleanProperty                 editMode       = new SimpleBooleanProperty(false);
     private       EGalleryClickState                    dblCickState   = EGalleryClickState.GALLERY;
     private       HBox                                  toolBar;
     FontIcon        thumbsUpDownIcon = new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
@@ -131,11 +131,12 @@ public class GalleryView implements FxView<StackPane> {
         gridView.setHorizontalCellSpacing(0D);
         gridView.setVerticalCellSpacing(0D);
         keepOrThrowLabel.setOpacity(0.4);
+        editMode.bind(Bindings.greaterThan(keepOrThrowLabel.opacityProperty(), 0.4));
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader,
                                                              taskService,
                                                              expandCell,
                                                              this::cellDoubleClick,
-                                                             Bindings.greaterThan(keepOrThrowLabel.opacityProperty(), 0.4)));
+                                                             editMode));
         gridView.setOnZoom(this::zoomOnGrid);
         currentCatalog.addListener(this::collectionChanged);
         carousel.addEventHandler(CustomMouseEvent.MOUSE_DOUBLE_CLICKED, this::onImageClick);
@@ -150,18 +151,6 @@ public class GalleryView implements FxView<StackPane> {
         photo.maxWidthProperty().bind(carousel.widthProperty());
 //        carousel.setBottom(carouselIcons);
 
-        addInputMap(root, sequence(consume(keyPressed(KeyCode.ESCAPE), this::escapePressed)));
-//        addInputMap(root, sequence(consume(keyPressed(KeyCode.LEFT), this::leftPressed)));
-//        addInputMap(root, sequence(consume(keyPressed(KeyCode.RIGHT), this::rightPressed)));
-//        addInputMap(root, sequence(consume(keyPressed(KeyCode.UP), this::skipPressed)));
-//        addInputMap(root, sequence(consume(keyPressed(KeyCode.DOWN), this::skipPressed)));
-        addInputMap(root, sequence(consume(keyPressed(KeyCode.K), this::kPressed)));
-//        addInputMap(root, sequence(consume(keyPressed(KeyCode.P), keyEvent -> log.info("P pressed"))));
-//        addInputMap(root, sequence(consume(keyPressed(KeyCode.DIGIT4), keyEvent -> log.info("Shift pressed"))));
-//
-//        root.setOnKeyPressed(ev2 -> {if (ev2.getCode() == KeyCode.DIGIT2) {
-//            log.info("2222");
-//        }});
 //        photo.fitHeightProperty().bind(photoContainer.heightProperty().subtract(10));
 //        photo.fitWidthProperty().bind(photoContainer.widthProperty().subtract(10));
 
@@ -240,7 +229,7 @@ public class GalleryView implements FxView<StackPane> {
         keepOrThrowLabel.setCursor(Cursor.HAND);
 //        keepOrThrowLabel.setDisable(true);
         keepOrThrowLabel.setOpacity(.4);
-        keepOrThrowLabel.setTooltip(new Tooltip("Press 'k' to enable / disable 'Keep or Throw"));
+        keepOrThrowLabel.setTooltip(new Tooltip("Press 'e' to enter intoe edit mode"));
 //        zoomThumbnails.getStyleClass().add(Styles.SMALL);
         zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
         ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(zoomThumbnails::setValue);
@@ -267,8 +256,8 @@ public class GalleryView implements FxView<StackPane> {
         nbThrow.setGraphic(new FontIcon(Material2OutlinedMZ.THUMB_DOWN));
         nbThrow.textProperty()
                .bind(Bindings.size(sortedImages.filtered(mf -> mf.getKeepOrThrow() == EKeepOrThrow.THROW)).map(Object::toString));
-        nbKeep.visibleProperty().bind(keepOrThrowLabel.opacityProperty().map(number -> number.doubleValue() > 0.4));
-        nbThrow.visibleProperty().bind(keepOrThrowLabel.opacityProperty().map(number -> number.doubleValue() > 0.4));
+        nbKeep.visibleProperty().bind(editMode);
+        nbThrow.visibleProperty().bind(editMode);
 
         bar.getChildren().addAll(expand, keepOrThrowLabel, zoomThumbnails, breadCrumbBar, new Spacer(), nbKeep, nbThrow, new Separator(
                 Orientation.VERTICAL), nbImages);
@@ -509,7 +498,7 @@ public class GalleryView implements FxView<StackPane> {
         breadCrumbBar.setSelectedCrumb(model);
     }
 
-    private void escapePressed(KeyEvent keyEvent) {
+    public void escapePressed(KeyEvent keyEvent) {
         if (dblCickState == EGalleryClickState.ZOOM) {
             displayNext(photo.getMediaFile());
         } else if (dblCickState.isImage()) {
@@ -518,7 +507,7 @@ public class GalleryView implements FxView<StackPane> {
         keyEvent.consume();
     }
 
-    private void leftPressed(KeyEvent keyEvent) {
+    public void leftPressed(KeyEvent keyEvent) {
         if (dblCickState.isImage() && photo.getMediaFile() != null) {
             gridView.getLeft(photo.getMediaFile()).ifPresent(mf -> {
                 // TODO: Test by adding to selection ?
@@ -533,7 +522,7 @@ public class GalleryView implements FxView<StackPane> {
         keyEvent.consume();
     }
 
-    private void rightPressed(KeyEvent keyEvent) {
+    public void rightPressed(KeyEvent keyEvent) {
         if (dblCickState.isImage() && photo.getMediaFile() != null) {
             gridView.getRight(photo.getMediaFile())
                     .ifPresent(mf -> {
@@ -553,14 +542,25 @@ public class GalleryView implements FxView<StackPane> {
         keyEvent.consume();
     }
 
-    private void kPressed(KeyEvent keyEvent) {
-        log.info("'K' pressed: {}", keepOrThrowLabel.getOpacity());
+    public void editPressed(KeyEvent keyEvent) {
         if (keepOrThrowLabel.getOpacity() == 0.4) {
             keepOrThrowLabel.setOpacity(1);
         } else {
             keepOrThrowLabel.setOpacity(0.4);
         }
 //        keepOrThrowLabel.setDisable(!keepOrThrowLabel.isDisable());
+    }
+
+    public void keepPressed(KeyEvent keyEvent) {
+//        gridView.getSelectionModel().getSelection().forEach();
+    }
+
+    public void throwPressed(KeyEvent keyEvent) {
+
+    }
+
+    public void undecidePressed(KeyEvent keyEvent) {
+
     }
 
     public void expandGridCell(MouseEvent mouseEvent) {
@@ -576,7 +576,7 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     public void keepOrThrowClick(MouseEvent mouseEvent) {
-        kPressed(null);
+        editPressed(null);
     }
 
     @Override

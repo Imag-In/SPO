@@ -56,6 +56,8 @@ CREATE TABLE thumbnail
     image       BLOB,
     origin      VARCHAR(255),
     last_update date,
+    width  INT,
+    height INT,
     CONSTRAINT PK_THUMBNAIL PRIMARY KEY (mf_id)
 );
 

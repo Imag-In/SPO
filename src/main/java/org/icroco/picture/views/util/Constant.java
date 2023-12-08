@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 @UtilityClass
 public class Constant {
 
+    // We save 1 thread for FxPlatform (UX)
     public static final int     NB_CORE       = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
     public              Pattern SUPPORTED_EXT = Pattern.compile(".*\\.(png|jpg|jpeg)$", Pattern.CASE_INSENSITIVE);
 //    public              Pattern SUPPORTED_EXT = Pattern.compile(".*\\.(png|jpg|jpeg|tiff|tif)$", Pattern.CASE_INSENSITIVE);

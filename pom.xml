@@ -65,6 +65,8 @@
         <virtualizedfx.version>21.1.0</virtualizedfx.version>
         <wellbehavedfx.version>0.3.3</wellbehavedfx.version>
         <reflections.version>0.10.2</reflections.version>
+        <kim.version>0.7.4</kim.version>
+        <commons-imaging.version>1.0-alpha3</commons-imaging.version>
     </properties>
 
     <dependencyManagement>
@@ -109,6 +111,16 @@
             <groupId>com.drewnoakes</groupId>
             <artifactId>metadata-extractor</artifactId>
             <version>${metadata-extractor.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ashampoo</groupId>
+            <artifactId>kim-jvm</artifactId>
+            <version>${kim.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-imaging</artifactId>
+            <version>${commons-imaging.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>

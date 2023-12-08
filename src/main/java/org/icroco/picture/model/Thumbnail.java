@@ -14,10 +14,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @EqualsAndHashCode(of = "mfId")
 public class Thumbnail {
-    private Long mfId;
+    private Long           mfId;
     private Path           fullPath;
     private Image          image;
     private EThumbnailType origin;
     private LocalDateTime  lastUpdate;
-
+    private Dimension      dimension;
 }

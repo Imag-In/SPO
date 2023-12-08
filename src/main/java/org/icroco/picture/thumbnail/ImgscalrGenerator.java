@@ -45,12 +45,13 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             return Unchecked.supplier(() -> {
                 var orientation = metadataExtractor.orientation(path).orElse(1);
                 var img         = ImageIO.read(path.toFile()); // load image
-
+                var thumbnail = SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null);
                 return Thumbnail.builder()
                                 .fullPath(path)
-                                .image(SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null))
+                                .image(thumbnail)
                                 .origin(EThumbnailType.GENERATED)
                                 .lastUpdate(LocalDateTime.now())
+                                .dimension(new Dimension(thumbnail.getWidth(), thumbnail.getHeight()))
                                 .build();
             }, throwable -> log.error("Cannot generate thumbnail for: '{}'", path, throwable)).get();
         } finally {
@@ -100,6 +101,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                                     .image(SwingFXUtils.toFXImage(bi, null))
                                     .origin(EThumbnailType.EXTRACTED)
                                     .lastUpdate(LocalDateTime.now())
+                                    .dimension(new Dimension(bi.getWidth(), bi.getHeight()))
                                     .build();
 
 //                        new Thumbnail(path, SwingFXUtils.toFXImage(bi, null), EThumbnailType.EXTRACTED, null);

@@ -16,11 +16,14 @@ import java.time.LocalDateTime;
 public class ImageIoGenerator extends AbstractThumbnailGenerator {
     @Override
     public Thumbnail generate(Path path, Dimension dim) {
+        final var image = new Image(path.toUri().toString(), dim.width(), 0, true, true);
         return new Thumbnail(0L,
                              path,
-                             new Image(path.toUri().toString(), dim.width(), 0, true, true),
+                             image,
                              EThumbnailType.GENERATED,
-                             LocalDateTime.now());
+                             LocalDateTime.now(),
+                             new Dimension(image.getWidth(), image.getHeight())
+        );
     }
 
     @Override
@@ -36,8 +39,7 @@ public class ImageIoGenerator extends AbstractThumbnailGenerator {
             BufferedImage img = new BufferedImage(dim.width(), dim.height(), BufferedImage.TYPE_INT_RGB);
             img.createGraphics().drawImage(bImage.getScaledInstance(dim.width(), dim.width(), java.awt.Image.SCALE_SMOOTH), 0, 0, null);
             ImageIO.write(img, "jpg", target.toFile());
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

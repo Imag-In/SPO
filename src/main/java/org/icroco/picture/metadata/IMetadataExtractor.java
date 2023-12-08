@@ -15,7 +15,7 @@ import java.util.Optional;
 
 public interface IMetadataExtractor {
     Logger      log      = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
-    GeoLocation NO_WHERE = new GeoLocation(Double.MIN_VALUE, Double.MIN_VALUE);
+    GeoLocation NO_WHERE = new GeoLocation(190D, 190D);
 
     Map<String, Object> getAllInformation(Path path);
 

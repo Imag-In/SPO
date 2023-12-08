@@ -10,13 +10,11 @@ import one.util.streamex.StreamEx;
 import org.icroco.picture.config.ImagInConfiguration;
 import org.icroco.picture.event.*;
 import org.icroco.picture.hash.IHashGenerator;
-import org.icroco.picture.model.EThumbnailType;
-import org.icroco.picture.model.MediaCollection;
-import org.icroco.picture.model.MediaFile;
-import org.icroco.picture.model.Thumbnail;
+import org.icroco.picture.model.*;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.thumbnail.IThumbnailGenerator;
 import org.icroco.picture.views.task.AbstractTask;
+import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.image.ImageLoader;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -134,16 +132,20 @@ public class MediaLoader {
         Thumbnail thumbnail;
         try {
             thumbnail = Optional.ofNullable(thumbnailGenerator.extractThumbnail(mf.getFullPath()))
-                                .orElseGet(() -> Thumbnail.builder().fullPath(mf.getFullPath())
+                                .orElseGet(() -> Thumbnail.builder()
+                                                          .fullPath(mf.getFullPath())
                                                           .origin(EThumbnailType.ABSENT)
+                                                          .dimension(Dimension.EMPTY_DIM)
                                                           .build());
             thumbnail.setMfId(mf.getId());
             mf.setThumbnailType(thumbnail.getOrigin());
+            thCache.evict(mf);
         } catch (Exception e) {
             log.error("invalid mf: '{}'", mf, e);
             thumbnail = Thumbnail.builder().fullPath(mf.getFullPath())
                                  .origin(EThumbnailType.ABSENT)
                                  .mfId(mf.getId())
+                                 .dimension(Dimension.EMPTY_DIM)
                                  .build();
         }
         // TODO: Add better error management if cannot read the image
@@ -451,6 +453,33 @@ public class MediaLoader {
     }
 
     record ThumbnailUpdate(MediaFile mf, Thumbnail thumbnail, Image update) {
+    }
+
+    @EventListener(ForceGenerateThumbnailEvent.class)
+    public void forceGenerateThumbnails(ForceGenerateThumbnailEvent event) {
+        final var mf = event.getMediaFile();
+        ModernTask<MediaFile> task = ModernTask.<MediaFile>builder()
+                                               .execute(myself -> {
+                                                   myself.updateProgress(-1, -1);
+                                                   myself.updateTitle("Generate Thumbnail");
+                                                   var thumbnail = thumbnailGenerator.generate(mf.getFullPath());
+                                                   thumbnail.setMfId(mf.getId());
+                                                   var saved = persistenceService.saveAll(List.of(thumbnail));
+                                                   saved.stream().findFirst().ifPresent(t -> {
+                                                       thCache.put(mf, t);
+                                                       mf.setThumbnailType(t.getOrigin());
+                                                       persistenceService.updateCollection(mf.getCollectionId(),
+                                                                                           emptySet(),
+                                                                                           emptySet(),
+                                                                                           Set.of(mf));
+                                                   });
+                                                   return mf;
+                                               })
+                                               .onSuccess((_, mediaFile) -> {
+                                                   mediaFile.setLastUpdated(LocalDateTime.now());
+                                               })
+                                               .build();
+        taskService.supply(task);
     }
 
     @EventListener(GenerateThumbnailEvent.class)

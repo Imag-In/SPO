@@ -1,6 +1,5 @@
 package org.icroco.picture.views.organize.gallery;
 
-import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.geometry.Pos;
 import javafx.scene.control.Cell;
@@ -27,7 +26,7 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
     private final TaskService                               taskService;
     private final BooleanProperty                           isExpandCell;
     private final BiConsumer<MouseEvent, MediaFileGridCell> callBack;
-    private final BooleanBinding                            keepOrThrow;
+    private final BooleanProperty                           keepOrThrow;
 
     @Override
     public GridCell<MediaFile> call(final GridView<MediaFile> grid) {

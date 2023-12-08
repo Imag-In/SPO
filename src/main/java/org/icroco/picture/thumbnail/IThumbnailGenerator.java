@@ -20,6 +20,11 @@ public interface IThumbnailGenerator {
 
     Thumbnail generate(Path path, Dimension dim);
 
+    default Thumbnail generate(Path path) {
+        return generate(path, DEFAULT_THUMB_SIZE);
+    }
+
+
     default Image generate(@NonNull Thumbnail thumbnail) {
 //        var newThumb = generate(thumbnail.getFullPath(), DEFAULT_THUMB_SIZE);
 //        thumbnail.setThumbnail(newThumb.getThumbnail());

@@ -18,6 +18,8 @@ import org.icroco.picture.thumbnail.ImgscalrGenerator;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Constant;
 import org.icroco.picture.views.util.FxPlatformExecutor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.Cache;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.context.annotation.Bean;
@@ -27,17 +29,20 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings("unchecked")
 @Configuration
 @EnableCaching
 @Slf4j
 public class ImagInConfiguration {
 
     public static final String CACHE_THUMBNAILS      = "thumbnails";
+    public static final String CACHE_THUMBNAILS_RAW  = CACHE_THUMBNAILS + "-raw";
     public static final String CACHE_IMAGE_FULL_SIZE = "imageFullSize";
     public static final String CACHE_IMAGE_HEADER    = "imageHeader";
 
@@ -48,7 +53,7 @@ public class ImagInConfiguration {
     public static final String IMAG_IN_EXECUTOR  = "IMAG_IN_EXEC";
 
     @Bean(name = CACHE_THUMBNAILS)
-    public CaffeineCache thumbnails() {
+    public Cache thumbnails() {
         return new CaffeineCache(CACHE_THUMBNAILS,
                                  Caffeine.<Long, Thumbnail>newBuilder()
                                          .recordStats()
@@ -61,6 +66,11 @@ public class ImagInConfiguration {
                                          }))
 //                                         .expireAfterAccess(1, TimeUnit.DAYS)
                                          .build());
+    }
+
+    @Bean(name = CACHE_THUMBNAILS_RAW)
+    public Map<MediaFile, Thumbnail> rawThumbnails(@Qualifier(CACHE_THUMBNAILS) Cache cache) {
+        return ((com.github.benmanes.caffeine.cache.Cache<MediaFile, Thumbnail>) cache.getNativeCache()).asMap();
     }
 
     @Bean(name = CACHE_IMAGE_FULL_SIZE)

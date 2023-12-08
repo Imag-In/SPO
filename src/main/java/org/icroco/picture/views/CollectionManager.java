@@ -55,10 +55,11 @@ public class CollectionManager {
             log.debug("End of adding directory watcher");
         });
 
-//        taskService.supply(analyseCollections(List.copyOf(event.getMediaCollections())));
+        taskService.supply(analyseCollections(List.copyOf(event.getMediaCollections())));
     }
 
     Task<Void> analyseCollections(final List<MediaCollection> mediaCollections) {
+        persistenceService.cleanOrphans();
         return new AbstractTask<>() {
             @Override
             protected Void call() throws Exception {

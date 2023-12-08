@@ -1,7 +1,6 @@
 package org.icroco.picture.views.organize.gallery;
 
 import atlantafx.base.util.Animations;
-import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Pos;
@@ -53,7 +52,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
                              MediaLoader mediaLoader,
                              BooleanProperty isExpandCell,
                              CustomGridView<MediaFile> grid,
-                             BooleanBinding keepOrThrow) {
+                             BooleanProperty keepOrThrow) {
         this.taskService = taskService;
         this.preserveImageProperties = preserveImageProperties;
         this.mediaLoader = mediaLoader;

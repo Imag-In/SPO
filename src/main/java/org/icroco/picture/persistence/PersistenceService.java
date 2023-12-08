@@ -13,7 +13,6 @@ import org.icroco.picture.persistence.mapper.MediaFileMapper;
 import org.icroco.picture.persistence.mapper.ThumbnailMapper;
 import org.icroco.picture.persistence.model.MediaFileEntity;
 import org.icroco.picture.views.task.TaskService;
-import org.jooq.lambda.Unchecked;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.cache.Cache;
@@ -25,8 +24,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
-
-import static java.time.Duration.ofMinutes;
 
 @SuppressWarnings("unchecked")
 @Component
@@ -60,13 +57,14 @@ public class PersistenceService {
         } finally {
             rLock.unlock();
         }
-        Thread.ofVirtual().name("DataBase checking").start(Unchecked.runnable(() -> {
-            Thread.sleep(ofMinutes(1)); // It cost nothing with Virtual Thread. // Put in conf.
-            checkDatase();
-        }));
+//        Thread.ofVirtual().name("DataBase checking").start(Unchecked.runnable(() -> {
+//            Thread.sleep(ofMinutes(1)); // It cost nothing with Virtual Thread. // Put in conf.
+//            cleanOrphans();
+//        }));
     }
 
-    private void checkDatase() {
+    @Transactional
+    public void cleanOrphans() {
         deleteOrphanThumbnails();
         cleanOprhanKeywords();
     }

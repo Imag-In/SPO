@@ -28,4 +28,12 @@ public interface ThumbnailRepository extends JpaRepository<ThumbnailEntity, Long
             """)
     List<Long> findOrphelans();
 
+    interface IdAndBytes {
+        String getMfId();
+
+        byte[] getImage();
+    }
+
+    Optional<IdAndBytes> findImageByMfId(Long mfId);
+
 }

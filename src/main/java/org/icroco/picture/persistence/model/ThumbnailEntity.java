@@ -42,4 +42,6 @@ public class ThumbnailEntity {
     @Column(name = "LAST_UPDATE", columnDefinition = "DATE")
     private LocalDateTime lastUpdate;
 
+    @NotNull
+    private DimensionEntity dimension;
 }

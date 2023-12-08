@@ -7,7 +7,7 @@ import org.icroco.picture.views.util.ImageUtils;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 
-@Mapper
+@Mapper(uses = { DimensionMapper.class })
 public abstract class ThumbnailMapper {
 
     //    @Mapping(target = "manufacturer", source = "make")

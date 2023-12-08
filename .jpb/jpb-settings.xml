@@ -32,9 +32,9 @@
     </component>
     <component name="PersistenceUnitSettings">
         <persistence-units>
-            <persistence-unit name="Default" defaultSearchScope="Project">
+            <persistence-unit name="Default">
                 <packages>
-                    <package value="org.icroco.picture"/>
+                    <package value="org.icroco.picture.persistence"/>
                 </packages>
             </persistence-unit>
         </persistence-units>
@@ -43,7 +43,7 @@
         <database-infos>
             <database-info dbms-id="h2">
                 <mapping-types>
-                    <mapping-type sql-type="varchar" java-class="org.icroco.picture.persistence.converter.PathEntityConverter"/>
+                    <mapping-type sql-type="varchar" java-class="org.icroco.picture.persistence.model.PathEntityConverter"/>
                 </mapping-types>
             </database-info>
         </database-infos>

@@ -89,7 +89,6 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             Metadata metadata = ImageMetadataReader.readMetadata(input, input.available());
             return readdAllHeaders(metadata,
                                    ExifIFD0Directory.class,
-                                   ExifIFD0Directory.TAG_ORIENTATION,
                                    d -> getTagAsInt(Optional.of(d),
                                                     ExifDirectoryBase.TAG_ORIENTATION,
                                                     DEFAULT_ORIENTATION,
@@ -108,6 +107,10 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             Metadata metadata               = ImageMetadataReader.readMetadata(input, input.available());
             var      edb                    = ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
             var      firstExifIFD0Directory = ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class));
+            var gps = gps(path, metadata)
+                    .map(gl -> new org.icroco.picture.model.GeoLocation(gl.getLatitude(),
+                                                                        gl.getLongitude()))
+                    .orElse(NO_WHERE);
             return Optional.of(MetadataHeader.builder()
                                              .orginalDate(originalDateTime(path, metadata).orElse(EPOCH_0))
                                              .orientation(extractOrientation(path, firstExifIFD0Directory))
@@ -157,13 +160,12 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 
     private static <T extends Directory, R> Optional<R> readdAllHeaders(Metadata metadata,
                                                                         Class<T> type,
-                                                                        int tagId,
-                                                                        Function<T, R> extrator) {
+                                                                        Function<T, R> extractor) {
         return StreamSupport.stream(metadata.getDirectories().spliterator(), false)
                             .filter(type::isInstance)
                             .map(type::cast)
                             .findFirst()
-                            .map(extrator);
+                            .map(extractor);
     }
 
     private Optional<GeoLocation> gps(Path path, Metadata metadata) {

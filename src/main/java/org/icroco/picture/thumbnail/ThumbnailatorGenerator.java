@@ -30,6 +30,7 @@ public class ThumbnailatorGenerator extends AbstractThumbnailGenerator {
         catch (IOException e) {
             throw new RuntimeException(e);
         }
+        // TODO: Not Yet Implemented
         return null;
     }
 
