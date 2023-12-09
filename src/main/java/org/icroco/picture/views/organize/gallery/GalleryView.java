@@ -8,6 +8,7 @@ import jakarta.annotation.PostConstruct;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -66,7 +67,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
-import static javafx.application.Platform.runLater;
 
 @Component
 @RequiredArgsConstructor
@@ -80,33 +80,38 @@ public class GalleryView implements FxView<StackPane> {
     private       ZoomDragPane          photo;
     private final PersistenceService    persistenceService;
 
-    private final StackPane                             root           = new StackPane();
-    private final BorderPane                            gallery        = new BorderPane();
-    private final BorderPane                            carousel       = new BorderPane();
-    private final Slider                                zoomThumbnails = createTickSlider();
-    private final Breadcrumbs<Path>                     breadCrumbBar  = new Breadcrumbs<>();
+    private final StackPane                             root             = new StackPane();
+    private final BorderPane                            gallery          = new BorderPane();
+    private final BorderPane                            carousel         = new BorderPane();
+    private final Slider                                zoomThumbnails   = createTickSlider();
+    private final Breadcrumbs<Path>                     breadCrumbBar    = new Breadcrumbs<>();
     private       CustomGridView<MediaFile>             gridView;
     //    private final StackPane                             photoContainer = new StackPane();
-    private final BooleanProperty                       expandCell     = new SimpleBooleanProperty(true);
-    private final ObservableList<MediaFile>             images         = FXCollections.observableArrayList(MediaFile.extractor());
-    private final FilteredList<MediaFile>               filteredImages = new FilteredList<>(images);
-    private final SortedList<MediaFile>                 sortedImages   = new SortedList<>(filteredImages);
+    private final BooleanProperty                       expandCell       = new SimpleBooleanProperty(true);
+    private final ObservableList<MediaFile>             images           = FXCollections.observableArrayList(MediaFile.extractor());
+    private final FilteredList<MediaFile>               filteredImages   = new FilteredList<>(images);
+    private final SortedList<MediaFile>                 sortedImages     = new SortedList<>(filteredImages);
     private       double                                gridCellWidth;
     //    private       double                                gridCellHeight;
-    private       int                                   zoomLevel      = 0;
-    private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
-    private final SimpleBooleanProperty                 editMode       = new SimpleBooleanProperty(false);
-    private       EGalleryClickState                    dblCickState   = EGalleryClickState.GALLERY;
+    private       int                                   zoomLevel        = 0;
+    private final SimpleObjectProperty<MediaCollection> currentCatalog   = new SimpleObjectProperty<>(null);
+    private final SimpleBooleanProperty                 editMode         = new SimpleBooleanProperty(false);
+    private       EGalleryClickState                    dblCickState     = EGalleryClickState.GALLERY;
     private       HBox                                  toolBar;
-    FontIcon        thumbsUpDownIcon = new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
-    FontIcon        blockIcon        = new FontIcon(Material2OutlinedAL.BLOCK);
-    StackedFontIcon keepOrThrowIcon  = new StackedFontIcon();
-    Label           keepOrThrowLabel = new Label();
+    private final FontIcon                              thumbsUpDownIcon = new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
+    private final FontIcon                              blockIcon        = new FontIcon(Material2OutlinedAL.BLOCK);
+    private final StackedFontIcon                       keepOrThrowIcon  = new StackedFontIcon();
+    private final Label                                 keepOrThrowLabel = new Label();
+    private       SimpleIntegerProperty                 cellWidth        = new SimpleIntegerProperty(200);
+    private       SimpleIntegerProperty                 cellPerRow       = new SimpleIntegerProperty(5);
 
     @PostConstruct
     protected void postConstruct() {
         root.getStyleClass().add(ViewConfiguration.V_GALLERY);
         root.setId(ViewConfiguration.V_GALLERY);
+        root.setMinSize(350, 250);
+        root.setEventDispatcher(new DoubleClickEventDispatcher(root.getEventDispatcher()));
+
         gridView = new CustomGridView<>(taskService, FXCollections.emptyObservableList());
         gridView.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null && newValue.intValue() >= 0) {
@@ -117,29 +122,12 @@ public class GalleryView implements FxView<StackPane> {
                                                         .build());
             }
         });
-
         gridView.addScrollAndKeyhandler();
-        root.setMinSize(350, 250);
-        root.setEventDispatcher(new DoubleClickEventDispatcher(root.getEventDispatcher()));
-
-        log.debug("GalleryView: gridCellWidth: {}, gridCellHeight: {}, hCellSpacing: {}, vCellSpacing: {}",
-                  gridView.getCellWidth(),
-                  gridView.getCellHeight(),
-                  gridView.getHorizontalCellSpacing(),
-                  gridView.getVerticalCellSpacing());
         sortedImages.setComparator(Comparator.comparing(MediaFile::getOriginalDate));
         gridView.setItems(sortedImages);
-//        gridCellWidth = Optional.ofNullable(pref.getUserPreference().getGrid().getCellWidth()).orElse((int)gridView.getCellWidth());
-//        gridCellHeight = Optional.ofNullable(pref.getUserPreference().getGrid().getCellHeight()).orElse((int)gridView.getCellHeight());
-//        gridCellWidth = 128; //gridView.getCellWidth() * 2;
-//        gridCellHeight = 128; //gridView.getCellHeight() * 2;
-//        gridView.cellWidthProperty().addListener((observable, oldValue, newValue) -> log.info("Grid Cell Width: {}", newValue));
-
-        gridView.setCellWidth(128);
-        gridView.setCellHeight(128);
         gridView.setCache(true);
         gridView.setCacheHint(CacheHint.SPEED);
-        ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(this::applyGridCellWidthFactor);
+//        ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(this::applyGridCellWidthFactor);
         gridView.setHorizontalCellSpacing(0D);
         gridView.setVerticalCellSpacing(0D);
         keepOrThrowLabel.setOpacity(0.4);
@@ -153,18 +141,12 @@ public class GalleryView implements FxView<StackPane> {
         currentCatalog.addListener(this::collectionChanged);
         carousel.addEventHandler(CustomMouseEvent.MOUSE_DOUBLE_CLICKED, this::onImageClick);
         carousel.setId("Carousel");
-//        photoContainer.getChildren().add(photo);
 
-//        carousel.maxHeightProperty().bind(root.heightProperty());
-//        carousel.maxWidthProperty().bind(root.widthProperty());
         photo = new ZoomDragPane(mediaLoader);
         carousel.setCenter(photo);
         photo.maxHeightProperty().bind(carousel.heightProperty());
         photo.maxWidthProperty().bind(carousel.widthProperty());
 //        carousel.setBottom(carouselIcons);
-
-//        photo.fitHeightProperty().bind(photoContainer.heightProperty().subtract(10));
-//        photo.fitWidthProperty().bind(photoContainer.widthProperty().subtract(10));
 
         breadCrumbBar.setCrumbFactory(item -> new Hyperlink(item.getValue().getFileName().toString()));
         breadCrumbBar.setAutoNavigationEnabled(false);
@@ -184,6 +166,10 @@ public class GalleryView implements FxView<StackPane> {
         gallery.setBottom(toolBar);
         carousel.setVisible(false);
         root.getChildren().addAll(gallery, carousel);
+
+        ofNullable(pref.getUserPreference().getGrid().getCellPerRow()).ifPresent(zoomThumbnails::setValue);
+        gridView.cellWidthProperty().bind(Bindings.divide(Bindings.subtract(gallery.widthProperty(), 18), zoomThumbnails.valueProperty()));
+        gridView.cellHeightProperty().bind(gridView.cellWidthProperty());
     }
 
     private static Node bcbDividerFactory(Breadcrumbs.BreadCrumbItem<Path> item) {
@@ -196,7 +182,6 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void cellDoubleClick(MouseEvent event, MediaFileGridCell cell) {
-//        var mf = ((MediaFileGridCell) event.getSource()).getItem();
         var optMf = ofNullable(cell.getItem());
         log.atDebug()
            .log(() -> "#click: %s, mf: %s".formatted(event.getClickCount(),
@@ -246,17 +231,18 @@ public class GalleryView implements FxView<StackPane> {
         keepOrThrowLabel.setTooltip(new Tooltip("Press 'e' to enter into edit mode (metadata)"));
 //        zoomThumbnails.getStyleClass().add(Styles.SMALL);
         zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
-        ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(zoomThumbnails::setValue);
+        ofNullable(pref.getUserPreference().getGrid().getCellPerRow()).ifPresent(zoomThumbnails::setValue);
         zoomThumbnails.setBlockIncrement(1);
+        zoomThumbnails.setMajorTickUnit(1);
+        zoomThumbnails.setMinorTickCount(0);
+        zoomThumbnails.setSnapToTicks(true);
+        zoomThumbnails.setShowTickLabels(false);
+        zoomThumbnails.setMin(3);
+        zoomThumbnails.setMax(pref.getUserPreference().getGrid().getMaxCellPerRow());
         zoomThumbnails.valueProperty()
-                      .addListener((ObservableValue<? extends Number> _, Number _, Number newValue) -> {
-                          zoomLevel = newValue.intValue();
-                          log.debug("Zoom Level: {}", zoomLevel);
-                          applyGridCellWidthFactor(zoomLevel);
-                          pref.getUserPreference().getGrid().setGridZoomFactor(zoomLevel);
-//                          gridView.setCellWidth(gridCellWidth + 10 * zoomLevel);
-//                          gridView.setCellHeight(gridCellHeight + 10 * zoomLevel);
-//            carouselIcons.setFixedCellSize(gridView.getCellWidth());
+                      .addListener((_, oldValue, newValue) -> {
+                          log.debug("Zoom Level: old: {}, new: {}", oldValue, newValue.intValue());
+                          pref.getUserPreference().getGrid().setCellPerRow(newValue.intValue());
                       });
         HBox.setHgrow(breadCrumbBar, Priority.ALWAYS);
         Label nbImages = new Label();
@@ -354,26 +340,15 @@ public class GalleryView implements FxView<StackPane> {
         carousel.setVisible(false);
         if (mf != null) {
             gridView.ensureVisible(mf);
-//            gridView.getSelectionModel().set();
         }
     }
 
     private void zoomOnGrid(ZoomEvent event) {
         var zoom = Zoom.of(event);
-        zoomLevel += zoom.getZoomLevelDelta() * 10;
-        zoomLevel = Math.min(zoomLevel, 100);
-        zoomLevel = Math.max(zoomLevel, 0);
-        log.info("zoom:{}, zoomLevel: {}", zoom, zoomLevel);
-//        zoomThumbnails.setValue((int) zoomLevel);
-
-//        final var ratio = event.getTotalZoomFactor() / event.getZoomFactor();
-//        final var zoomValue = ratio >= 1
-//                              ? Math.min(100.0, Math.round(Math.max(zoomThumbnails.getValue(), 10) * ratio))
-//                              : Math.max(0D, Math.floor(zoomThumbnails.getValue() * event.getTotalZoomFactor()));
-//        log.info("type: {}, factor: {}, totalFactor: {}, ratio: {}, zoomValue: {}",
-//                 event.getEventType(), event.getZoomFactor(), event.getTotalZoomFactor(), ratio, (int) zoomValue);
-        runLater(() -> zoomThumbnails.setValue(zoomLevel));
-
+        switch (zoom) {
+            case ZOOM_IN -> zoomThumbnails.increment();
+            case ZOOM_OUT -> zoomThumbnails.decrement();
+        }
         event.consume();
     }
 

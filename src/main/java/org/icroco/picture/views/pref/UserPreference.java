@@ -18,8 +18,6 @@ import java.nio.file.Path;
 @NoArgsConstructor
 @Slf4j
 public class UserPreference {
-
-
     @Setter
     @Getter
     @NoArgsConstructor
@@ -70,15 +68,16 @@ public class UserPreference {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Gallery {
-        private Integer cellWidth  = 128;
-        private Integer cellHeight = 128;
+        private Integer cellWidth     = 128;
+        private Integer cellHeight    = 128;
+        private Integer cellPerRow    = 5;
+        private Integer maxCellPerRow = 12;
         private Integer gridZoomFactor;
     }
 
-
     private MainWindow     mainWindow = new MainWindow(Double.MIN_VALUE, Double.MIN_VALUE, 1024D, 800D, -1, false, null);
     private Collection     collection = new Collection(-1, null);
-    private Gallery        grid       = new Gallery(128, 128, 0);
+    private Gallery grid = new Gallery(128, 128, 0, 5, 12);
     private SettingsDialog settings   = new SettingsDialog(new Dimension(600, 400));
 
     public void setLastViewed(int id, Path path) {
