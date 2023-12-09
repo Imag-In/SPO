@@ -91,7 +91,7 @@ public class DetailsView extends AbstractView<VBox> {
     private final ObjectProperty<Label> selectedTab       = new SimpleObjectProperty<>();
     private       Path                  path              = null;
     private final Button                printImageDetails = new Button(null, FontIcon.of(MaterialDesignC.CONSOLE_LINE));
-    private final Button                refreshThumbnail  = new Button(null, FontIcon.of(MaterialDesignR.REFRESH));
+    private final Button refreshThumbnail = new Button(null, FontIcon.of(MaterialDesignR.RESTART));
     private final Button                saveThumbnail     = new Button(null, FontIcon.of(MaterialDesignC.CONTENT_SAVE_OUTLINE));
 
     private final ChangeListener<LocalDateTime> reloadNeeded = this::reload;
@@ -202,6 +202,8 @@ public class DetailsView extends AbstractView<VBox> {
         rowIdx += 1;
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
         rowIdx += 1;
+
+        // Thumbnail section
         grid.add(new Label("Thumbnail"), 0, rowIdx);
         rowIdx += 1;
         grid.add(FontIcon.of(MaterialDesignI.IMAGE_SIZE_SELECT_LARGE), 0, rowIdx);

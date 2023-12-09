@@ -9,6 +9,7 @@ import com.drew.metadata.exif.ExifDirectoryBase;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
+import com.drew.metadata.icc.IccDirectory;
 import com.drew.metadata.iptc.IptcDirectory;
 import com.drew.metadata.jpeg.JpegDirectory;
 import com.drew.metadata.png.PngDirectory;
@@ -24,7 +25,6 @@ import org.springframework.cache.annotation.Cacheable;
 
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -40,7 +40,7 @@ import static java.util.Optional.ofNullable;
 @RequiredArgsConstructor
 public class DefaultMetadataExtractor implements IMetadataExtractor {
 
-    public static final  LocalDateTime     EPOCH_0             = Instant.ofEpochMilli(0).atZone(ZoneId.systemDefault()).toLocalDateTime();
+    public static final LocalDateTime EPOCH_0 = LocalDateTime.of(0, 1, 1, 0, 0);
     private static final Logger            log                 = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
     private static final Supplier<Integer> DEFAULT_ORIENTATION = () -> 0;
 
@@ -251,8 +251,41 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     }
 
     public Optional<LocalDateTime> originalDateTime(Path path, Metadata metadata) {
-        return ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class))
-                .map(Unchecked.function(this::getDateTime, throwable -> log.warn("'{}' Cannot read original date time", path)));
+        // First look at TAG_DATETIME_ORIGINAL
+        return getTagAsDate(ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class)),
+                            ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL,
+                            Optional.of(ExifSubIFDDirectory.TAG_TIME_ZONE_ORIGINAL),
+                            _ -> log.warn("'{}' Cannot read DATETIME_ORIGINAL into ExifSubIFDDirectory", path))
+
+                .or(() -> getTagAsDate(ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class)),
+                                       ExifIFD0Directory.TAG_DATETIME_ORIGINAL,
+                                       Optional.of(ExifIFD0Directory.TAG_TIME_ZONE_ORIGINAL),
+                                       _ -> log.warn("'{}' Cannot read DATETIME_ORIGINAL into ExifIFD0Directory", path)))
+                // Then Look at TAG_DATETIME_DIGITIZED
+                .or(() -> getTagAsDate(ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class)),
+                                       ExifSubIFDDirectory.TAG_DATETIME_DIGITIZED,
+                                       Optional.of(ExifSubIFDDirectory.TAG_TIME_ZONE_DIGITIZED),
+                                       _ -> log.warn("'{}' Cannot read TAG_TIME_ZONE_DIGITIZED into ExifSubIFDDirectory", path)))
+                .or(() -> getTagAsDate(ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class)),
+                                       ExifIFD0Directory.TAG_DATETIME_DIGITIZED,
+                                       Optional.of(ExifIFD0Directory.TAG_TIME_ZONE_DIGITIZED),
+                                       _ -> log.warn("'{}' Cannot read TAG_DATETIME_DIGITIZED into ExifIFD0Directory", path)))
+                .or(() -> getTagAsDate(ofNullable(metadata.getFirstDirectoryOfType(IccDirectory.class)),
+                                       IccDirectory.TAG_PROFILE_DATETIME,
+                                       Optional.empty(),
+                                       _ -> log.warn("'{}' Cannot read TAG_DATETIME_DIGITIZED into ExifIFD0Directory", path)))
+                .or(() -> getTagAsDate(ofNullable(metadata.getFirstDirectoryOfType(IptcDirectory.class)),
+                                       IptcDirectory.TAG_DATE_CREATED,
+                                       Optional.empty(),
+                                       _ -> log.warn("'{}' Cannot read TAG_DATETIME_DIGITIZED into ExifIFD0Directory", path)))
+                .or(() -> getTagAsDate(ofNullable(metadata.getFirstDirectoryOfType(GpsDirectory.class)),
+                                       GpsDirectory.TAG_DATE_STAMP,
+                                       Optional.empty(),
+                                       _ -> log.warn("'{}' Cannot read TAG_DATETIME_DIGITIZED into ExifIFD0Directory", path)))
+                ;
+
+//        return ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class))
+//                .map(Unchecked.function(this::getDateTime, _ -> log.warn("'{}' Cannot read original date time", path)));
     }
 
 //    Integer getOrientation(Directory directory) {
@@ -281,6 +314,31 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                         .map(d -> Unchecked.function(d::getInt, errorConsummer).apply(tagId));
     }
 
+    LocalDateTime getDateTime(ExifSubIFDDirectory directory) {
+        if (directory.containsTag(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL)) {
+            return LocalDateTime.ofInstant(directory.getDateOriginal(TimeZone.getDefault()).toInstant(), ZoneId.systemDefault());
+        }
+        return EPOCH_0;
+    }
+
+    static <T extends Directory> Optional<LocalDateTime> getTagAsDate(Optional<T> directory,
+                                                                      int tagId,
+                                                                      Optional<Integer> tagZoneId,
+                                                                      Consumer<Throwable> errorConsummer) {
+        ZoneId zId = tagZoneId.flatMap(zoneId -> directory.filter(d -> d.containsTag(zoneId))
+                                                          .map(d -> d.getString(zoneId)))
+                              .map(ZoneId::of)
+                              .orElse(null);
+
+        Optional<LocalDateTime> optDate = directory.filter(d -> d.containsTag(tagId))
+                                                   .map(d -> Unchecked.function((Directory dir) -> dir.getDate(tagId), errorConsummer)
+                                                                      .apply(d))
+                                                   .map(date -> LocalDateTime.ofInstant(date.toInstant(),
+                                                                                        zId == null ? ZoneId.systemDefault() : zId));
+
+        return optDate;
+    }
+
     static <T extends Directory> String getTagAsString(Optional<T> directory,
                                                        int tagId,
                                                        Supplier<String> defaultValueSupplier,
@@ -290,12 +348,6 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                         .orElseGet(defaultValueSupplier);
     }
 
-    LocalDateTime getDateTime(ExifSubIFDDirectory directory) {
-        if (directory.containsTag(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL)) {
-            return LocalDateTime.ofInstant(directory.getDateOriginal(TimeZone.getDefault()).toInstant(), ZoneId.systemDefault());
-        }
-        return EPOCH_0;
-    }
 
 //    byte[] getThumbnail(ExifThumbnailDirectory directory) {
 //        return directory.getObject(TAG_THUMBNAIL_DATA)
