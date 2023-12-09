@@ -72,6 +72,10 @@ public class CollectionView implements FxView<VBox> {
     private final BooleanProperty                     disablePathActions    = new SimpleBooleanProperty(false);
     private final SimpleLongProperty                  catalogSizeProp       = new SimpleLongProperty(0);
 
+    private final static Comparator<TreeItem<CollectionNode>> TREE_ITEM_COMPARATOR =
+            Comparator.comparing(ti -> ti.getValue().path().getFileName().toString(),
+                                 String.CASE_INSENSITIVE_ORDER);
+
     @PostConstruct
     protected void initializedOnce() {
         root.setId(ViewConfiguration.V_MEDIA_COLLECTION);
@@ -127,7 +131,6 @@ public class CollectionView implements FxView<VBox> {
         root.getChildren().addAll(collectionHeader, box);
     }
 
-
     private TreeItem<CollectionNode> findMainCollectionNode(TreeItem<CollectionNode> child) {
         if (child.getParent() == null || child.equals(rootTreeItem)) {
             return child;
@@ -162,7 +165,7 @@ public class CollectionView implements FxView<VBox> {
 
         final TitledPane title = new TitledPane(mediaCollection.path().getFileName().toString(), treeView);
         title.setUserData(mediaCollection.id());
-        title.setTooltip(new Tooltip(mediaCollection.path() + " (id: " + mediaCollection.id() + ")"));
+        title.setTooltip(new Tooltip(STR."\{mediaCollection.path()} (id: \{mediaCollection.id()})"));
 
         return new Pair<>(mediaCollection, pathTreeItem);
     }
@@ -188,9 +191,7 @@ public class CollectionView implements FxView<VBox> {
                              .orElseGet(() -> {
                                  var newItem = new TreeItem<>(new CollectionNode(child, id));
                                  c.getChildren().add(newItem);
-                                 c.getChildren()
-                                  .sort(Comparator.comparing(ti -> ti.getValue().path().getFileName().toString(),
-                                                             String.CASE_INSENSITIVE_ORDER));
+                                 c.getChildren().sort(TREE_ITEM_COMPARATOR);
                                  return newItem;
                              });
         }
@@ -199,28 +200,6 @@ public class CollectionView implements FxView<VBox> {
     @Override
     public VBox getRootContent() {
         return root;
-    }
-
-    @FxEventListener
-    public void onDeleteCollection(DeleteCollectionEvent event) {
-        persistenceService.findMediaCollection(event.getMcId())
-                          .ifPresent(mc -> {
-                              final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, "");
-                              dlg.initOwner(root.getScene().getWindow());
-                              dlg.setTitle("You do want delete MediaCollection ?");
-                              dlg.getDialogPane()
-                                 .setContentText("""
-                                                         Do you want to delete MediaCollection:
-                                                           Path:   %s
-                                                           Id:     %d
-                                                           #Items: %s
-                                                         """.formatted(mc.path(), mc.id(), mc.medias().size()));
-
-                              Nodes.show(dlg, getRootContent().getScene())
-                                   .filter(buttonType -> buttonType == ButtonType.OK)
-                                   .ifPresent(_ -> collectionManager.deleteCollection(mc,
-                                                                                      () -> catalogSizeProp.set(persistenceService.countMediaFiles())));
-                          });
     }
 
     private void newCollection(MouseEvent event) {
@@ -289,35 +268,6 @@ public class CollectionView implements FxView<VBox> {
         return null;
     }
 
-    @FxEventListener
-    public void initCollections(CollectionsLoadedEvent event) {
-        UserPreference.Collection collectionPref = pref.getUserPreference().getCollection();
-//        var nextSelection = PathSelection.builder()
-//                                         .mediaCollectionId(collectionPref.getLastViewed())
-//                                         .subPath(collectionPref.getLastPath())
-//                                         .build();
-        log.info("Collection Loaded: {}, saved: {}", event, collectionPref);
-        event.getMediaCollections()
-             .stream()
-             .map(this::createTreeView)
-             .toList()
-             .stream()
-             .filter(p -> p.getKey().id() == collectionPref.getLastViewed())
-             .findFirst()
-             .ifPresent(p -> {
-                 log.info("Expand: {}", p.getKey().path());
-                 p.getValue().setExpanded(true);
-                 // TODO: Select subpath
-                 var item = searchTreeItem(p.getValue(), collectionPref.getLastPath());
-                 if (item != null) {
-                     treeView.getSelectionModel().select(item);
-                 } else {
-                     treeView.getSelectionModel().select(p.getValue());
-                 }
-                 catalogSizeProp.set(persistenceService.countMediaFiles());
-             });
-    }
-
     @Nullable
     private TreeItem<CollectionNode> searchTreeItem(@NonNull TreeItem<CollectionNode> item, @Nullable Path path) {
         if (path == null) {
@@ -338,6 +288,57 @@ public class CollectionView implements FxView<VBox> {
         }
         //no hit:
         return null;
+    }
+
+    /////////////////////////////////////////////
+    //// Event Listeners (Fx Thread guaranted)
+    /////////////////////////////////////////////
+    @FxEventListener
+    public void onDeleteCollection(DeleteCollectionEvent event) {
+        persistenceService.findMediaCollection(event.getMcId())
+                          .ifPresent(mc -> {
+                              final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, "");
+                              dlg.initOwner(root.getScene().getWindow());
+                              dlg.setTitle("You do want delete MediaCollection ?");
+                              dlg.getDialogPane()
+                                 .setContentText("""
+                                                         Do you want to delete MediaCollection:
+                                                           Path:   %s
+                                                           Id:     %d
+                                                           #Items: %s
+                                                         """.formatted(mc.path(), mc.id(), mc.medias().size()));
+
+                              Nodes.show(dlg, getRootContent().getScene())
+                                   .filter(buttonType -> buttonType == ButtonType.OK)
+                                   .ifPresent(_ -> collectionManager.deleteCollection(mc,
+                                                                                      () -> catalogSizeProp.set(persistenceService.countMediaFiles())));
+                          });
+    }
+
+    @FxEventListener
+    public void initCollections(CollectionsLoadedEvent event) {
+        UserPreference.Collection collectionPref = pref.getUserPreference().getCollection();
+        log.info("Collection Loaded: {}, saved: {}", event, collectionPref);
+        event.getMediaCollections()
+             .stream()
+             .map(this::createTreeView)
+             .toList()
+             .stream()
+             .filter(p -> p.getKey().id() == collectionPref.getLastViewed())
+             .findFirst()
+             .ifPresent(p -> {
+                 log.info("Expand: {}", p.getKey().path());
+                 p.getValue().setExpanded(true);
+                 // TODO: Select subpath
+                 var item = searchTreeItem(p.getValue(), collectionPref.getLastPath());
+                 if (item != null) {
+                     treeView.getSelectionModel().select(item);
+                 } else {
+                     treeView.getSelectionModel().select(p.getValue());
+                 }
+                 catalogSizeProp.set(persistenceService.countMediaFiles());
+             });
+        rootTreeItem.getChildren().sort(TREE_ITEM_COMPARATOR);
     }
 
     @FxEventListener
