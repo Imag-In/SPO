@@ -32,6 +32,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.awt.*;
+import java.util.Optional;
 
 @SpringBootApplication
 //@Configuration
@@ -59,7 +60,6 @@ public class ImagInApp extends Application {
     public static final String IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG = "/images/128px-GNOME_Photos_logo_2019.svg.png";
     // Application startup analysis: https://www.amitph.com/spring-boot-startup-monitoring/#applicationstartup_metrics_with_java_flight_recorder
     // Icon IRes: https://dlsc.com/2017/08/29/javafx-tip-27-hires-retina-icons/
-
 
 
     /**
@@ -96,6 +96,9 @@ public class ImagInApp extends Application {
     public final void init() {
         try {
             log.debug("Init: {}", getClass().getSimpleName());
+            var profiles = Optional.ofNullable(System.getenv("SPO_PROFILE"))
+                                   .map(p -> p.split(","))
+                                   .orElseGet(() -> new String[] { "default" });
             notifyPreloader(new LoaderProgressNotification(.1, "Starting ..."));
             ApplicationContextInitializer<GenericApplicationContext> initializer = genericApplicationContext -> {
                 genericApplicationContext.registerBean(Application.class, () -> ImagInApp.this);
@@ -107,6 +110,7 @@ public class ImagInApp extends Application {
                                                                .bannerMode(Banner.Mode.OFF)
                                                                .headless(false)
                                                                .initializers(initializer)
+                                                               .profiles(profiles)
                                                                .build()
                                                                .run(getParameters().getRaw().toArray(new String[0]));
 
