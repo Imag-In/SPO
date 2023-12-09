@@ -10,14 +10,16 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class NotificationEvent extends IiEvent {
     public enum NotificationType {
+        QUESTION,
         INFO,
         SUCCESS,
         WARNING,
         ERROR;
     }
 
-    private final String           message;
-    private final NotificationType type;
+    private String           message;
     @Builder.Default
-    private final int              timeoutInSeconds = 5;
+    private NotificationType type             = NotificationType.INFO;
+    @Builder.Default
+    private int              timeoutInSeconds = 5;
 }
