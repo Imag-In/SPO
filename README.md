@@ -6,39 +6,50 @@
 [![GitHub issues](https://img.shields.io/github/issues/Imag-In/SPO.svg)](https://GitHub.com/Imag-In/SPO/issues/) [![GitHub pull-requests](https://img.shields.io/github/issues-pr/Imag-In/SPO.svg)](https://GitHub.com/Imag-In/SPO/pull/)
 ### Purpose
 
-**S**imple **P**hoto **O**rganizer is a basic tools that should help you to manage a large collection of pictures.
+**S**imple **P**hoto **O**rganizer is a basic tool that should help you to manage a large collection of pictures.
 
-Importantly it must be **cloud less**. If you're cloud adict, go your way 😉
+Importantly it must be **cloud less**. If you're cloud addict, go your way 😉
 
 It's not a tool to edit your pictures (except metadata) there is so much tool doing that. But SPO will synch automatically changes made by
 other apps.
+
+### Performance
+
+* TODO
 
 ### Features
 
 - [x] Basic management of existing collection on your hard drive (Import directory / delete collection)
 - [x] Thumbnail generation if missing (High quality).
-- [ ] Flow to keep / remove picture (similar to lightroom).
+- [ ] Flow to keep / remove picture (similar to lightroom): Keep / Throw / Undecide
+    - [ ] remove
 - [ ] Window to compare two pictures.
-- [ ] Search bar (stsart with date, tag).
+- [ ] Search bar (start with date, tag).
+- [ ] Add filter for gallery
+    - [ ] stars
+    - [ ] status (Keep / Throw / Undecide)
 - [ ] Sync collections with changes made ouside of SPO (startup time and live running).
     - [x] Add.
     - [x] Delete.
     - [ ] Update.
-- [x] Display metadata (v1).
+- [x] Display metadata (v1). Short and full view.
+    - [ ] add filter on the whooe list.
 - [x] Simple wizard to import photos from SD Card (No PTP)
+    - [x] Renaming strategy (Counter, Date, Datetime, prefix) + easily define new strategy.
     - [ ] Add tag while importing.
 - [ ] Simple duplicate detection.
 - [x] Native installer.
 - [x] Light / Dark Thems
     - [x] Preference option to switch dyamically.
-- [ ] Preferences management.
+- [x] Preferences management.
 - [ ] Export collection (WEB / cloud / ...)
 - [ ] Supported file type
     - [x] jpeg
     - [x] png
     - [ ] TIFF
     - [ ] HEIC / HEIF
-    - [ ] mov
+  - [ ] MOV
+  - [ ] GIF
     - ...
 
 ### Features out of scope

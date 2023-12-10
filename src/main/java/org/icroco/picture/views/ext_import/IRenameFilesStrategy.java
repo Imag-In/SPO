@@ -2,9 +2,12 @@ package org.icroco.picture.views.ext_import;
 
 import org.icroco.picture.model.MediaFile;
 
-interface IRenameFilesStrategy {
-    default void reset() {
-    }
+public interface IRenameFilesStrategy {
+
+    String displayName();
 
     String computeNewFileName(MediaFile mediaFile);
+
+    default void reset() {
+    }
 }

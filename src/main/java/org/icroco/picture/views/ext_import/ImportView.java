@@ -9,6 +9,8 @@ import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.transformation.SortedList;
 import javafx.concurrent.Task;
 import javafx.geometry.*;
 import javafx.scene.Cursor;
@@ -20,7 +22,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.stage.DirectoryChooser;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.icroco.picture.event.ImportDirectoryEvent;
@@ -30,7 +31,6 @@ import org.icroco.picture.event.UsbStorageDeviceEvent;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.PersistenceService;
-import org.icroco.picture.persistence.mapper.MediaFileMapper;
 import org.icroco.picture.views.AbstractView;
 import org.icroco.picture.views.CollectionManager;
 import org.icroco.picture.views.FxEventListener;
@@ -54,6 +54,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -64,10 +65,8 @@ import static java.util.Collections.emptyList;
 import static javafx.beans.binding.Bindings.or;
 
 @Slf4j
-@RequiredArgsConstructor
 @Component
 public class ImportView extends AbstractView<StackPane> {
-    private final       MediaFileMapper    mediaFileMapper;
     public static final int                FIRST_COL_PREF_WIDTH = 400;
     private final       TaskService        taskService;
     private final       PersistenceService persistenceService;
@@ -100,10 +99,22 @@ public class ImportView extends AbstractView<StackPane> {
                                                                  .build()
     };
 
-    private final SimpleBooleanProperty      isRunning      = new SimpleBooleanProperty(false);
-    private final SimpleObjectProperty<Path> sourcePath     = new SimpleObjectProperty<>(null);
-    private final ComboBox<ERenameStrategy>  renameStrategy = new ComboBox<>();
-    private       Path                       targetCollection;
+    private final SimpleBooleanProperty            isRunning          = new SimpleBooleanProperty(false);
+    private final SimpleObjectProperty<Path>       sourcePath         = new SimpleObjectProperty<>(null);
+    private final ComboBox<IRenameFilesStrategy>   renamingStrategyCb = new ComboBox<>();
+    private       Path                             targetCollection;
+    private final SortedList<IRenameFilesStrategy> strategies;
+
+    public ImportView(TaskService taskService,
+                      PersistenceService persistenceService,
+                      CollectionManager collectionManager,
+                      Collection<IRenameFilesStrategy> strategies) {
+        this.taskService = taskService;
+        this.persistenceService = persistenceService;
+        this.collectionManager = collectionManager;
+        this.strategies = new SortedList<>(FXCollections.observableArrayList(strategies),
+                                           Comparator.comparing(IRenameFilesStrategy::displayName));
+    }
 
     @PostConstruct
     private void postConstruct() {
@@ -116,6 +127,7 @@ public class ImportView extends AbstractView<StackPane> {
         importBtn.disableProperty().bind(or(isRunning, or(Bindings.isNull(sourcePath),
                                                           or(Bindings.isEmpty(targetCollectionTf.textProperty()),
                                                              Bindings.isEmpty(filePrefix.textProperty())))));
+        renamingStrategyCb.setConverter(new StrategyStringConverter());
         exampleTf.requestFocus();
     }
 
@@ -230,10 +242,9 @@ public class ImportView extends AbstractView<StackPane> {
 
         rowIdx += 1;
         grid.add(createLabel("File pattern", 100, 150), 0, rowIdx);
-        renameStrategy.getItems().addAll(ERenameStrategy.values());
-        grid.add(renameStrategy, 1, rowIdx);
-        renameStrategy.getSelectionModel().selectedItemProperty().addListener((_, _, _) -> updateExanple());
-
+        renamingStrategyCb.setItems(strategies);
+        grid.add(renamingStrategyCb, 1, rowIdx);
+        renamingStrategyCb.getSelectionModel().selectedItemProperty().addListener((_, _, _) -> updateExanple());
 
         rowIdx += 1;
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
@@ -253,13 +264,13 @@ public class ImportView extends AbstractView<StackPane> {
         Button reset = new Button("", new FontIcon(MaterialDesignR.REFRESH));
         reset.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.DANGER);
         reset.setMnemonicParsing(true);
-        reset.setOnMouseClicked(event -> reset());
+        reset.setOnMouseClicked(_ -> reset());
         HBox hbox = new HBox(20, reset, importBtn);
         hbox.setAlignment(Pos.CENTER_RIGHT);
         grid.add(hbox, 0, rowIdx, 2, 1);
 
         StackPane.setAlignment(grid, Pos.CENTER);
-        renameStrategy.getSelectionModel().selectFirst();
+        renamingStrategyCb.getSelectionModel().selectFirst();
 
         return grid;
     }
@@ -271,7 +282,7 @@ public class ImportView extends AbstractView<StackPane> {
     private void runImport(MouseEvent event) {
         if (Files.exists(sourcePath.get())) {
             final var                  task        = collectionManager.scanDirectory(sourcePath.get(), false);
-            final IRenameFilesStrategy strategy    = renameStrategy.getSelectionModel().getSelectedItem().getStrategy();
+            final IRenameFilesStrategy strategy = renamingStrategyCb.getSelectionModel().getSelectedItem();
             final LocalDate            now         = LocalDate.now();
             final boolean              deleteFiles = deleteFilesCb.isSelected();
             final MediaCollection mc = persistenceService.findAllMediaCollection()
@@ -391,7 +402,7 @@ public class ImportView extends AbstractView<StackPane> {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "", ButtonType.OK, ButtonType.CANCEL);
         alert.setTitle("Choose a collection path");
         alert.setHeaderText(null);
-        TreeItem<Path> rootTreeItem = new TreeItem<Path>(Path.of("root"));
+        TreeItem<Path> rootTreeItem = new TreeItem<>(Path.of("root"));
         TreeView<Path> treeView     = new TreeView<>(rootTreeItem);
         persistenceService.findAllMediaCollection()
                           .forEach(mediaCollection -> createTreeView(rootTreeItem, mediaCollection));
@@ -409,7 +420,7 @@ public class ImportView extends AbstractView<StackPane> {
         rootTreeItem.setExpanded(true);
         alert.getDialogPane().contentProperty().setValue(treeView);
         Nodes.show(alert, getRootContent().getScene()).filter(buttonType -> buttonType == ButtonType.OK)
-             .ifPresent(buttonType -> {
+             .ifPresent(_ -> {
                  log.info("OK: {}", treeView.getSelectionModel().getSelectedItem().getValue());
                  targetCollection = treeView.getSelectionModel().getSelectedItem().getValue();
                  targetCollectionTf.setText(targetCollection.toString());
@@ -458,7 +469,7 @@ public class ImportView extends AbstractView<StackPane> {
         icon.setOnMouseClicked(cb::accept);
 
         textField.pseudoClassStateChanged(Styles.STATE_DANGER, true);
-        textField.textProperty().addListener((obs, oldV, newV) -> {
+        textField.textProperty().addListener((_, _, newV) -> {
             if (isUpdateExample) {
                 updateExanple();
             }
@@ -487,7 +498,7 @@ public class ImportView extends AbstractView<StackPane> {
 
         textField.pseudoClassStateChanged(Styles.STATE_DANGER, true);
         button.pseudoClassStateChanged(Styles.STATE_DANGER, true);
-        textField.textProperty().addListener((obs, oldV, newV) -> {
+        textField.textProperty().addListener((_, _, newV) -> {
             if (isUpdateExample) {
                 updateExanple();
             }
@@ -514,7 +525,7 @@ public class ImportView extends AbstractView<StackPane> {
 
     private void updateExanple() {
         exampleTf.setText("");
-        var strategy      = renameStrategy.getSelectionModel().getSelectedItem().getStrategy();
+        var strategy = renamingStrategyCb.getSelectionModel().getSelectedItem();
         var stringBuilder = new StringBuilder();
 
         strategy.reset();
@@ -584,4 +595,5 @@ public class ImportView extends AbstractView<StackPane> {
     public StackPane getRootContent() {
         return root;
     }
+
 }

@@ -2,8 +2,10 @@ package org.icroco.picture.views.ext_import;
 
 import org.apache.commons.io.FilenameUtils;
 import org.icroco.picture.model.MediaFile;
+import org.springframework.stereotype.Component;
 
-class CounterStrategy implements IRenameFilesStrategy {
+@Component
+public final class CounterStrategy implements IRenameFilesStrategy {
     private int index = 0;
 
     @Override
@@ -12,7 +14,12 @@ class CounterStrategy implements IRenameFilesStrategy {
     }
 
     @Override
+    public String displayName() {
+        return "COUNTER";
+    }
+
+    @Override
     public String computeNewFileName(MediaFile mediaFile) {
-        return ++index + "." + FilenameUtils.getExtension(mediaFile.fullPath().toString());
+        return STR."\{++index}.\{FilenameUtils.getExtension(mediaFile.fullPath().toString())}";
     }
 }
