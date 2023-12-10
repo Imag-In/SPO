@@ -67,21 +67,21 @@ import static javafx.beans.binding.Bindings.or;
 @Slf4j
 @Component
 public class ImportView extends AbstractView<StackPane> {
-    public static final int                FIRST_COL_PREF_WIDTH = 400;
+    public static final int             SECOND_COL_PREF_WIDTH = 600;
     private final       TaskService        taskService;
     private final       PersistenceService persistenceService;
     private final       CollectionManager  collectionManager;
-    private final       StackPane          root                 = new StackPane();
-    private final       CustomTextField    sourceDir            = new CustomTextField();
+    private final       StackPane       root                  = new StackPane();
+    private final       CustomTextField sourceDir             = new CustomTextField();
     private             TextField          targetCollectionTf;
     private             TextField          targetSubDirTf;
     private             TextField          tags;
-    private final       TextArea           exampleTf            = new TextArea();
-    private final       CustomTextField    filePrefix           = new CustomTextField("");
-    private final       Label              filesCounter         = new Label("");
-    private final       Button             importBtn            = new Button("Import");
-    private final       ToggleSwitch       genThumbailsCb       = new ToggleSwitch("Generate high quality thumbnails");
-    private final       ToggleSwitch       deleteFilesCb        = new ToggleSwitch("Delete imported files");
+    private final       TextArea        exampleTf             = new TextArea();
+    private final       CustomTextField filePrefix            = new CustomTextField("");
+    private final       Label           filesCounter          = new Label("");
+    private final       Button          importBtn             = new Button("Import");
+    private final       ToggleSwitch    genThumbailsCb        = new ToggleSwitch("Generate high quality thumbnails");
+    private final       ToggleSwitch    deleteFilesCb         = new ToggleSwitch("Delete imported files");
 
     private final MediaFile[] fakeMf = new MediaFile[] { MediaFile.builder()
                                                                   .originalDate(LocalDateTime.now())
@@ -151,7 +151,7 @@ public class ImportView extends AbstractView<StackPane> {
         grid.setVgap(10); //vertical gap in pixels
         int rowIdx = 0;
 
-        grid.add(createLabel("Scan directory:", 100, 150), 0, rowIdx);
+        grid.add(createLabel("Scan directory:", 200, 300), 0, rowIdx);
         sourceDir.setEditable(false);
         sourceDir.setPromptText("Select a directory to import");
         FontIcon selectInputDirIco = new FontIcon(MaterialDesignF.FOLDER_OPEN_OUTLINE);
@@ -159,7 +159,7 @@ public class ImportView extends AbstractView<StackPane> {
         selectInputDirIco.setCursor(Cursor.HAND);
 
         sourceDir.setRight(selectInputDirIco);
-        sourceDir.setPrefWidth(FIRST_COL_PREF_WIDTH);
+        sourceDir.setPrefWidth(SECOND_COL_PREF_WIDTH);
         sourceDir.pseudoClassStateChanged(Styles.STATE_DANGER, true);
         sourceDir.textProperty()
                  .addListener((_, _, newV) -> {
@@ -177,7 +177,7 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(filesCounter, 1, rowIdx, 2, 1);
 
         rowIdx += 1;
-        grid.add(createLabel("Target collection:", 100, 150), 0, rowIdx);
+        grid.add(createLabel("Target collection:", 200, 300), 0, rowIdx);
         targetCollectionTf = createCustomText(false, new FontIcon(MaterialDesignF.FOLDER_OPEN_OUTLINE), this::chooseCollectionPath);
         targetCollectionTf.setPromptText("Select a collection and/or a subpath");
 
@@ -185,7 +185,7 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(targetCollectionTf, 1, rowIdx);
 
         rowIdx += 1;
-        grid.add(createLabel("Sub-directory", 100, 150), 0, rowIdx);
+        grid.add(createLabel("Sub-directory", 200, 300), 0, rowIdx);
         targetSubDirTf = new TextField();
         targetSubDirTf.setPromptText("Create a new sub-directory into collection.");
         // TODO check if directory already exits into collections.
@@ -212,24 +212,28 @@ public class ImportView extends AbstractView<StackPane> {
         var infoDelete = new Label("", new FontIcon(MaterialDesignI.INFORMATION_OUTLINE));
         infoDelete.setPadding(new Insets(0, 10, 0, 0));
         infoDelete.getStyleClass().addAll(Styles.SMALL, Styles.ACCENT);
+        Tooltip tt = new Tooltip("""
+                                         !! After being imported,
+                                            Files we'll be deleted from source drive !!
+                                         """);
+        infoDelete.setTooltip(tt);
         GridPane.setHalignment(infoDelete, HPos.RIGHT);
         grid.add(infoDelete, 0, rowIdx);
-
 
         rowIdx += 1;
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
 
         rowIdx += 1;
-        grid.add(createLabel("Add tags", 100, 150), 0, rowIdx);
+        grid.add(createLabel("Add tags", 200, 300), 0, rowIdx);
         tags = new TextField();
         tags.setEditable(false);
         tags.setPromptText("Not Yet Implemented");
         grid.add(tags, 1, rowIdx);
 
         rowIdx += 1;
-        grid.add(createLabel("Filename prefix", 100, 150), 0, rowIdx);
+        grid.add(createLabel("Filename prefix", 200, 300), 0, rowIdx);
         filePrefix.setPromptText("Add a filename prefix like: Ibiza-");
-        filePrefix.setPrefWidth(FIRST_COL_PREF_WIDTH);
+        filePrefix.setPrefWidth(SECOND_COL_PREF_WIDTH);
         filePrefix.textProperty().addListener((_, _, newV) -> {
             updateExanple();
             filePrefix.pseudoClassStateChanged(Styles.STATE_DANGER, false);
@@ -241,7 +245,7 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(filePrefix, 1, rowIdx);
 
         rowIdx += 1;
-        grid.add(createLabel("File pattern", 100, 150), 0, rowIdx);
+        grid.add(createLabel("File pattern", 200, 350), 0, rowIdx);
         renamingStrategyCb.setItems(strategies);
         grid.add(renamingStrategyCb, 1, rowIdx);
         renamingStrategyCb.getSelectionModel().selectedItemProperty().addListener((_, _, _) -> updateExanple());
@@ -250,11 +254,13 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
 
         rowIdx += 1;
-        grid.add(createLabel("Example", 100, 150), 0, rowIdx);
+        grid.add(createLabel("Example", 200, 300), 0, rowIdx);
         exampleTf.setEditable(false);
         exampleTf.setFocusTraversable(false);
         exampleTf.setWrapText(true);
         exampleTf.setPrefRowCount(4);
+        exampleTf.setMinWidth(400);
+        exampleTf.setPrefWidth(SECOND_COL_PREF_WIDTH);
         grid.add(exampleTf, 1, rowIdx);
 
         rowIdx += 1;
@@ -269,10 +275,17 @@ public class ImportView extends AbstractView<StackPane> {
         hbox.setAlignment(Pos.CENTER_RIGHT);
         grid.add(hbox, 0, rowIdx, 2, 1);
 
-        StackPane.setAlignment(grid, Pos.CENTER);
         renamingStrategyCb.getSelectionModel().selectFirst();
 
-        return grid;
+        TitledPane titled = new TitledPane("Copy and Import photos from removable drive", grid);
+        titled.getStyleClass().add(Styles.ELEVATED_4);
+        titled.setCollapsible(false);
+        titled.setCenterShape(true);
+        titled.setMaxWidth(0);
+        titled.setAlignment(Pos.CENTER);
+        StackPane.setAlignment(titled, Pos.CENTER);
+
+        return titled;
     }
 
 
@@ -484,7 +497,7 @@ public class ImportView extends AbstractView<StackPane> {
         });
         HBox.setHgrow(textField, Priority.ALWAYS);
 
-        textField.setPrefWidth(FIRST_COL_PREF_WIDTH);
+        textField.setPrefWidth(SECOND_COL_PREF_WIDTH);
 
         return textField;
     }
@@ -518,7 +531,7 @@ public class ImportView extends AbstractView<StackPane> {
         HBox.setHgrow(textField, Priority.ALWAYS);
 
         var group = new InputGroup(textField, button);
-        group.setPrefWidth(FIRST_COL_PREF_WIDTH);
+        group.setPrefWidth(SECOND_COL_PREF_WIDTH);
 
         return group;
     }
