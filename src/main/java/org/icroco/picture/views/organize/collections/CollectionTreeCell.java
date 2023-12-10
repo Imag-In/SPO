@@ -14,7 +14,9 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.DeleteCollectionEvent;
 import org.icroco.picture.views.task.TaskService;
+import org.icroco.picture.views.util.widget.FxUtil;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.material2.Material2OutlinedMZ;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignD;
 
 import java.util.Collection;
@@ -95,13 +97,13 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
     }
 
     private Collection<MenuItem> createMenuItems() {
-        var deleteMenu = new MenuItem(null, new FontIcon(MaterialDesignD.DELETE_OUTLINE));
-        deleteMenu.setOnAction(event -> {
+        var deleteMenu = new MenuItem("Remove the whole collection", new FontIcon(MaterialDesignD.DELETE_OUTLINE));
+        deleteMenu.setOnAction(_ -> {
             if (mediaCollectionId >= 0) {
                 taskService.sendEvent(DeleteCollectionEvent.builder().mcId(mediaCollectionId).source(this).build());
             }
         });
-//        FxUtil.styleCircleFlat(deleteMenu);
+        FxUtil.styleCircleFlat(deleteMenu);
         deleteMenu.getStyleClass().add(Styles.SMALL);
 
         return List.of(deleteMenu);
@@ -130,11 +132,13 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
                 flatMenuBtn.setManaged(false);
                 mediaCollectionId = -1;
             }
-//            titleLabel.setGraphic(nav.graphic());
-
-//            pseudoClassStateChanged(GROUP, nav.isGroup());
-//            NodeUtils.toggleVisibility(arrowIcon, nav.isGroup());
-//            NodeUtils.toggleVisibility(tagLabel, nav.isTagged());
+            if (nav.pathExist()) {
+                tagLabel.setGraphic(null);
+            } else {
+                Label label = new Label(null, new FontIcon(Material2OutlinedMZ.WARNING));
+                label.setTooltip(new Tooltip(STR."Path does not exist: '\{getItem().path()}'"));
+                tagLabel.setGraphic(label);
+            }
         }
     }
 }

@@ -46,6 +46,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Objects;
@@ -64,7 +65,9 @@ public class CollectionView implements FxView<VBox> {
     private final Button                   addCollection    = new Button();
     private final HBox                     collectionHeader = new HBox();
     @Getter
-    private final CollectionTreeItem       rootTreeItem     = new CollectionTreeItem(new CollectionNode(Path.of("Files"), -1, false));
+    private final CollectionTreeItem
+            rootTreeItem =
+            new CollectionTreeItem(new CollectionNode(Path.of("Files"), -1, false, false));
     private final TreeView<CollectionNode> treeView         = new TreeView<>(rootTreeItem);
 
     @Getter
@@ -82,7 +85,7 @@ public class CollectionView implements FxView<VBox> {
         root.getStyleClass().add("v-collections");
         root.getStyleClass().add("header");
         rootTreeItem.setExpanded(true);
-        rootTreeItem.setValue(new CollectionNode(Path.of("/"), -1, false));
+        rootTreeItem.setValue(new CollectionNode(Path.of("/"), -1, false, false));
         treeView.setMinHeight(250);
         treeView.setShowRoot(false);
         treeView.setEditable(false);
@@ -107,6 +110,10 @@ public class CollectionView implements FxView<VBox> {
         FxUtil.styleCircleButton(addCollection);
         addCollection.setGraphic(new FontIcon(MaterialDesignP.PLUS));
         addCollection.setVisible(true);
+        addCollection.setTooltip(new Tooltip("""
+                                                     Add an existing folder into your collection.
+                                                     Remoder folder will work but time analysis will depend of your network performance!
+                                                     """));
         addCollection.disableProperty().bind(disablePathActions);
         addCollection.setOnMouseClicked(this::newCollection);
         root.setOnMouseEntered(event -> addCollection.setVisible(true));
@@ -117,7 +124,7 @@ public class CollectionView implements FxView<VBox> {
             if (newValue.intValue() <= 0) {
                 catalogSize.setText("");
             } else {
-                catalogSize.setText(" (" + newValue.toString() + ")");
+                catalogSize.setText(STR." (\{newValue.toString()})");
             }
         });
 //        catalogSize.prefHeightProperty().bind(header.heightProperty());
@@ -154,9 +161,10 @@ public class CollectionView implements FxView<VBox> {
     }
 
     private Pair<MediaCollection, TreeItem<CollectionNode>> createTreeView(final MediaCollection mediaCollection) {
-        var pathTreeItem = new TreeItem<>(new CollectionNode(mediaCollection.path(), mediaCollection.id(), true));
+        var pathTreeItem = new TreeItem<>(new CollectionNode(mediaCollection.path(), mediaCollection.id(), true, true));
         log.info("Add collection: '{}', into tree view.", mediaCollection.path());
         rootTreeItem.getChildren().add(pathTreeItem);
+        rootTreeItem.getChildren().sort(TREE_ITEM_COMPARATOR);
         mediaCollection.subPaths().forEach(c -> {
             var p = c.name();//mediaCollection.path().relativize(c.name());
             addSubDir(pathTreeItem, p, mediaCollection.id());
@@ -208,7 +216,17 @@ public class CollectionView implements FxView<VBox> {
 
         if (selectedDirectory != null) {
             var newColPath = selectedDirectory.toPath().normalize();
-            var optPath    = collectionManager.isSameOrSubCollection(newColPath);
+            if (Files.notExists(newColPath)) {
+                final Alert dlg = new Alert(Alert.AlertType.ERROR, "");
+                dlg.initOwner(getRootContent().getScene().getWindow());
+                dlg.setTitle("Directory doesn't exist");
+                dlg.getDialogPane()
+                   .setContentText("Looks like the directory is not found: %s ?".formatted(newColPath));
+
+                Nodes.show(dlg, getRootContent().getScene());
+                return;
+            }
+            var optPath = collectionManager.isSameOrSubCollection(newColPath);
             if (optPath.isPresent()) {
                 Nodes.searchTreeItemByPredicate(rootTreeItem, colNode -> colNode.path().equals(optPath.get()))
                      .ifPresent(item -> {
@@ -338,7 +356,6 @@ public class CollectionView implements FxView<VBox> {
                  }
                  catalogSizeProp.set(persistenceService.countMediaFiles());
              });
-        rootTreeItem.getChildren().sort(TREE_ITEM_COMPARATOR);
     }
 
     @FxEventListener
@@ -399,5 +416,18 @@ public class CollectionView implements FxView<VBox> {
         log.info("Receive ShowOrganizeEvent: {}", event);
         Nodes.searchTreeItemByPredicate(rootTreeItem, collectionNode -> collectionNode.path().equals(event.getDirectory()))
              .ifPresent(ti -> treeView.getSelectionModel().select(ti));
+    }
+
+    @FxEventListener
+    public void updateCollectionStatus(CollectionsStatusEvent event) {
+        var statuses = event.getStatuses();
+        rootTreeItem.getChildren().forEach(treeItem -> {
+            var status = statuses.getOrDefault(treeItem.getValue().id(), false);
+            log.debug("Collection ID: {} ({}), Status: {}", treeItem.getValue().id(), treeItem.getValue().path(), status);
+
+            if (status != treeItem.getValue().pathExist()) {
+                treeItem.setValue(treeItem.getValue().withPathExist(status));
+            }
+        });
     }
 }

@@ -30,6 +30,7 @@ import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.awt.*;
 import java.util.Optional;
@@ -54,6 +55,7 @@ import java.util.Optional;
 @EnableJpaRepositories(basePackageClasses = MediaFileRepository.class)
 @EntityScan(basePackageClasses = MediaFileEntity.class)
 @EnableAsync(proxyTargetClass = true)
+@EnableScheduling
 //@ImportAutoConfiguration(classes = ViewAutoConfiguration.class)
 @Slf4j
 public class ImagInApp extends Application {

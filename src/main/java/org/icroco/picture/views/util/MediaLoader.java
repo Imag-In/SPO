@@ -86,7 +86,7 @@ public class MediaLoader {
 
     public void loadAndCachedValue(final MediaFile mf) {
         taskService.supply(cacheOrLoad, mf)
-                   .thenAcceptAsync(t -> Platform.runLater(() -> mf.setLoadedInCache(true)))
+                   .thenAcceptAsync(_ -> Platform.runLater(() -> mf.setLoadedInCache(true)))
                    .exceptionally(_ -> {
                        Platform.runLater(() -> mf.setLoadedInCache(false));
                        return null;
@@ -168,41 +168,39 @@ public class MediaLoader {
                                                                                 .fromCache(true)
                                                                                 .source(MediaLoader.this)
                                                                                 .build()),
-                                 () -> {
-                                     taskService.supply(new AbstractTask<FutureImage>() {
-                                         @Override
-                                         protected FutureImage call() throws Exception {
-                                             var image = new Image(mediaFile.getFullPath().toUri().toString(),
-                                                                   0,
-                                                                   0,
-                                                                   true,
-                                                                   false,
-                                                                   false);
+                                 () -> taskService.supply(new AbstractTask<FutureImage>() {
+                                     @Override
+                                     protected FutureImage call() {
+                                         var image = new Image(mediaFile.getFullPath().toUri().toString(),
+                                                               0,
+                                                               0,
+                                                               true,
+                                                               false,
+                                                               false);
 //                                             var image = imageLoader.loadImage(mediaFile);
-                                             var future = taskService.sendEvent(ImageLoadingdEvent.builder()
-                                                                                                  .mediaFile(mediaFile)
-                                                                                                  .progress(image.progressProperty())
-                                                                                                  .source(MediaLoader.this)
-                                                                                                  .build());
-                                             imagesCache.put(mediaFile, image);
+                                         var future = taskService.sendEvent(ImageLoadingdEvent.builder()
+                                                                                              .mediaFile(mediaFile)
+                                                                                              .progress(image.progressProperty())
+                                                                                              .source(MediaLoader.this)
+                                                                                              .build());
+                                         imagesCache.put(mediaFile, image);
 //                                             Thread.sleep(20);
-                                             return new FutureImage(image, future);
-                                         }
+                                         return new FutureImage(image, future);
+                                     }
 
-                                         @Override
-                                         protected void succeeded() {
-                                             var futureImage = getValue();
-                                             // To make sure ImageLoadedEvent come after ImageLoadingdEvent.
-                                             futureImage.future
-                                                     .thenRun(() -> taskService.sendEvent(ImageLoadedEvent.builder()
-                                                                                                          .mediaFile(mediaFile)
-                                                                                                          .image(futureImage.image)
-                                                                                                          .fromCache(false)
-                                                                                                          .source(MediaLoader.this)
-                                                                                                          .build()));
-                                         }
-                                     }, false);
-                                 });
+                                     @Override
+                                     protected void succeeded() {
+                                         var futureImage = getValue();
+                                         // To make sure ImageLoadedEvent come after ImageLoadingdEvent.
+                                         futureImage.future
+                                                 .thenRun(() -> taskService.sendEvent(ImageLoadedEvent.builder()
+                                                                                                      .mediaFile(mediaFile)
+                                                                                                      .image(futureImage.image)
+                                                                                                      .fromCache(false)
+                                                                                                      .source(MediaLoader.this)
+                                                                                                      .build()));
+                                     }
+                                 }, false));
     }
 
     @EventListener(WarmThumbnailCacheEvent.class)
@@ -231,7 +229,7 @@ public class MediaLoader {
     Task<List<ThumbnailRes>> warmCache(MediaCollection mediaCollection, final List<MediaFile> files) {
         return new AbstractTask<>() {
             @Override
-            protected List<ThumbnailRes> call() throws Exception {
+            protected List<ThumbnailRes> call() {
                 log.debug("Warm Cache for: '{}', size: {}", mediaCollection.path(), files.size());
                 updateTitle("Loading thumbnails ...");
                 updateProgress(0, files.size());
@@ -242,7 +240,7 @@ public class MediaLoader {
                                           thumbnail = persistenceService.findByPathOrId(entry.getValue()).orElse(null);
                                           if (thumbnail != null) {
                                               thCache.put(entry.getValue(), thumbnail);
-                                              updateMessage("Thumbnail loaded: " + entry.getValue().fullPath().getFileName());
+                                              updateMessage(STR."Thumbnail loaded: \{entry.getValue().fullPath().getFileName()}");
                                           }
                                           updateProgress(entry.getKey(), files.size());
                                       }
@@ -254,15 +252,13 @@ public class MediaLoader {
 
             @Override
             protected void succeeded() {
-                getValue().forEach(thumbnailRes -> {
-                    thumbnailRes.mf.getLastUpdated().set(thumbnailRes.thumbnail.getLastUpdate());
-                });
+                getValue().forEach(thumbnailRes -> thumbnailRes.mf.getLastUpdated().set(thumbnailRes.thumbnail.getLastUpdate()));
             }
         };
     }
 
     private <R> R lockThenRunOrSkip(MediaCollection mediaCollection, Supplier<R> callable) {
-        var lock = catalogLock.computeIfAbsent(mediaCollection.id(), integer -> new ReentrantLock());
+        var lock = catalogLock.computeIfAbsent(mediaCollection.id(), _ -> new ReentrantLock());
 
         try {
             if (lock.tryLock(1, TimeUnit.SECONDS)) {
@@ -322,12 +318,12 @@ public class MediaLoader {
                                                    mediaFiles.size(),
                                                    LangUtils.wordBased(Duration.ofMillis(System.currentTimeMillis() - start))
                          ))
-                         .thenAccept(u -> catalogToReGenerate.add(mediaCollection.id()))
-                         .thenAccept(u -> taskService.sendEvent(GalleryRefreshEvent.builder()
+                         .thenAccept(_ -> catalogToReGenerate.add(mediaCollection.id()))
+                         .thenAccept(_ -> taskService.sendEvent(GalleryRefreshEvent.builder()
                                                                                    .mediaCollectionId(mediaCollection.id())
                                                                                    .source(this)
                                                                                    .build()))
-                         .thenAccept(u -> {
+                         .thenAccept(_ -> {
                              if (sendReadyEvent) {
                                  taskService.sendEvent(CollectionEvent.builder()
                                                                       .mcId(mediaCollection.id())
@@ -336,7 +332,7 @@ public class MediaLoader {
                                                                       .build());
                              }
                          })
-                         .thenAccept(u -> taskService.sendEvent(GenerateThumbnailEvent.builder()
+                         .thenAccept(_ -> taskService.sendEvent(GenerateThumbnailEvent.builder()
                                                                                       .mcId(mediaCollection.id())
                                                                                       .source(this)
                                                                                       .build()))
@@ -362,9 +358,9 @@ public class MediaLoader {
                                                             // First Memory Cache
                                                             var mf = entry.getValue();
                                                             updateProgress(entry.getKey(), size);
-                                                            updateMessage("Extract thumbnail from: " + mf.getFullPath().getFileName());
+                                                            updateMessage(STR."Extract thumbnail from: \{mf.getFullPath().getFileName()}");
                                                             log.debug("Extract thumbnail from: '{}'", mf.getFullPath().getFileName());
-                                                            Thumbnail thumbnail = null;
+                                                            Thumbnail thumbnail;
                                                             if (isUpdate) { // We force extraction.
                                                                 thumbnail = extractThumbnail(mf);
                                                                 mf.setHash(hashGenerator.compute(mf.fullPath()).orElse(""));
@@ -500,7 +496,7 @@ public class MediaLoader {
                                                    int nbBatches) {
         return new AbstractTask<>() {
             @Override
-            protected List<MediaFile> call() throws Exception {
+            protected List<MediaFile> call() {
                 var size = files.getValue().size();
                 log.debug("thumbnailBatchGeneration a batch of '{}' thumbnails for: {}", size, mediaCollection.path());
                 updateTitle("Thumbnail high quality generation for '%s' images, batch %d/%d".formatted(size, files.getKey(), nbBatches));
@@ -510,12 +506,11 @@ public class MediaLoader {
                                                         .map(entry -> {
                                                             var mf = entry.getValue();
                                                             updateProgress(entry.getKey(), size);
-                                                            var tu = ofNullable(thCache.get(mf))
+                                                            return ofNullable(thCache.get(mf))
                                                                     .or(() -> persistenceService.findByPathOrId(mf))
-                                                                    .filter(t -> mf.getThumbnailType() != EThumbnailType.GENERATED)
+                                                                    .filter(_ -> mf.getThumbnailType() != EThumbnailType.GENERATED)
                                                                     .map(t -> new ThumbnailUpdate(mf, t, thumbnailGenerator.generate(t)))
                                                                     .orElse(null);
-                                                            return tu;
                                                         })
                                                         .filter(Objects::nonNull)
                                                         .filter(tu -> tu.update() != null)

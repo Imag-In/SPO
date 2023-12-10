@@ -292,4 +292,9 @@ public class PersistenceService {
     public long countMediaFiles() {
         return mfRepo.count();
     }
+
+    public List<CollectionRepository.IdAndPath> findAllIdAndPath() {
+        return collectionRepo.findAllProjectedBy();
+    }
+
 }

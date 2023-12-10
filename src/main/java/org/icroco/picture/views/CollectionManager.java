@@ -12,6 +12,7 @@ import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaCollectionEntry;
 import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.persistence.CollectionRepository;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.FileUtil;
 import org.icroco.picture.util.UserAbortedException;
@@ -23,6 +24,7 @@ import org.icroco.picture.views.util.DirectoryWatcher;
 import org.icroco.picture.views.util.LangUtils;
 import org.springframework.context.event.EventListener;
 import org.springframework.lang.NonNull;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -62,9 +64,9 @@ public class CollectionManager {
         persistenceService.cleanOrphans();
         return new AbstractTask<>() {
             @Override
-            protected Void call() throws Exception {
+            protected Void call() {
                 log.info("Synching '{}' mediaCollections", mediaCollections.size());
-                updateTitle("Synching '" + mediaCollections.size() + "' mediaCollections");
+                updateTitle(STR."Synching '\{mediaCollections.size()}' mediaCollections");
                 updateProgress(0, mediaCollections.size());
 
                 mediaCollections.forEach(CollectionManager.this::computeDiff);
@@ -72,6 +74,22 @@ public class CollectionManager {
                 return null;
             }
         };
+    }
+
+    /**
+     * Check if some root path of collection are still present (for instance if external HD or network mount point).
+     */
+    @Scheduled(fixedDelay = 60_000)
+    void checkRootPath() {
+        var statuses = persistenceService.findAllIdAndPath()
+                                         .stream()
+                                         .collect(Collectors.toMap(CollectionRepository.IdAndPath::getId,
+                                                                   idAndPath -> Files.exists(idAndPath.getPath())));
+
+        taskService.sendEvent(CollectionsStatusEvent.builder()
+                                                    .statuses(statuses)
+                                                    .source(this)
+                                                    .build());
     }
 
 
@@ -139,10 +157,6 @@ public class CollectionManager {
                                     mf.initFrom(newMf);
                                     return mf;
                                 })
-//                                .map(newMf -> {
-//                                    newMf.setId(mf.getId());
-//                                    return newMf;
-//                                })
                                 .orElse(null))
                         .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
@@ -232,7 +246,7 @@ public class CollectionManager {
     private Task<MediaCollection> scanDirectory(Path rootPath, Function<Long, Boolean> askConfirmation) {
         return ModernTask.<MediaCollection>builder()
                          .execute(myself -> {
-                             myself.updateTitle("Scanning directory: " + rootPath.getFileName());
+                             myself.updateTitle(STR."Scanning directory: \{rootPath.getFileName()}");
                              myself.updateMessage("%s: scanning".formatted(rootPath));
                              Set<MediaCollectionEntry> children;
                              var                       now = LocalDate.now();
@@ -268,88 +282,23 @@ public class CollectionManager {
                                                    directoryWatcher.registerAll(mcSaved.path());
                                                    return mcSaved;
                                                })
-                                               .orElseThrow(() -> new UserAbortedException("User aborted action, collection too large: "
-                                                                                           + size));
+                                               .orElseThrow(() -> new UserAbortedException(STR."User aborted action, collection too large: \{size}"));
                          })
-                         .onSuccess((myself, mediaCollection) -> {
-                             log.info("Collections entries: {}, time: {}",
-                                      mediaCollection.medias().size(),
-                                      LangUtils.wordBased(myself.getDuration()));
-                         })
+                         .onSuccess((myself, mediaCollection) -> log.info("Collections entries: {}, time: {}",
+                                                                          mediaCollection.medias().size(),
+                                                                          LangUtils.wordBased(myself.getDuration())))
                          .onFailed(throwable -> {
                              log.error("While scanning dir: '{}'", rootPath, throwable);
-//                    if (!(throwable instanceof UserAbortedException)) {
-//                        super.failed();
-//                    }
                          })
                          .build();
-//        return new AbstractTask<>() {
-//            @Override
-//            protected MediaCollection call() throws Exception {
-//                updateTitle("Scanning directory: " + rootPath.getFileName());
-//                updateMessage("%s: scanning".formatted(rootPath));
-//                Set<MediaCollectionEntry> children;
-//                var                       now = LocalDate.now();
-//                try (var s = Files.walk(rootPath)) {
-//                    children = s.filter(Files::isDirectory)
-//                                .map(Path::normalize)
-//                                .filter(p -> !p.equals(rootPath))
-//                                .filter(FileUtil::isLastDir)
-//                                .map(p -> MediaCollectionEntry.builder().name(p).build())
-//                                .collect(Collectors.toSet());
-//                }
-//                final var filteredImages = scanDir(rootPath, true);
-//                final var size           = filteredImages.size();
-//                updateProgress(0, size);
-//                var mc = MediaCollection.builder()
-//                                        .path(rootPath)
-//                                        .subPaths(children)
-//                                        .medias(EntryStream.of(List.copyOf(filteredImages))
-//                                                           .peek(i -> updateProgress(i.getKey(), size))
-//                                                           .flatMap(i -> create(now, i.getValue(), false).stream())
-//                                                           .collect(Collectors.toSet()))
-//                                        .build();
-//
-//                return taskService.runAndWait(() -> askConfirmation.apply((long) size), false)
-//                                  .filter(b -> b)
-//                                  .map(_ -> {
-//                                      var mcSaved = persistenceService.saveCollection(mc);
-//                                      taskService.sendEvent(ExtractThumbnailEvent.builder()
-//                                                                                 .mcId(mcSaved.id())
-//                                                                                 .source(this)
-//                                                                                 .build());
-//                                      directoryWatcher.registerAll(mcSaved.path());
-//                                      return mcSaved;
-//                                  })
-//                                  .orElseThrow(() -> new UserAbortedException("User aborted action, collection too large: " + size));
-//            }
-//
-//        @Override
-//        protected void succeeded () {
-//            var catalog = getValue();
-//            log.info("Collections entries: {}, time: {}", catalog.medias().size(), System.currentTimeMillis() - start);
-//        }
-//
-//        @Override
-//        protected void failed () {
-//            log.error("While scanning dir: '{}'", rootPath, getException());
-//            var throwable = getException();
-//            if (!(throwable instanceof UserAbortedException)) {
-//                super.failed();
-//            }
-//        }
-//    }
-//
-//    ;
     }
 
     public Task<Set<Path>> scanDirectory(Path rootPath, boolean resursiveScan) {
         return new AbstractTask<>() {
             @Override
             protected Set<Path> call() {
-                updateTitle("Scanning directory: " + rootPath.getFileName());
+                updateTitle(STR."Scanning directory: \{rootPath.getFileName()}");
                 updateMessage("%s: scanning".formatted(rootPath));
-                Set<MediaCollectionEntry> children;
                 updateProgress(-1, -1);
                 return scanDir(rootPath, resursiveScan);
             }
@@ -375,23 +324,6 @@ public class CollectionManager {
     }
 
     public void deleteCollection(final MediaCollection mc, Runnable onFinisHandler) {
-//
-//        var task = new AbstractTask<Void>() {
-//            @Override
-//            protected Void call() throws Exception {
-//                updateProgress(-1, -1);
-//                updateTitle("Delete collection: '%s', '%s' files".formatted(mc.id(), mc.medias().size()));
-//                taskService.sendEvent(CollectionEvent.builder()
-//                                                     .mediaCollection(mc)
-//                                                     .type(CollectionEvent.EventType.DELETED)
-//                                                     .source(this)
-//                                                     .build());
-//                updateMessage("Deleting database items ...");
-//                persistenceService.deleteMediaCollection(mc.id());
-//                return null;
-//            }
-//        };
-//        task.setOnSucceeded(handler::accept);
         taskService.supply(ModernTask.<Void>builder()
                                      .execute(myself -> {
                                          myself.updateProgress(-1, -1);
@@ -430,7 +362,7 @@ public class CollectionManager {
     private Task<List<MediaFile>> hashFiles(final List<MediaFile> mediaFiles, final int batchId, final int nbBatches) {
         return new AbstractTask<>() {
             @Override
-            protected List<MediaFile> call() throws Exception {
+            protected List<MediaFile> call() {
                 var size = mediaFiles.size();
                 updateTitle("Hashing %s files. %d/%d ".formatted(size, batchId, nbBatches));
                 updateProgress(0, size);
@@ -438,7 +370,7 @@ public class CollectionManager {
                 for (int i = 0; i < size; i++) {
                     var mf = mediaFiles.get(i);
                     updateProgress(i, size);
-                    updateMessage("Hashing: " + mf.getFullPath().getFileName());
+                    updateMessage(STR."Hashing: \{mf.getFullPath().getFileName()}");
                     mf.setHash(hashGenerator.compute(mf.getFullPath()).orElse(null));
                 }
                 return mediaFiles;
