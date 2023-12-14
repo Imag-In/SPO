@@ -1,6 +1,7 @@
 package org.icroco.picture.views.organize.gallery;
 
 import atlantafx.base.controls.Breadcrumbs;
+import atlantafx.base.controls.ModalPane;
 import atlantafx.base.controls.ProgressSliderSkin;
 import atlantafx.base.controls.Spacer;
 import atlantafx.base.util.Animations;
@@ -8,12 +9,10 @@ import jakarta.annotation.PostConstruct;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -79,6 +78,7 @@ public class GalleryView implements FxView<StackPane> {
     //    @Qualifier(OrganizeConfiguration.GALLERY_ZOOM)
     private       ZoomDragPane          photo;
     private final PersistenceService    persistenceService;
+    private final GalleryFilterView filterView;
 
     private final StackPane                             root             = new StackPane();
     private final BorderPane                            gallery          = new BorderPane();
@@ -89,11 +89,8 @@ public class GalleryView implements FxView<StackPane> {
     //    private final StackPane                             photoContainer = new StackPane();
     private final BooleanProperty                       expandCell       = new SimpleBooleanProperty(true);
     private final ObservableList<MediaFile>             images           = FXCollections.observableArrayList(MediaFile.extractor());
-    private final FilteredList<MediaFile>               filteredImages   = new FilteredList<>(images);
+    private final DynamicFilteredList<MediaFile> filteredImages = new DynamicFilteredList<>(images);
     private final SortedList<MediaFile>                 sortedImages     = new SortedList<>(filteredImages);
-    private       double                                gridCellWidth;
-    //    private       double                                gridCellHeight;
-    private       int                                   zoomLevel        = 0;
     private final SimpleObjectProperty<MediaCollection> currentCatalog   = new SimpleObjectProperty<>(null);
     private final SimpleBooleanProperty                 editMode         = new SimpleBooleanProperty(false);
     private       EGalleryClickState                    dblCickState     = EGalleryClickState.GALLERY;
@@ -102,8 +99,9 @@ public class GalleryView implements FxView<StackPane> {
     private final FontIcon                              blockIcon        = new FontIcon(Material2OutlinedAL.BLOCK);
     private final StackedFontIcon                       keepOrThrowIcon  = new StackedFontIcon();
     private final Label                                 keepOrThrowLabel = new Label();
-    private       SimpleIntegerProperty                 cellWidth        = new SimpleIntegerProperty(200);
-    private       SimpleIntegerProperty                 cellPerRow       = new SimpleIntegerProperty(5);
+    private final ModalPane                      modalPane      = new ModalPane();
+
+    private final MultiplePredicates<MediaFile> predicates = new MultiplePredicates<>();
 
     @PostConstruct
     protected void postConstruct() {
@@ -165,7 +163,7 @@ public class GalleryView implements FxView<StackPane> {
         gallery.setCenter(gridView);
         gallery.setBottom(toolBar);
         carousel.setVisible(false);
-        root.getChildren().addAll(gallery, carousel);
+        root.getChildren().addAll(modalPane, gallery, carousel);
 
         ofNullable(pref.getUserPreference().getGrid().getCellPerRow()).ifPresent(zoomThumbnails::setValue);
         gridView.cellWidthProperty().bind(Bindings.divide(Bindings.subtract(gallery.widthProperty(), 18), zoomThumbnails.valueProperty()));
@@ -232,12 +230,6 @@ public class GalleryView implements FxView<StackPane> {
 //        zoomThumbnails.getStyleClass().add(Styles.SMALL);
         zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
         ofNullable(pref.getUserPreference().getGrid().getCellPerRow()).ifPresent(zoomThumbnails::setValue);
-        zoomThumbnails.setBlockIncrement(1);
-        zoomThumbnails.setMajorTickUnit(1);
-        zoomThumbnails.setMinorTickCount(0);
-        zoomThumbnails.setSnapToTicks(true);
-        zoomThumbnails.setShowTickLabels(false);
-        zoomThumbnails.setMin(3);
         zoomThumbnails.setMax(pref.getUserPreference().getGrid().getMaxCellPerRow());
         zoomThumbnails.valueProperty()
                       .addListener((_, oldValue, newValue) -> {
@@ -256,11 +248,28 @@ public class GalleryView implements FxView<StackPane> {
         nbThrow.setGraphic(new FontIcon(Material2OutlinedMZ.THUMB_DOWN));
         nbThrow.textProperty()
                .bind(Bindings.size(sortedImages.filtered(mf -> mf.getKeepOrThrow() == EKeepOrThrow.THROW)).map(Object::toString));
+        nbKeep.managedProperty().bind(editMode);
+        nbThrow.managedProperty().bind(editMode);
         nbKeep.visibleProperty().bind(editMode);
         nbThrow.visibleProperty().bind(editMode);
 
-        bar.getChildren().addAll(expand, keepOrThrowLabel, zoomThumbnails, breadCrumbBar, new Spacer(), nbKeep, nbThrow, new Separator(
-                Orientation.VERTICAL), nbImages);
+        Label lbFilter = new Label();
+        lbFilter.setCursor(Cursor.HAND);
+        lbFilter.setGraphic(filterView.filterAdd);
+        lbFilter.setOnMouseClicked(_ -> filterView.showFilter(modalPane, lbFilter, predicates));
+
+        filteredImages.setPredicate(predicates);
+
+        bar.getChildren().addAll(expand,
+                                 keepOrThrowLabel,
+                                 zoomThumbnails,
+                                 breadCrumbBar,
+                                 new Spacer(),
+                                 lbFilter,
+                                 nbKeep,
+                                 nbThrow,
+                                 new Separator(Orientation.VERTICAL),
+                                 nbImages);
 
         return bar;
     }
@@ -275,10 +284,13 @@ public class GalleryView implements FxView<StackPane> {
         var slider = new Slider(0, 10, 0);
 //        slider.setShowTickLabels(true);
 //        slider.setShowTickMarks(true);
-        slider.setMajorTickUnit(1);
         slider.setBlockIncrement(1);
-        slider.setMinorTickCount(5);
+        slider.setMajorTickUnit(1);
+        slider.setMinorTickCount(0);
         slider.setSnapToTicks(true);
+        slider.setShowTickLabels(false);
+        slider.setMin(3);
+
         return slider;
     }
 
@@ -289,12 +301,12 @@ public class GalleryView implements FxView<StackPane> {
             images.clear();
             gridView.getSelectionModel().clearSelection();
             resetBcbModel(null);
-            filteredImages.setPredicate(null);
+            predicates.clear();
             images.addAll(newValue.medias());
         } else {
             breadCrumbBar.setSelectedCrumb(null);
             images.clear();
-            filteredImages.setPredicate(null);
+            predicates.clear();
         }
     }
 
@@ -419,7 +431,8 @@ public class GalleryView implements FxView<StackPane> {
             currentCatalog.setValue(persistenceService.getMediaCollection(newValue.mediaCollectionId()));
             resetBcbModel(newValue.subPath());
             final var path = getCurrentCatalog().path().resolve(newValue.subPath());
-            filteredImages.setPredicate(mediaFile -> mediaFile.fullPath().startsWith(path));
+            predicates.remove(PathPredicate.class);
+            predicates.add(new PathPredicate(path));
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);
 //            gridView.getFirstVisible().ifPresent(mediaFileCell -> gridView.getSelectionModel().set(mediaFileCell));
         }

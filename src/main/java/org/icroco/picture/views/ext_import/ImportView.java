@@ -380,7 +380,7 @@ public class ImportView extends AbstractView<StackPane> {
     }
 
     private void deleteAllFiles(List<MediaFile> mediaFiles) {
-        try (var scope = new FxRunAllScope<>(taskService, "Deletes files.", mediaFiles.size())) {
+        try (var scope = new FxRunAllScope<>(taskService, STR."Deletes '\{mediaFiles.size()}' files.", mediaFiles.size())) {
             mediaFiles.forEach(mf -> scope.fork(() -> {
                 FileUtils.deleteQuietly(mf.getFullPath().toFile());
                 return null;

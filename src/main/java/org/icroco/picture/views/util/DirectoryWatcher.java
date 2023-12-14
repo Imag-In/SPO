@@ -104,6 +104,8 @@ public class DirectoryWatcher {
                     return FileVisitResult.CONTINUE;
                 }
             });
+        } catch (NoSuchFileException e) {
+            log.warn("Directory doest not exist. Make sure to mount external or remote drive '{}'", start);
         } catch (IOException e) {
             log.error("Cannot walk through '{}'", start, e);
         }
