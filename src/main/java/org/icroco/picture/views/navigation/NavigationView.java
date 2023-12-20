@@ -64,7 +64,6 @@ public class NavigationView implements FxView<HBox> {
         importLbl.setDisable(false);
         importLbl.setText("Import");
         repairLbl.setText("Repair");
-        repairLbl.setDisable(true);
         peopleLbl.setText("People");
         peopleLbl.setDisable(true);
         exportLbl.setText("Export");
@@ -90,6 +89,8 @@ public class NavigationView implements FxView<HBox> {
                 currentView.set(ViewConfiguration.V_IMPORT);
             } else if (val == organizeLbl) {
                 currentView.set(ViewConfiguration.V_ORGANIZE);
+            } else if (val == repairLbl) {
+                currentView.set(ViewConfiguration.V_REPAIR);
             }
 
             if (old != null) {

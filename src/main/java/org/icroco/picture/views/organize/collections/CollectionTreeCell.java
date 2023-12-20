@@ -40,6 +40,7 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
 
     public CollectionTreeCell(TaskService taskService) {
         super();
+        getStyleClass().add("collection-tree-cell");
         this.taskService = taskService;
 
         titleLabel = new Label();

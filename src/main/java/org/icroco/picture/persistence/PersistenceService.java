@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.config.ImagInConfiguration;
 import org.icroco.picture.event.CollectionsLoadedEvent;
+import org.icroco.picture.model.HashDuplicate;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
@@ -12,6 +13,7 @@ import org.icroco.picture.persistence.mapper.MediaCollectionMapper;
 import org.icroco.picture.persistence.mapper.MediaFileMapper;
 import org.icroco.picture.persistence.mapper.ThumbnailMapper;
 import org.icroco.picture.persistence.model.MediaFileEntity;
+import org.icroco.picture.persistence.model.MfDuplicate;
 import org.icroco.picture.views.task.TaskService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unchecked")
@@ -220,6 +223,21 @@ public class PersistenceService {
     public Optional<Thumbnail> findByPathOrId(MediaFile mediaFile) {
         return thumbRepo.findById(mediaFile.getId())
                         .map(thMapper::toDomain);
+    }
+
+    public List<HashDuplicate> findDuplicateByHash() {
+        return mfRepo.findAllDuplicate().stream()
+                     .collect(Collectors.groupingBy(MfDuplicate::getHash,
+                                                    HashMap::new,
+                                                    Collectors.mapping(Function.identity(), Collectors.toList())))
+                     .entrySet()
+                     .stream()
+                     .map(e -> new HashDuplicate(e.getKey(),
+                                                 mfMapper.toDomains(mfRepo.findAllById(e.getValue()
+                                                                                        .stream()
+                                                                                        .map(MfDuplicate::getId)
+                                                                                        .toList()))))
+                     .toList();
     }
 
     public record UpdareResult(Collection<MediaFile> added,

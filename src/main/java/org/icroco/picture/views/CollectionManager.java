@@ -9,6 +9,7 @@ import one.util.streamex.EntryStream;
 import org.icroco.picture.event.*;
 import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.metadata.IMetadataExtractor;
+import org.icroco.picture.model.HashDuplicate;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaCollectionEntry;
 import org.icroco.picture.model.MediaFile;
@@ -387,4 +388,7 @@ public class CollectionManager {
         };
     }
 
+    public List<HashDuplicate> findDuplicateByHash() {
+        return persistenceService.findDuplicateByHash();
+    }
 }

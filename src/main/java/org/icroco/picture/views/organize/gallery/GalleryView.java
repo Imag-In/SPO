@@ -19,7 +19,6 @@ import javafx.geometry.Pos;
 import javafx.scene.CacheHint;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -46,7 +45,6 @@ import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.*;
 import org.icroco.picture.views.util.widget.Zoom;
 import org.icroco.picture.views.util.widget.ZoomDragPane;
-import org.jooq.lambda.Unchecked;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.javafx.StackedFontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
@@ -56,7 +54,6 @@ import org.slf4j.Logger;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
-import java.awt.*;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -148,12 +145,7 @@ public class GalleryView implements FxView<StackPane> {
 
         breadCrumbBar.setCrumbFactory(item -> new Hyperlink(item.getValue().getFileName().toString()));
         breadCrumbBar.setAutoNavigationEnabled(false);
-        breadCrumbBar.setOnCrumbAction(bae -> {
-            log.info("You just clicked on '" + bae.getSelectedCrumb() + "'!");
-            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE_FILE_DIR)) {
-                Unchecked.runnable(() -> Desktop.getDesktop().browseFileDirectory(bae.getSelectedCrumb().getValue().toFile())).run();
-            }
-        });
+        breadCrumbBar.setOnCrumbAction(bae -> SystemUtil.browseFile(bae.getSelectedCrumb().getValue()));
         breadCrumbBar.setDividerFactory(GalleryView::bcbDividerFactory);
 
 //        expandCell.addListener((observable, oldValue, newValue) -> gridView.refreshItems());

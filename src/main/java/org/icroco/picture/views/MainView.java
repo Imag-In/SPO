@@ -12,8 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.views.ext_import.ImportView;
 import org.icroco.picture.views.navigation.NavigationView;
 import org.icroco.picture.views.organize.OrganizeView;
+import org.icroco.picture.views.repair.RepairView;
 import org.icroco.picture.views.status.StatusBarView;
-import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.FxView;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -34,7 +34,7 @@ public class MainView implements FxView<StackPane> {
     private final StatusBarView        statusView;
     private final OrganizeView         organizeView;
     private final ImportView           importView;
-    private final TaskService          taskService;
+    private final RepairView repairView;
     @Qualifier(ViewConfiguration.CURRENT_VIEW)
     private final SimpleStringProperty currentView;
 
@@ -53,7 +53,7 @@ public class MainView implements FxView<StackPane> {
         borderPane.setTop(navView.getRootContent());
         borderPane.setBottom(statusView.getRootContent());
 
-        views.putAll(Stream.<FxView<?>>of(importView, organizeView)
+        views.putAll(Stream.<FxView<?>>of(importView, organizeView, repairView)
                            .collect(Collectors.toMap(fxView -> fxView.getRootContent().getId(), Function.identity())));
 
         centerView.getChildren().addAll(views.values()

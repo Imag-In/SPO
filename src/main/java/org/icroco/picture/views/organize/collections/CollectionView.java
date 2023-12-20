@@ -82,7 +82,7 @@ public class CollectionView implements FxView<VBox> {
     @PostConstruct
     protected void initializedOnce() {
         root.setId(ViewConfiguration.V_MEDIA_COLLECTION);
-        root.getStyleClass().add("v-collections");
+        root.getStyleClass().add(ViewConfiguration.V_MEDIA_COLLECTION);
         root.getStyleClass().add("header");
         rootTreeItem.setExpanded(true);
         rootTreeItem.setValue(new CollectionNode(Path.of("/"), -1, false, false));
@@ -116,8 +116,6 @@ public class CollectionView implements FxView<VBox> {
                                                      """));
         addCollection.disableProperty().bind(disablePathActions);
         addCollection.setOnMouseClicked(this::newCollection);
-        root.setOnMouseEntered(event -> addCollection.setVisible(true));
-        root.setOnMouseExited(event -> addCollection.setVisible(rootTreeItem.getChildren().isEmpty()));
 
         catalogSize.getStyleClass().add(Styles.TEXT_SMALL);
         catalogSizeProp.addListener((observable, oldValue, newValue) -> {
@@ -135,6 +133,8 @@ public class CollectionView implements FxView<VBox> {
         var box = new HBox(treeView);
         VBox.setVgrow(box, Priority.ALWAYS);
 
+        root.setOnMouseEntered(event -> addCollection.setVisible(true));
+        root.setOnMouseExited(event -> addCollection.setVisible(rootTreeItem.getChildren().isEmpty()));
         root.getChildren().addAll(collectionHeader, box);
     }
 

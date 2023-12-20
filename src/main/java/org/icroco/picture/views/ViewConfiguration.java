@@ -20,6 +20,8 @@ public class ViewConfiguration {
     public static final String V_STATUSBAR        = "v-status";
     public static final String V_TASKS            = "v-tasks";
     public static final String V_PREFERENCES      = "v-preferences";
+    public static final String V_REPAIR = "v-repair";
+
 
     @Bean(CURRENT_VIEW)
     SimpleStringProperty currentView() {
