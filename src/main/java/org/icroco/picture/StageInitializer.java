@@ -20,7 +20,10 @@ import org.icroco.picture.views.MainView;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.theme.ThemeManager;
 import org.scenicview.ScenicView;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -35,6 +38,26 @@ public class StageInitializer {
     private final ThemeManager                   themeManager;
     private final MainView                       mainView;
     private final Env                            env;
+
+//    @EventListener
+//    public void prepareEnv(ApplicationContextInitializedEvent event) {
+//
+//        ConfigurableEnvironment environment = event.getApplicationContext().getEnvironment();
+//        Properties              props       = new Properties();
+//        props.put("foo", "bar");
+//        environment.getPropertySources().addFirst(new PropertiesPropertySource("DB", props));
+//        log.info("DB?: {}", environment.getProperty("foo", "???"));
+//    }
+
+    @EventListener
+    public void applicationStarted(ApplicationStartedEvent event) {
+        ConfigurableEnvironment environment = event.getApplicationContext().getEnvironment();
+        log.info("DB: {}/{}, className: {}",
+                 environment.getProperty("SPO_DB_PATH", "??"),
+                 environment.getProperty("SPO_DB_NAME", "??"),
+                 environment.getClass().getName());
+
+    }
 
     @FxEventListener
     public void onApplicationEvent(StageReadyEvent event) {

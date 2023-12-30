@@ -12,6 +12,7 @@ import org.icroco.picture.util.PropertySettings;
 import org.icroco.picture.views.theme.SamplerTheme;
 
 import java.nio.file.Path;
+import java.util.Objects;
 
 @Getter
 @Setter
@@ -75,13 +76,18 @@ public class UserPreference {
         private Integer gridZoomFactor;
     }
 
-    private MainWindow     mainWindow = new MainWindow(Double.MIN_VALUE, Double.MIN_VALUE, 1024D, 800D, -1, false, null);
-    private Collection     collection = new Collection(-1, null);
-    private Gallery grid = new Gallery(128, 128, 0, 5, 12);
-    private SettingsDialog settings   = new SettingsDialog(new Dimension(600, 400));
+    private MainWindow     mainWindow  = new MainWindow(Double.MIN_VALUE, Double.MIN_VALUE, 1024D, 800D, -1, false, null);
+    private Collection     collection  = new Collection(-1, null);
+    private Gallery        grid        = new Gallery(128, 128, 0, 5, 12);
+    private SettingsDialog settings    = new SettingsDialog(new Dimension(600, 400));
+    private String         catalogName = "pictures";
 
     public void setLastViewed(int id, Path path) {
         collection.setLastViewed(id);
         collection.setLastPath(path);
+    }
+
+    public String getCatalogName() {
+        return Objects.requireNonNullElse(catalogName, "pictures");
     }
 }

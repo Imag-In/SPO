@@ -1,6 +1,7 @@
 package org.icroco.picture.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import jakarta.annotation.PostConstruct;
 import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
 import net.samuelcampos.usbdrivedetector.USBDeviceDetectorManager;
@@ -19,11 +20,13 @@ import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Constant;
 import org.icroco.picture.views.util.FxPlatformExecutor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.cache.Cache;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -37,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
 @Configuration
+@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)
 @EnableCaching
 @Slf4j
 public class ImagInConfiguration {
@@ -51,6 +55,11 @@ public class ImagInConfiguration {
     public static final String DIRECTORY_WATCHER = "DirWatch";
     public static final String FX_EXECUTOR       = "FX_EXECUTOR";
     public static final String IMAG_IN_EXECUTOR  = "IMAG_IN_EXEC";
+
+    @PostConstruct
+    void postConstruc() {
+        log.info("SPO INIT");
+    }
 
     @Bean(name = CACHE_THUMBNAILS)
     public Cache thumbnails() {

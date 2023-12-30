@@ -13,9 +13,12 @@ import org.icroco.picture.persistence.MediaFileRepository;
 import org.icroco.picture.persistence.model.MediaFileEntity;
 import org.icroco.picture.splashscreen.LoaderProgressNotification;
 import org.icroco.picture.splashscreen.SpoPreLoader;
+import org.icroco.picture.util.Env;
 import org.icroco.picture.util.Error;
 import org.icroco.picture.util.StageReadyEvent;
 import org.icroco.picture.views.pref.UserPreference;
+import org.icroco.picture.views.pref.UserPreferenceService;
+import org.icroco.picture.views.theme.ThemeRepository;
 import org.icroco.picture.views.util.ImageUtils;
 import org.icroco.picture.views.util.Nodes;
 import org.springframework.beans.BeansException;
@@ -27,15 +30,22 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.awt.*;
+import java.io.File;
 import java.util.Optional;
+import java.util.Properties;
 
 @SpringBootApplication
+//@ComponentScan(excludeFilters = { @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+//                                  @ComponentScan.Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class),
+//                                  @ComponentScan.Filter(type = FilterType.REGEX, pattern = ".*ParentConfig")})
+//@ComponentScan(excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = ".*ParentConfig"))
 //@Configuration
 //@ComponentScan()
 //@Import({ PropertyPlaceholderAutoConfiguration.class,
@@ -59,6 +69,9 @@ import java.util.Optional;
 //@ImportAutoConfiguration(classes = ViewAutoConfiguration.class)
 @Slf4j
 public class ImagInApp extends Application {
+
+    public static final String CONF_HOME = System.getProperty("imagin.spo.home", STR.".imagin\{File.separatorChar}spo");
+
     public static final String IMAGES_128_PX_GNOME_PHOTOS_LOGO_2019_SVG_PNG = "/images/128px-GNOME_Photos_logo_2019.svg.png";
     // Application startup analysis: https://www.amitph.com/spring-boot-startup-monitoring/#applicationstartup_metrics_with_java_flight_recorder
     // Icon IRes: https://dlsc.com/2017/08/29/javafx-tip-27-hires-retina-icons/
@@ -103,17 +116,26 @@ public class ImagInApp extends Application {
                                    .orElseGet(() -> new String[] { "default" });
             notifyPreloader(new LoaderProgressNotification(.1, "Starting ..."));
             ApplicationContextInitializer<GenericApplicationContext> initializer = genericApplicationContext -> {
+                var env             = new Env(genericApplicationContext.getEnvironment());
+                var themeRepository = new ThemeRepository(env);
+                var pref            = new UserPreferenceService(themeRepository);
                 genericApplicationContext.registerBean(Application.class, () -> ImagInApp.this);
                 genericApplicationContext.registerBean(Parameters.class, this::getParameters);
                 genericApplicationContext.registerBean(HostServices.class, this::getHostServices);
                 genericApplicationContext.registerBean(ProgressBeanPostProcessor.class, ProgressBeanPostProcessor::new);
+                genericApplicationContext.registerBean(Env.class, () -> env);
+                genericApplicationContext.registerBean(ThemeRepository.class, () -> themeRepository);
+                genericApplicationContext.registerBean(UserPreferenceService.class, () -> pref);
+                Properties props = new Properties();
+                props.put("SPO_DB_PATH", CONF_HOME);
+                props.put("SPO_DB_NAME", pref.getUserPreference().getCatalogName());
+                genericApplicationContext.getEnvironment().getPropertySources().addFirst(new PropertiesPropertySource("DB", props));
             };
             applicationContext = new SpringApplicationBuilder().sources(ImagInApp.class)
                                                                .bannerMode(Banner.Mode.OFF)
                                                                .headless(false)
                                                                .initializers(initializer)
                                                                .profiles(profiles)
-                                                               .build()
                                                                .run(getParameters().getRaw().toArray(new String[0]));
 
         } catch (Exception ex) {
@@ -172,7 +194,6 @@ public class ImagInApp extends Application {
                 taskbar.setIconImage(dockIcon);
             }
         }
-
     }
 
     protected void showErrorToUser(final Throwable throwable) {
@@ -198,9 +219,9 @@ public class ImagInApp extends Application {
         @Override
         public Object postProcessAfterInitialization(@NonNull Object bean, String beanName) throws BeansException {
             if (bean instanceof UserPreference up) {
-                notifyPreloader(new LoaderProgressNotification(0.2, "User preferences loaded"));
+                notifyPreloader(new LoaderProgressNotification(.2, "User preferences loaded"));
             } else if (bean instanceof EntityManagerFactory) {
-                notifyPreloader(new LoaderProgressNotification(.2, "Database loaded"));
+                notifyPreloader(new LoaderProgressNotification(.3, "Database loaded"));
             } else if (beanName.equals("cacheAutoConfigurationValidator")) {
                 notifyPreloader(new LoaderProgressNotification(.8, "Cache loaded"));
             } else if (beanName.equals("viewResolver")) {

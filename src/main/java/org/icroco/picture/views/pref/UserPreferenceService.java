@@ -12,42 +12,60 @@ import javafx.beans.property.SimpleBooleanProperty;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.icroco.picture.ImagInApp;
 import org.icroco.picture.util.ThemeDeserializer;
 import org.icroco.picture.util.ThemeSerializer;
 import org.icroco.picture.views.theme.SamplerTheme;
-import org.icroco.picture.views.theme.ThemeManager;
-import org.springframework.stereotype.Component;
+import org.icroco.picture.views.theme.ThemeRepository;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-@Component
+//@Component
 @Slf4j
 public class UserPreferenceService {
-    private static final Path FILENAME = Path.of(System.getProperty("icroco.picture.home",
-                                                                    System.getProperty("user.home")
-                                                                    + File.separatorChar
-                                                                    + ".icroco"
-                                                                    + File.separatorChar
-                                                                    + "configuration.yml"));
 
-    private final ObjectMapper   mapper;
-    @Getter
-    private       UserPreference userPreference = new UserPreference();
+    private static final Path OLD_FILENAME = Path.of(System.getProperty("imagin.spo.home",
+                                                                        STR."\{System.getProperty("user.home")}\{File.separatorChar}.icroco\{File.separatorChar}configuration.yml"));
+    private static final Path FILENAME     = Path.of(System.getProperty("imagin.spo.home",
+                                                                        STR."\{System.getProperty("user.home")}\{File.separatorChar}\{ImagInApp.CONF_HOME}\{File.separatorChar}configuration.yml"));
 
+    private final ObjectMapper mapper;
     @Getter
     private final BooleanProperty notYetImplemented = new SimpleBooleanProperty(true);
 
-    public UserPreferenceService(ThemeManager themeManager) {
+    @Getter
+    private UserPreference userPreference = new UserPreference();
+
+    public UserPreferenceService(ThemeRepository themeRepository) {
         this.mapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL);
         SimpleModule simpleModule = new SimpleModule();
         simpleModule.addSerializer(SamplerTheme.class, new ThemeSerializer());
-        simpleModule.addDeserializer(SamplerTheme.class, new ThemeDeserializer(themeManager.getRepository()));
+        simpleModule.addDeserializer(SamplerTheme.class, new ThemeDeserializer(themeRepository));
         mapper.registerModule(simpleModule);
+        migrateConf();
         readConf(FILENAME);
+    }
+
+    private void migrateConf() {
+        if (Files.exists(OLD_FILENAME)) {
+            if (Files.exists(FILENAME)) {
+                log.warn("Cannot migrate: '{}', bacause '{}' already exist. Delete one or other", OLD_FILENAME, FILENAME);
+            } else {
+                try {
+                    Files.createDirectories(FILENAME.getParent());
+                    FileUtils.copyDirectory(OLD_FILENAME.getParent().toFile(), FILENAME.getParent().toFile());
+                    log.info("Configuration and database migrated from: '{}' to: '{}'", OLD_FILENAME.getParent(), FILENAME.getParent());
+                } catch (IOException e) {
+                    log.error("Cannot move directory: '{}' into: '{}'", OLD_FILENAME, FILENAME, e);
+                }
+//                FileUtils.deleteQuietly(OLD_FILENAME)
+            }
+        }
     }
 
     private void readConf(Path fileName) {

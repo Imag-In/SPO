@@ -16,7 +16,6 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
 import lombok.Getter;
-import org.icroco.picture.util.Env;
 import org.icroco.picture.util.Resources;
 import org.icroco.picture.views.util.JColor;
 import org.springframework.stereotype.Component;
@@ -65,8 +64,8 @@ public final class ThemeManager {
     @Getter
     private AccentColor  accentColor  = DEFAULT_ACCENT_COLOR;
 
-    public ThemeManager(Env env) {
-        this.repository = new ThemeRepository(env);
+    public ThemeManager(ThemeRepository themeRepository) {
+        this.repository = themeRepository;
     }
 
     // MUST BE SET ON STARTUP

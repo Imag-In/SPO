@@ -36,12 +36,10 @@ public final class ThemeRepository {
     private final List<SamplerTheme> externalThemes   = new ArrayList<>();
     private final Preferences        themePreferences = Resources.getPreferences().node("theme");
 
-    ThemeRepository(Env env) {
+    public ThemeRepository(Env env) {
         this.env = env;
         internalThemes = THEMES.stream().map(t -> new SamplerTheme(t, env)).toList();
     }
-
-
 
 //    public ThemeRepository() {
 //        try {
