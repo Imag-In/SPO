@@ -21,5 +21,9 @@ public @interface PropertySettings {
 
     boolean isFavorite() default false;
 
+    int groupOrder() default 0;
+
+    int propertyOrder() default 0;
+
     Class<? extends PropertyEditor<?>>[] editor() default {};
 }

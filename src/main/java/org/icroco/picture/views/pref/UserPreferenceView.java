@@ -27,6 +27,9 @@ import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -60,27 +63,68 @@ public class UserPreferenceView implements FxView<DialogPane> {
     }
 
     static ObservableList<PropertySheet.Item> getProperties(UserPreference userPref) {
-        ObservableList<PropertySheet.Item> items = FXCollections.observableArrayList();
+        List<CustomBeanProperty> items = new ArrayList<>(10);
 
         addProperties(items, userPref.getMainWindow());
         addProperties(items, userPref.getCollection());
+        addProperties(items, userPref.getSafety());
+        addProperties(items, userPref.getGrid());
+        addProperties(items, userPref.getCatalogName());
 
-        return items;
+        items.sort(Comparator.comparing(CustomBeanProperty::getGroupOrder)
+                             .thenComparing(CustomBeanProperty::getPropertyOrder));
+
+        return FXCollections.observableArrayList(items.stream().map(PropertySheet.Item.class::cast).toList());
     }
 
-    static void addProperties(ObservableList<PropertySheet.Item> items,
+    static class CustomBeanProperty extends BeanProperty {
+        private final PropertyDescriptor descriptor;
+
+        public CustomBeanProperty(Object bean, PropertyDescriptor propertyDescriptor) {
+            super(bean, propertyDescriptor);
+            this.descriptor = propertyDescriptor;
+        }
+
+        public void setGroupOrder(int order) {
+            descriptor.setValue("groupOrder", order);
+        }
+
+        public int getGroupOrder() {
+            if (descriptor.getValue("groupOrder") instanceof Number n) {
+                return n.intValue();
+            }
+
+            return 0;
+        }
+
+        public void setPropertyOrder(int order) {
+            descriptor.setValue("propertyOrder", order);
+        }
+
+        public int getPropertyOrder() {
+            if (descriptor.getValue("propertyOrder") instanceof Number n) {
+                return n.intValue();
+            }
+
+            return 0;
+        }
+    }
+
+    static void addProperties(List<CustomBeanProperty> items,
                               Object bean) {
         try {
             var fields = ReflectionUtils.getFields(bean.getClass(), ReflectionUtils.withAnnotation(PropertySettings.class))
                                         .stream().collect(Collectors.toMap(Field::getName, Function.identity()));
             var beanInfo = Introspector.getBeanInfo(bean.getClass());
             for (PropertyDescriptor p : beanInfo.getPropertyDescriptors()) {
-                BeanProperty property = new BeanProperty(bean, p);
+                CustomBeanProperty property = new CustomBeanProperty(bean, p);
                 Optional.ofNullable(fields.get(p.getName()))
                         .ifPresent(field -> {
                             var settings = field.getAnnotation(PropertySettings.class);
                             var category = settings.category().isBlank() ? bean.getClass().getSimpleName() : settings.category();
-                            p.setValue(BeanProperty.CATEGORY_LABEL_KEY, settings.category());
+                            p.setValue(BeanProperty.CATEGORY_LABEL_KEY, category);
+                            property.setGroupOrder(settings.groupOrder());
+                            property.setPropertyOrder(settings.propertyOrder());
                             property.setEditable(settings.isEditable());
                             p.setPreferred(settings.isFavorite());
                             if (!settings.displayName().isBlank()) {

@@ -11,6 +11,7 @@ import org.icroco.picture.util.PathSerializer;
 import org.icroco.picture.util.PropertySettings;
 import org.icroco.picture.views.theme.SamplerTheme;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -30,7 +31,7 @@ public class UserPreference {
         private Double       height;
         private int          screenIdx   = -1;
         private boolean      isMaximized = false;
-        @PropertySettings(category = "Appearance", displayName = "Theme")
+        @PropertySettings(category = "Appearance", groupOrder = 1, displayName = "Theme")
         private SamplerTheme theme;
 
         public Double getPosX() {
@@ -68,6 +69,18 @@ public class UserPreference {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class Safety {
+        @PropertySettings(category = "Safety", groupOrder = 2, propertyOrder = 1, isEditable = false, displayName = "Delete or move files:")
+        private Boolean deleteFiles;
+        @PropertySettings(category = "Safety", propertyOrder = 2, isEditable = false, displayName = "Move files into directory:")
+        @JsonSerialize(using = PathSerializer.class)
+        private Path    backupDir;
+    }
+
+    @Setter
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Gallery {
         private Integer cellWidth     = 128;
         private Integer cellHeight    = 128;
@@ -81,6 +94,8 @@ public class UserPreference {
     private Gallery        grid        = new Gallery(128, 128, 0, 5, 12);
     private SettingsDialog settings    = new SettingsDialog(new Dimension(600, 400));
     private String         catalogName = "pictures";
+    private Safety safety = new Safety(false, Path.of(System.getProperty("imagin.spo.backup",
+                                                                         STR."\{System.getProperty("user.home")}\{File.separatorChar}SPO_BIN")));
 
     public void setLastViewed(int id, Path path) {
         collection.setLastViewed(id);
