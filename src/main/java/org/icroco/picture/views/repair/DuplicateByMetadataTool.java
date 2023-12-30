@@ -39,10 +39,12 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Slf4j
 public class DuplicateByMetadataTool extends StackPane implements RepairTool {
-    private final TaskService             taskService;
-    private final CollectionManager       collectionManager;
-    private final VBox                    vb = new VBox();
-    private       TreeTableView<TableRow> treeTableHash;
+    private final TaskService       taskService;
+    private final CollectionManager collectionManager;
+    private final VBox              vb      = new VBox();
+    private final Label             lbNbDup = new Label("");
+
+    private TreeTableView<TableRow> treeTableHash;
 
     public enum EViewMode {
         DUPLICATE,
@@ -95,16 +97,17 @@ public class DuplicateByMetadataTool extends StackPane implements RepairTool {
         hbButton.setSpacing(15);
         hbButton.setAlignment(Pos.CENTER_LEFT);
 
-        HBox hb = new HBox();
-        hb.getChildren().add(vb);
+        var hbResults = new HBox(lbNbDup);
+        hbResults.setSpacing(15);
+        hbResults.setAlignment(Pos.CENTER_LEFT);
+
+
         vb.setSpacing(10);
-        vb.getChildren().add(hbButton);
         vb.setPrefWidth(400);
         HBox.setHgrow(vb, Priority.ALWAYS);
-//        new ScrollPane(vb)
 
         treeTableHash = createTreeTable();
-        vb.getChildren().add(treeTableHash);
+        vb.getChildren().addAll(hbButton, hbResults, treeTableHash);
         VBox.setVgrow(treeTableHash, Priority.ALWAYS);
         StackPane.setAlignment(vb, Pos.TOP_CENTER);
 
@@ -114,7 +117,7 @@ public class DuplicateByMetadataTool extends StackPane implements RepairTool {
             StackPane.setAlignment(view, Pos.TOP_RIGHT);
             getChildren().add(view);
         });
-        getChildren().add(hb);
+        getChildren().add(vb);
     }
 
     TreeTableView<TableRow> createTreeTable() {
@@ -170,6 +173,7 @@ public class DuplicateByMetadataTool extends StackPane implements RepairTool {
     }
 
     void updateTable(List<HashDuplicate> duplicates) {
+        lbNbDup.setText(STR."'\{duplicates.size()}' duplicates found.");
         TreeItem<TableRow> root = treeTableHash.getRoot();
 
         root.getChildren().clear();
