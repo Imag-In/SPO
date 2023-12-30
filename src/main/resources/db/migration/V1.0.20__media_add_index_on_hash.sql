@@ -1,0 +1,1 @@
+CREATE INDEX idx_mf_hash ON media (hash);

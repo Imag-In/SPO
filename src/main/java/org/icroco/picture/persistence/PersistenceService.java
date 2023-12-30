@@ -21,12 +21,16 @@ import org.springframework.cache.Cache;
 import org.springframework.context.event.EventListener;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StopWatch;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toList;
 
 @SuppressWarnings("unchecked")
 @Component
@@ -226,18 +230,29 @@ public class PersistenceService {
     }
 
     public List<HashDuplicate> findDuplicateByHash() {
-        return mfRepo.findAllDuplicate().stream()
-                     .collect(Collectors.groupingBy(MfDuplicate::getHash,
-                                                    HashMap::new,
-                                                    Collectors.mapping(Function.identity(), Collectors.toList())))
-                     .entrySet()
-                     .stream()
-                     .map(e -> new HashDuplicate(e.getKey(),
-                                                 mfMapper.toDomains(mfRepo.findAllById(e.getValue()
-                                                                                        .stream()
-                                                                                        .map(MfDuplicate::getId)
-                                                                                        .toList()))))
-                     .toList();
+        StopWatch stopWatch = new StopWatch("findAllDuplicate");
+        stopWatch.start("Db");
+        var dupByHash = mfRepo.findAllDuplicate()
+                              .stream()
+                              .collect(Collectors.groupingBy(MfDuplicate::getHash,
+                                                             HashMap::new,
+                                                             Collectors.mapping(identity(), toList())))
+                              .entrySet();
+        stopWatch.stop();
+        stopWatch.start("Map");
+
+        var dup = dupByHash.stream()
+                           .map(e -> new HashDuplicate(e.getKey(),
+                                                       mfMapper.toDomains(mfRepo.findAllById(e.getValue()
+                                                                                              .stream()
+                                                                                              .map(MfDuplicate::getId)
+                                                                                              .toList()))))
+                           .toList();
+
+        stopWatch.stop();
+        log.info("findAllDuplicate: {}", stopWatch.prettyPrint(TimeUnit.MILLISECONDS));
+
+        return dup;
     }
 
     public record UpdareResult(Collection<MediaFile> added,

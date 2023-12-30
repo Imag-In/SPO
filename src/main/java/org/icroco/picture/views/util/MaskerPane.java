@@ -14,20 +14,30 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MaskerPane<T extends Node> {
-    private final RingProgressIndicator ring        = new RingProgressIndicator(0, false);
+    private final RingProgressIndicator ring = new RingProgressIndicator(0, false);
     private final Pane                  progressPane;
     @Getter
-    private final StackPane             rootContent = new StackPane();
+    private final StackPane             rootContent;
     @Getter
     private       T                     content;
     private final boolean               wrapSp;
 
-    public MaskerPane(boolean wrapIntoScrollPane) {
-        progressPane = createMasker();
-        rootContent.getChildren().add(progressPane);
-        rootContent.setId("maskerRootPane");
 
+    public MaskerPane() {
+        this(new StackPane(), false);
+    }
+
+    public MaskerPane(boolean wrapIntoScrollPane) {
+        this(new StackPane(), wrapIntoScrollPane);
+    }
+
+    public MaskerPane(StackPane rootContent, boolean wrapIntoScrollPane) {
+        progressPane = createMasker();
+        this.rootContent = rootContent;
+        this.rootContent.getChildren().add(progressPane);
+        this.rootContent.setId("maskerRootPane"); // TODO: Remove / replace by class
         wrapSp = wrapIntoScrollPane;
+        progressPane.setVisible(false);
     }
 
     public void setContent(T content) {
@@ -44,9 +54,9 @@ public class MaskerPane<T extends Node> {
     public void start() {
         progressPane.setVisible(true);
         content.setOpacity(0);
-//        if (!ring.progressProperty().isBound()) {
-//            ring.setProgress(-1D);
-//        }
+        if (!ring.progressProperty().isBound()) {
+            ring.setProgress(-1D);
+        }
     }
 
     public void stop() {

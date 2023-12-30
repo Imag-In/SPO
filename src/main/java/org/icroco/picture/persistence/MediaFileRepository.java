@@ -19,10 +19,9 @@ public interface MediaFileRepository extends JpaRepository<MediaFileEntity, Long
 
 
     @Query(nativeQuery = true, value = """
-            SELECT m1.ID, m1.HASH, m1.FULL_PATH FROM MEDIA m1
-            JOIN (SELECT HASH, ORIGINAL_DATE, COUNT(*) FROM MEDIA GROUP BY HASH HAVING COUNT(*) > 1) m2
-            ON m1.HASH = m2.HASH
-                AND m1.ORIGINAL_DATE = m2.ORIGINAL_DATE
-                """)
+            SELECT m1.ID, m1.HASH FROM MEDIA m1
+              JOIN (SELECT HASH, COUNT(*) FROM MEDIA GROUP BY HASH HAVING COUNT(*) > 1) m2
+                ON m1.HASH = m2.HASH
+            """)
     List<MfDuplicate> findAllDuplicate();
 }

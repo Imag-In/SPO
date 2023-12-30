@@ -18,9 +18,11 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.HashDuplicate;
 import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.views.CollectionManager;
 import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;
+import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.Nodes;
 import org.icroco.picture.views.util.widget.FxUtil;
 import org.kordamp.ikonli.Ikon;
@@ -38,13 +40,15 @@ import java.util.stream.Stream;
 @Lazy
 @RequiredArgsConstructor
 @Slf4j
-public class DuplicateByMetadataTool extends StackPane implements RepairTool {
+public class DuplicateByMetadataTool implements RepairTool {
     private final TaskService       taskService;
-    private final CollectionManager collectionManager;
-    private final VBox              vb      = new VBox();
+    private final CollectionManager  collectionManager;
+    private final PersistenceService persistenceService;
+    private final VBox               vb = new VBox();
     private final Label             lbNbDup = new Label("");
 
     private TreeTableView<TableRow> treeTableHash;
+    private final MaskerPane<VBox> maskerPane = new MaskerPane<>();
 
     public enum EViewMode {
         DUPLICATE,
@@ -75,6 +79,7 @@ public class DuplicateByMetadataTool extends StackPane implements RepairTool {
         Button run = new Button(null, new FontIcon(MaterialDesignP.PLAY_CIRCLE_OUTLINE));
         FxUtil.styleCircleButton(run).setOnMouseClicked(event -> {
             if (event.getClickCount() == 1) {
+                maskerPane.start();
                 taskService.supply(ModernTask.<List<HashDuplicate>>builder()
                                              .execute(myself -> collectionManager.findDuplicateByHash())
                                              .onSuccess((listModernTask, duplicates) -> updateTable(duplicates))
@@ -93,7 +98,7 @@ public class DuplicateByMetadataTool extends StackPane implements RepairTool {
         hbCollection.setManaged(false);
         hbCollection.setVisible(false);
 
-        var hbButton = new HBox(viewMode, cbViewMode, hbCollection, run);
+        var hbButton = new HBox(viewMode, cbViewMode, hbCollection, run, new Label(STR."\{persistenceService.countMediaFiles()} files"));
         hbButton.setSpacing(15);
         hbButton.setAlignment(Pos.CENTER_LEFT);
 
@@ -115,9 +120,9 @@ public class DuplicateByMetadataTool extends StackPane implements RepairTool {
             var underConstruction = new Image("/images/under-construction.png", 200, -1, true, true);
             var view              = new ImageView(underConstruction);
             StackPane.setAlignment(view, Pos.TOP_RIGHT);
-            getChildren().add(view);
+            maskerPane.getRootContent().getChildren().add(view);
         });
-        getChildren().add(vb);
+        maskerPane.setContent(vb);
     }
 
     TreeTableView<TableRow> createTreeTable() {
@@ -193,6 +198,7 @@ public class DuplicateByMetadataTool extends StackPane implements RepairTool {
                                });
                       }
                   });
+        maskerPane.stop();
     }
 
     List<? extends Node> createDuplicates(List<HashDuplicate> duplicates) {
@@ -234,7 +240,7 @@ public class DuplicateByMetadataTool extends StackPane implements RepairTool {
 
     @Override
     public Node getView() {
-        return this;
+        return maskerPane.getRootContent();
     }
 
     @Override

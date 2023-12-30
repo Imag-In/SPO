@@ -20,7 +20,8 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "MEDIA")
+@Table(name = "MEDIA",
+       indexes = @Index(name = "idx_mf_hash", columnList = "HASH"))
 public class MediaFileEntity {
 
     @Id
