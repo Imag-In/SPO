@@ -7,7 +7,8 @@ import javafx.application.Platform;
 import javafx.application.Preloader;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
-import net.codecrete.usb.USBDevice;
+import net.codecrete.usb.Usb;
+import net.codecrete.usb.UsbDevice;
 import org.controlsfx.dialog.ExceptionDialog;
 import org.icroco.picture.persistence.MediaFileRepository;
 import org.icroco.picture.persistence.model.MediaFileEntity;
@@ -129,7 +130,9 @@ public class ImagInApp extends Application {
                 Properties props = new Properties();
                 props.put("SPO_DB_PATH", CONF_HOME);
                 props.put("SPO_DB_NAME", pref.getUserPreference().getCatalogName());
-                genericApplicationContext.getEnvironment().getPropertySources().addFirst(new PropertiesPropertySource("DB", props));
+                genericApplicationContext.getEnvironment()
+                                         .getPropertySources()
+                                         .addFirst(new PropertiesPropertySource("DB", props));
             };
             applicationContext = new SpringApplicationBuilder().sources(ImagInApp.class)
                                                                .bannerMode(Banner.Mode.OFF)
@@ -154,14 +157,14 @@ public class ImagInApp extends Application {
             applicationContext.publishEvent(new StageReadyEvent(primaryStage));
 
 //            Platform.runLater(primaryStage::show);
-//            USB.setOnDeviceConnected((device) -> printDetails(device, "Connected"));
-//            USB.setOnDeviceDisconnected((device) -> printDetails(device, "Disconnected"));
+            Usb.setOnDeviceConnected((device) -> printDetails(device, "Connected"));
+            Usb.setOnDeviceDisconnected((device) -> printDetails(device, "Disconnected"));
         } catch (Exception ex) {
             log.error("Unexpected error while starting", ex);
         }
     }
 
-    private static void printDetails(USBDevice device, String event) {
+    private static void printDetails(UsbDevice device, String event) {
         log.info("{}: {}", event, device.toString());
     }
 

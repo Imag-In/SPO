@@ -39,6 +39,7 @@ import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.SceneReadyEvent;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
+import org.icroco.picture.views.organize.OrganizeConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.task.TaskService;
@@ -51,6 +52,7 @@ import org.kordamp.ikonli.material2.Material2AL;
 import org.kordamp.ikonli.material2.Material2OutlinedAL;
 import org.kordamp.ikonli.material2.Material2OutlinedMZ;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -75,7 +77,9 @@ public class GalleryView implements FxView<StackPane> {
     //    @Qualifier(OrganizeConfiguration.GALLERY_ZOOM)
     private       ZoomDragPane          photo;
     private final PersistenceService    persistenceService;
-    private final GalleryFilterView filterView;
+    private final GalleryFilterView     filterView;
+    @Qualifier(OrganizeConfiguration.ORGANIZE_EDIT_MODE)
+    private final SimpleBooleanProperty editMode;
 
     private final StackPane                             root             = new StackPane();
     private final BorderPane                            gallery          = new BorderPane();
@@ -89,14 +93,14 @@ public class GalleryView implements FxView<StackPane> {
     private final DynamicFilteredList<MediaFile> filteredImages = new DynamicFilteredList<>(images);
     private final SortedList<MediaFile>                 sortedImages     = new SortedList<>(filteredImages);
     private final SimpleObjectProperty<MediaCollection> currentCatalog   = new SimpleObjectProperty<>(null);
-    private final SimpleBooleanProperty                 editMode         = new SimpleBooleanProperty(false);
+
     private       EGalleryClickState                    dblCickState     = EGalleryClickState.GALLERY;
     private       HBox                                  toolBar;
     private final FontIcon                              thumbsUpDownIcon = new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
     private final FontIcon                              blockIcon        = new FontIcon(Material2OutlinedAL.BLOCK);
     private final StackedFontIcon                       keepOrThrowIcon  = new StackedFontIcon();
     private final Label                                 keepOrThrowLabel = new Label();
-    private final ModalPane                      modalPane      = new ModalPane();
+    private final ModalPane modalPane = new ModalPane();
 
     private final MultiplePredicates<MediaFile> predicates = new MultiplePredicates<>();
 
@@ -141,14 +145,11 @@ public class GalleryView implements FxView<StackPane> {
         carousel.setCenter(photo);
         photo.maxHeightProperty().bind(carousel.heightProperty());
         photo.maxWidthProperty().bind(carousel.widthProperty());
-//        carousel.setBottom(carouselIcons);
 
         breadCrumbBar.setCrumbFactory(item -> new Hyperlink(item.getValue().getFileName().toString()));
         breadCrumbBar.setAutoNavigationEnabled(false);
         breadCrumbBar.setOnCrumbAction(bae -> SystemUtil.browseFile(bae.getSelectedCrumb().getValue()));
         breadCrumbBar.setDividerFactory(GalleryView::bcbDividerFactory);
-
-//        expandCell.addListener((observable, oldValue, newValue) -> gridView.refreshItems());
 
         toolBar = createBottomBar();
         gallery.getStyleClass().setAll("gallery-center");

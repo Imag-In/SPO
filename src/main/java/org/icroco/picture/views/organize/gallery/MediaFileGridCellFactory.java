@@ -26,11 +26,11 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
     private final TaskService                               taskService;
     private final BooleanProperty                           isExpandCell;
     private final BiConsumer<MouseEvent, MediaFileGridCell> callBack;
-    private final BooleanProperty                           keepOrThrow;
+    private final BooleanProperty isEditable;
 
     @Override
     public GridCell<MediaFile> call(final GridView<MediaFile> grid) {
-        final var cell = new MediaFileGridCell(taskService, true, mediaLoader, isExpandCell, (CustomGridView<MediaFile>) grid, keepOrThrow);
+        final var cell = new MediaFileGridCell(taskService, true, mediaLoader, isExpandCell, (CustomGridView<MediaFile>) grid, isEditable);
 
         cell.setAlignment(Pos.CENTER);
         cell.setEditable(false);

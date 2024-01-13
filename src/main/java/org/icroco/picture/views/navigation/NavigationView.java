@@ -63,7 +63,7 @@ public class NavigationView implements FxView<HBox> {
         organizeLbl.setText("Organize");
         importLbl.setDisable(false);
         importLbl.setText("Import");
-        repairLbl.setText("Repair");
+        repairLbl.setText("Tools");
         peopleLbl.setText("People");
         peopleLbl.setDisable(true);
         exportLbl.setText("Export");

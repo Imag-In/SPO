@@ -31,7 +31,6 @@ import static org.icroco.picture.views.util.LangUtils.EMPTY_STRING;
 @Slf4j
 public class MediaFileGridCell extends GridCell<MediaFile> {
     private final TaskService               taskService;
-    private final ImageView                 loadingView;
     @Getter
     private final ImageView                 imageView;
     private final boolean                   preserveImageProperties;
@@ -50,16 +49,15 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
                              MediaLoader mediaLoader,
                              BooleanProperty isExpandCell,
                              CustomGridView<MediaFile> grid,
-                             BooleanProperty keepOrThrow) {
+                             BooleanProperty isEditable) {
         this.taskService = taskService;
         this.preserveImageProperties = preserveImageProperties;
         this.mediaLoader = mediaLoader;
         this.isExpandCell = isExpandCell;
         isExpandCell.addListener((_, _, _) -> requestLayout());
         getStyleClass().add("image-grid-cell");
-        loadingView = new ImageView(ImageUtils.LOADING);
-        loadingView.maxHeight(128 - 5);
-        loadingView.maxWidth(128 - 5);
+//        loadingView.maxHeight(128 - 5);
+//        loadingView.maxWidth(128 - 5);
         imageView = new ImageView();
         imageView.fitHeightProperty().bind(this.heightProperty().subtract(gap));
         imageView.fitWidthProperty().bind(this.widthProperty().subtract(gap));
@@ -75,7 +73,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         this.keepOrThrow.setTranslateY(this.keepOrThrow.getTranslateY() - gap.getValue() * 2);
         this.keepOrThrow.setOnMouseClicked(this::keepOrThrowClick);
         this.keepOrThrow.setCursor(Cursor.HAND);
-        this.keepOrThrow.visibleProperty().bind(keepOrThrow);
+        this.keepOrThrow.visibleProperty().bind(isEditable);
 
         root = new StackPane(imageView, this.keepOrThrow);
         root.getStyleClass().add("stack-pane");
@@ -108,9 +106,11 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
             } else {
                 gap.set(5);
             }
+
             updateSelected(contains);
             if (item.isLoadedInCache()) {
-                if ((lastHash != null && !lastHash.equals(item.getHash()) || MediaFileGridCellFactory.isCellVisible(grid, this))) {
+                if ((lastHash != null && !lastHash.equals(item.getHash())
+                     || MediaFileGridCellFactory.isCellVisible(grid, this))) {
                     lastHash = item.getHash();
                     log.atDebug().log(() -> "Grid Cell updated(%s): %s: %s - %s - %s ('%s'/'%s') - %s".formatted(this.hashCode(),
                                                                                                                  item.getFullPath(),
@@ -143,13 +143,13 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         }
     }
 
-
     private ImageView setImage(Image image) {
         if (isExpandCell.getValue()) {
             double      newMeasure = Math.min(image.getWidth(), image.getHeight());
             double      x          = (image.getWidth() - newMeasure) / 2;
             double      y          = (image.getHeight() - newMeasure) / 2;
             Rectangle2D rect       = new Rectangle2D(x, y, newMeasure, newMeasure);
+//            log.info("image W: {}, H: {}, cell W: {}, H: {}", image.getWidth(), image.getHeight(), getWidth(), getHeight());
             imageView.setViewport(rect);
         } else {
             imageView.setViewport(null);
@@ -160,6 +160,8 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
             Animations.fadeIn(imageView, Duration.millis(300)).playFromStart();
         }
 
+//        imageView.setFitWidth(Math.min(image.getWidth(), getWidth())-gap.getValue());
+//        imageView.setFitHeight(Math.min(image.getHeight(), getHeight())-gap.getValue());
 
         return imageView;
     }

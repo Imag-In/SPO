@@ -1,11 +1,15 @@
 package org.icroco.picture.model;
 
 import javafx.beans.Observable;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.util.Callback;
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -17,7 +21,6 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(of = { "fullPath" })
 @Builder
-@AllArgsConstructor
 public class MediaFile implements IMediaFile {
     public static  Comparator<MediaFile> UPDATED_COMP = Comparator.comparing(MediaFile::getHash);
     private static LocalDateTime         TIMESTAMP    = LocalDateTime.MIN.plusHours(1L);
@@ -45,17 +48,44 @@ public class MediaFile implements IMediaFile {
     //    @NonNull
 //    @Builder.Default
 //    private SimpleObjectProperty<Thumbnail> thumbnail = new SimpleObjectProperty<>(null);
-    @NonNull
-    @Builder.Default
-    private final SimpleObjectProperty<LocalDateTime> lastUpdated   = new SimpleObjectProperty<>(TIMESTAMP);
-    @NonNull
-    @Builder.Default
+    private final SimpleObjectProperty<LocalDateTime> lastUpdated          = new SimpleObjectProperty<>(LocalDateTime.MIN);
     private final SimpleBooleanProperty               loadedInCache = new SimpleBooleanProperty(false);
+    private final SimpleLongProperty                  idProperty           = new SimpleLongProperty(0);
+    private final SimpleObjectProperty<LocalDateTime> originalDateProperty = new SimpleObjectProperty<>();
 
-    @NonNull
-    @Builder.Default
-    private SimpleLongProperty idProperty = new SimpleLongProperty(0);
+    public MediaFile(Long id,
+                     Path fullPath,
+                     String fileName,
+                     LocalDateTime originalDate,
+                     Set<Keyword> keywords,
+                     GeoLocation geoLocation,
+                     String hash,
+                     LocalDate hashDate,
+                     Dimension dimension,
+                     Short orientation,
+                     Camera camera,
+                     Integer collectionId,
+                     boolean selected,
+                     EKeepOrThrow keepOrThrow,
+                     @NonNull EThumbnailType thumbnailType) {
+        this.id = id;
+        this.fullPath = fullPath;
+        this.fileName = fileName;
+        this.originalDate = originalDate;
+        this.keywords = keywords;
+        this.geoLocation = geoLocation;
+        this.hash = hash;
+        this.hashDate = hashDate;
+        this.dimension = dimension;
+        this.orientation = orientation;
+        this.camera = camera;
+        this.collectionId = collectionId;
+        this.selected = selected;
+        this.keepOrThrow = keepOrThrow;
+        this.thumbnailType = thumbnailType;
 
+        this.originalDateProperty.setValue(this.originalDate);
+    }
 
     public SimpleBooleanProperty loadedInCacheProperty() {
         return loadedInCache;
@@ -79,6 +109,19 @@ public class MediaFile implements IMediaFile {
     @Override
     public LocalDateTime originalDate() {
         return getOriginalDate();
+    }
+
+
+    public ReadOnlyObjectProperty<LocalDateTime> getOriginalDateProperty() {
+//        if (originalDateProperty == null) {
+//            originalDateProperty = new SimpleObjectProperty<>(originalDate);
+//        }
+        return originalDateProperty;
+    }
+
+    public void setOriginalDate(LocalDateTime originalDate) {
+        this.originalDate = originalDate;
+        originalDateProperty.setValue(originalDate);
     }
 
     @Override
@@ -115,7 +158,7 @@ public class MediaFile implements IMediaFile {
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[] { mf.loadedInCache, mf.lastUpdated };
+        return mf -> new Observable[] { mf.loadedInCache, mf.lastUpdated, mf.originalDateProperty };
     }
 
     public void setId(Long id) {

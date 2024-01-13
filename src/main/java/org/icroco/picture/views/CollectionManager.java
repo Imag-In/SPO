@@ -1,7 +1,6 @@
 package org.icroco.picture.views;
 
 import javafx.application.Platform;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -178,8 +177,7 @@ public class CollectionManager {
     public Optional<MediaFile> create(LocalDate now, Path p, boolean generateHash) {
         var builder = MediaFile.builder()
                                .fullPath(p)
-                               .fileName(p.getFileName().toString())
-                               .lastUpdated(new SimpleObjectProperty<>(LocalDateTime.MIN));
+                               .fileName(p.getFileName().toString());
 
         if (generateHash) {
             builder.hash(hashGenerator.compute(p).orElse(""))

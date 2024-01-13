@@ -45,6 +45,7 @@ public class UserPreference {
         public boolean exist() {
             return !(posX == Double.MIN_VALUE || posY == Double.MIN_VALUE);
         }
+
     }
 
     @Setter
@@ -87,6 +88,14 @@ public class UserPreference {
         private Integer cellPerRow    = 5;
         private Integer maxCellPerRow = 12;
         private Integer gridZoomFactor;
+
+        public Integer getMaxCellPerRow() {
+            return Math.max(12, Objects.requireNonNullElse(maxCellPerRow, 12));
+        }
+
+        public Integer getCellPerRow() {
+            return Objects.requireNonNullElse(cellPerRow, 5);
+        }
     }
 
     private MainWindow     mainWindow  = new MainWindow(Double.MIN_VALUE, Double.MIN_VALUE, 1024D, 800D, -1, false, null);

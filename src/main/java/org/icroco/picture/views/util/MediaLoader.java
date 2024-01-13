@@ -506,6 +506,9 @@ public class MediaLoader {
                                                         .map(entry -> {
                                                             var mf = entry.getValue();
                                                             updateProgress(entry.getKey(), size);
+                                                            updateMessage(STR."Generate thumbnail for: \{entry.getValue()
+                                                                                                              .getFullPath()
+                                                                                                              .getFileName()}");
                                                             return ofNullable(thCache.get(mf))
                                                                     .or(() -> persistenceService.findByPathOrId(mf))
                                                                     .filter(_ -> mf.getThumbnailType() != EThumbnailType.GENERATED)
