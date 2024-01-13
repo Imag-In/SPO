@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-//* {
+* {
 //  -fx-text-fill: -color-fg-default;
 //  -fx-highlight-text-fill:  -color-fg-default;
 //  -fx-highlight-fill: -color-neutral-muted;
@@ -10,6 +10,12 @@
 //  -fx-body-color: -color-neutral-muted;
 //  -fx-inner-border: -color-accent-fg;
 //  -fx-background-color: -color-bg-default;
+}
+
+
+//.calendar-view {
+//  -fx-background-color: -color-bg-default;
+//  -fx-text-background-color: -color-bg-default;
 //}
 
 .property-sheet .scroll-pane .property-pane {
