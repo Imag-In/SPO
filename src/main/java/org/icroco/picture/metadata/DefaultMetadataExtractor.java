@@ -14,6 +14,7 @@ import com.drew.metadata.iptc.IptcDirectory;
 import com.drew.metadata.jpeg.JpegDirectory;
 import com.drew.metadata.png.PngDirectory;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.imaging.Imaging;
 import org.icroco.picture.config.ImagInConfiguration;
 import org.icroco.picture.model.Camera;
 import org.icroco.picture.model.Dimension;
@@ -23,7 +24,6 @@ import org.jooq.lambda.Unchecked;
 import org.slf4j.Logger;
 import org.springframework.cache.annotation.Cacheable;
 
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -69,8 +69,51 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
         return java.util.Collections.emptyMap();
     }
 
+    @Override
+    public List<MetadataDirectory> getAllByDirectory(Path path) {
+        try {
+            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+
+            return Collections.toStream(metadata.getDirectories())
+                              .map(d -> new MetadataDirectory(d.getClass().getName().substring(d.getClass().getName().lastIndexOf('.') + 1),
+                                                              d.getTags().stream()
+                                                               .filter(Objects::nonNull)
+                                                               .filter(tag -> tag.getDescription() != null)
+                                                               .filter(tag -> tag.getTagName() != null)
+                                                               .collect(Collectors.toMap(Tag::getTagName, Tag::getDescription, (o, o2) -> {
+                                                                   log.warn("File: '{}', Duplicate metadata values: {} <-> {}",
+                                                                            path,
+                                                                            o,
+                                                                            o2);
+                                                                   return o2;
+                                                               }))))
+                              .toList();
+        } catch (Exception e) {
+            log.error("Cannot read metadata for: {}", path, e);
+        }
+
+        return java.util.Collections.emptyList();
+    }
+
+    @Override
+    public Optional<Integer> orientation(Path path) {
+        try {
+            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+            return readdAllHeaders(metadata,
+                                   ExifIFD0Directory.class,
+                                   d -> getTagAsInt(Optional.of(d),
+                                                    ExifDirectoryBase.TAG_ORIENTATION,
+                                                    DEFAULT_ORIENTATION,
+                                                    _ -> log.warn("Cannot read orientation")));
+        } catch (Throwable ex) {
+            log.warn("Cannot read orientation, message: {}", ex.getLocalizedMessage());
+        }
+        return Optional.empty();
+    }
+
     public static void printInformation(Path path) {
         Unchecked.runnable(() -> {
+            Imaging.getImageInfo(path.toFile());
             Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
             Collections.toStream(metadata.getDirectories())
                        .forEach(d -> {
@@ -83,28 +126,28 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
         }).run();
     }
 
-    @Override
-    public Optional<Integer> orientation(InputStream input) {
-        try {
-            Metadata metadata = ImageMetadataReader.readMetadata(input, input.available());
-            return readdAllHeaders(metadata,
-                                   ExifIFD0Directory.class,
-                                   d -> getTagAsInt(Optional.of(d),
-                                                    ExifDirectoryBase.TAG_ORIENTATION,
-                                                    DEFAULT_ORIENTATION,
-                                                    _ -> log.warn("Cannot read orientation")));
-        } catch (Throwable ex) {
-            log.warn("Cannot read orientation, message: {}", ex.getLocalizedMessage());
-        }
-        return Optional.empty();
-//        return header(Path.of(""), input).map(MetadataHeader::orientation);
-    }
+//    @Override
+//    public Optional<Integer> orientation(InputStream input) {
+//        try {
+//            Metadata metadata = ImageMetadataReader.readMetadata(input, input.available());
+//            return readdAllHeaders(metadata,
+//                                   ExifIFD0Directory.class,
+//                                   d -> getTagAsInt(Optional.of(d),
+//                                                    ExifDirectoryBase.TAG_ORIENTATION,
+//                                                    DEFAULT_ORIENTATION,
+//                                                    _ -> log.warn("Cannot read orientation")));
+//        } catch (Throwable ex) {
+//            log.warn("Cannot read orientation, message: {}", ex.getLocalizedMessage());
+//        }
+//        return Optional.empty();
+////        return header(Path.of(""), input).map(MetadataHeader::orientation);
+//    }
 
     @Override
-    public Optional<MetadataHeader> header(final Path path, final InputStream input) {
+    public Optional<MetadataHeader> header(final Path path) {
         try {
 
-            Metadata metadata               = ImageMetadataReader.readMetadata(input, input.available());
+            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
             var      edb                    = ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
             var      firstExifIFD0Directory = ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class));
             var gps = gps(path, metadata)
