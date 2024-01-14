@@ -2,7 +2,10 @@ package org.icroco.picture.views.util;
 
 import lombok.experimental.UtilityClass;
 
+import java.io.File;
 import java.nio.file.Path;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -13,6 +16,16 @@ public class Constant {
     public static final int     NB_CORE       = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
     public              Pattern SUPPORTED_EXT = Pattern.compile(".*\\.(png|jpg|jpeg)$", Pattern.CASE_INSENSITIVE);
 //    public              Pattern SUPPORTED_EXT = Pattern.compile(".*\\.(png|jpg|jpeg|tiff|tif)$", Pattern.CASE_INSENSITIVE);
+
+    public static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);
+    public static DateTimeFormatter DATE_FORMATTER      = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM);
+
+    public static final String SPO_DIR = System.getProperty("imagin.spo.home", STR.".imagin\{File.separatorChar}spo");
+
+    public static final Path SPO_HOMEDIR = Path.of(System.getProperty("imagin.spo.home",
+                                                                      STR."\{System.getProperty("user.home")}\{File.separatorChar}\{SPO_DIR}"))
+                                               .normalize()
+                                               .toAbsolutePath();
 
     private static final double HALF          = 0.5d;
     /**
@@ -34,7 +47,8 @@ public class Constant {
     private static final String imageTypes = "jpg,tif,tiff,jpeg,png,psd,cr2,nef,raf,dng,x3f,heic";
     private static final String videoTypes = "mp4,mov";
 
-    private final Consumer<?> EMPTY_CONSUMER = s -> {};
+    private final Consumer<?> EMPTY_CONSUMER = s -> {
+    };
 
     public static boolean isSupportedExtension(Path path) {
         return SUPPORTED_EXT.matcher(path.getFileName().toString()).matches();

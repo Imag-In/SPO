@@ -35,6 +35,11 @@ class MediaFileMapperTest {
         CameraMapper cameraMapper() {
             return new CameraMapperImpl();
         }
+
+        @Bean
+        DimensionMapper dimensionMapper() {
+            return new DimensionMapperImpl();
+        }
     }
 
     @Autowired

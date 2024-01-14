@@ -13,6 +13,8 @@ import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
 import org.assertj.core.api.Assertions;
 import org.icroco.picture.persistence.KeywordRepository;
 import org.icroco.picture.persistence.mapper.KeywordMapperImpl;
+import org.icroco.picture.views.task.TaskService;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -28,7 +30,8 @@ import java.time.format.DateTimeFormatter;
 class ApacheMetadataWritterTest {
     ApacheMetadataWriter writter = new ApacheMetadataWriter();
     IMetadataExtractor   reader  = new DefaultMetadataExtractor(new KeywordManager(Mockito.mock(KeywordRepository.class),
-                                                                                   new KeywordMapperImpl()));
+                                                                                   new KeywordMapperImpl()),
+                                                                Mockito.mock(TaskService.class));
 
     @Test
     void should_write_original_date() throws URISyntaxException, ImagingException, IOException {
@@ -50,6 +53,18 @@ class ApacheMetadataWritterTest {
         Assertions.assertThat(header).isPresent();
         Assertions.assertThat(header.get().orginalDate().toLocalDate()).isEqualTo(LocalDate.now());
 
+    }
+
+    @Test
+    @Disabled
+    void printMetadata() {
+        ApacheMetadaExtractor extractor = new ApacheMetadaExtractor();
+
+        extractor.getAllByDirectory(Path.of("/Users/christophe/Pictures/foo/json/Imag'In-Icon_Only-128x128-FF.png"))
+                 .forEach(d -> {
+                     System.out.println("Dir: " + d.name());
+                     d.entries().forEach((key, value) -> System.out.printf("   %s: %s", key, value));
+                 });
     }
 
     public void changeExifMetadata(final File jpegImageFile, final File dst) throws IOException, ImagingException, ImagingException {

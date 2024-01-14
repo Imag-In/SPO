@@ -5,6 +5,8 @@ import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.metadata.TagManagerTest;
 import org.icroco.picture.model.Dimension;
+import org.icroco.picture.views.task.TaskService;
+import org.mockito.Mockito;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.options.Options;
@@ -26,7 +28,8 @@ public class ThumbnailGeneratorBenchmark {
 
     List<Path>             paths;
 
-    IMetadataExtractor metadataExtractor = new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER);
+    IMetadataExtractor metadataExtractor = new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
+                                                                        Mockito.mock(TaskService.class));
     ImgscalrGenerator      imgscalrGenerator      = new ImgscalrGenerator(new JdkHashGenerator(), metadataExtractor);
     ThumbnailatorGenerator thumbnailatorGenerator = new ThumbnailatorGenerator();
 

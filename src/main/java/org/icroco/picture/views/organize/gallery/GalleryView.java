@@ -5,7 +5,11 @@ import atlantafx.base.controls.ModalPane;
 import atlantafx.base.controls.ProgressSliderSkin;
 import atlantafx.base.controls.Spacer;
 import atlantafx.base.util.Animations;
+import eu.iamgio.animated.binding.value.AnimatedValueLabel;
+import eu.iamgio.animated.common.Curve;
 import jakarta.annotation.PostConstruct;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -64,6 +68,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 
 @Component
@@ -81,27 +86,40 @@ public class GalleryView implements FxView<StackPane> {
     @Qualifier(OrganizeConfiguration.ORGANIZE_EDIT_MODE)
     private final SimpleBooleanProperty editMode;
 
-    private final StackPane                             root             = new StackPane();
-    private final BorderPane                            gallery          = new BorderPane();
-    private final BorderPane                            carousel         = new BorderPane();
-    private final Slider                                zoomThumbnails   = createTickSlider();
-    private final Breadcrumbs<Path>                     breadCrumbBar    = new Breadcrumbs<>();
+    private final StackPane                             root           = new StackPane();
+    private final BorderPane                            gallery        = new BorderPane();
+    private final BorderPane                            carousel       = new BorderPane();
+    private final Slider                                zoomThumbnails = createTickSlider();
+    private final Breadcrumbs<Path>                     breadCrumbBar  = new Breadcrumbs<>();
     private       CustomGridView<MediaFile>             gridView;
     //    private final StackPane                             photoContainer = new StackPane();
-    private final BooleanProperty                       expandCell       = new SimpleBooleanProperty(true);
-    private final ObservableList<MediaFile>             images           = FXCollections.observableArrayList(MediaFile.extractor());
-    private final DynamicFilteredList<MediaFile> filteredImages = new DynamicFilteredList<>(images);
-    private final SortedList<MediaFile>                 sortedImages     = new SortedList<>(filteredImages);
-    private final SimpleObjectProperty<MediaCollection> currentCatalog   = new SimpleObjectProperty<>(null);
+    private final BooleanProperty                       expandCell     = new SimpleBooleanProperty(true);
+    private final ObservableList<MediaFile>             images         = FXCollections.observableArrayList(MediaFile.extractor());
+    private final DynamicFilteredList<MediaFile>        filteredImages = new DynamicFilteredList<>(images);
+    private final SortedList<MediaFile>                 sortedImages   = new SortedList<>(filteredImages);
+    private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
+    private final SimpleBooleanProperty                 mouseMoved     = new SimpleBooleanProperty(true);
 
-    private       EGalleryClickState                    dblCickState     = EGalleryClickState.GALLERY;
-    private       HBox                                  toolBar;
-    private final FontIcon                              thumbsUpDownIcon = new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
-    private final FontIcon                              blockIcon        = new FontIcon(Material2OutlinedAL.BLOCK);
-    private final StackedFontIcon                       keepOrThrowIcon  = new StackedFontIcon();
-    private final Label                                 keepOrThrowLabel = new Label();
-    private final ModalPane modalPane = new ModalPane();
+    private       EGalleryClickState dblCickState     = EGalleryClickState.GALLERY;
+    private       HBox               toolBar;
+    private final FontIcon           thumbsUpDownIcon = new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
+    private final FontIcon           blockIcon        = new FontIcon(Material2OutlinedAL.BLOCK);
+    private final StackedFontIcon    keepOrThrowIcon  = new StackedFontIcon();
+    private final Label              keepOrThrowLabel = new Label();
+    private final ModalPane          modalPane        = new ModalPane();
 
+
+    //    private final Label dateOverlay = new Label("Display Date");
+//    AnimatedLabel dateOverlay = new AnimatedLabel("", AnimationPair.fade());
+    private final AnimatedValueLabel<String> dateOverlay = new AnimatedValueLabel<>("")
+            .custom(settings -> settings.withCurve(Curve.EASE_IN_OUT_EXPO).withDuration(Duration.millis(500)));
+
+    private final Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(15), ae -> {
+        var animation = Animations.fadeOut(dateOverlay, Duration.seconds(1));
+        animation.setOnFinished(event -> mouseMoved.set(false));
+        animation.play();
+//            mouseMoved.set(false);
+    }));
     private final MultiplePredicates<MediaFile> predicates = new MultiplePredicates<>();
 
     @PostConstruct
@@ -111,7 +129,7 @@ public class GalleryView implements FxView<StackPane> {
         root.setMinSize(350, 250);
         root.setEventDispatcher(new DoubleClickEventDispatcher(root.getEventDispatcher()));
 
-        gridView = new CustomGridView<>(taskService, FXCollections.emptyObservableList());
+        gridView = new CustomGridView<>(FXCollections.emptyObservableList(), this::gridScrollEvent);
         gridView.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null && newValue.intValue() >= 0) {
                 taskService.sendEvent(PhotoSelectedEvent.builder()
@@ -151,16 +169,38 @@ public class GalleryView implements FxView<StackPane> {
         breadCrumbBar.setOnCrumbAction(bae -> SystemUtil.browseFile(bae.getSelectedCrumb().getValue()));
         breadCrumbBar.setDividerFactory(GalleryView::bcbDividerFactory);
 
+        dateOverlay.visibleProperty().bind(Bindings.and(gallery.visibleProperty(), Bindings.isNotEmpty(sortedImages)).and(mouseMoved));
+        dateOverlay.getStyleClass().add(Styles.TITLE_1);
+        dateOverlay.setTranslateX(dateOverlay.getTranslateX() + 50);
+        dateOverlay.setTranslateY(dateOverlay.getTranslateY() + 50);
+        dateOverlay.setId("grid-current-date");
+
+
+        gridView.addEventHandler(MouseEvent.MOUSE_MOVED, event -> resetDateAutoHideEffect());
+
         toolBar = createBottomBar();
         gallery.getStyleClass().setAll("gallery-center");
         gallery.setCenter(gridView);
         gallery.setBottom(toolBar);
         carousel.setVisible(false);
-        root.getChildren().addAll(modalPane, gallery, carousel);
+        StackPane.setAlignment(dateOverlay, Pos.TOP_LEFT);
+        root.getChildren().addAll(modalPane, gallery, carousel, dateOverlay);
 
         ofNullable(pref.getUserPreference().getGrid().getCellPerRow()).ifPresent(zoomThumbnails::setValue);
         gridView.cellWidthProperty().bind(Bindings.divide(Bindings.subtract(gallery.widthProperty(), 18), zoomThumbnails.valueProperty()));
         gridView.cellHeightProperty().bind(gridView.cellWidthProperty());
+    }
+
+    private void resetDateAutoHideEffect() {
+        mouseMoved.set(true);
+        timeline.playFromStart();
+    }
+
+    private void gridScrollEvent(MediaFile mediaFile) {
+        if (mediaFile != null) {
+//            log.info("MF: {}", mediaFile);
+            updateDateOverlay(Optional.of(mediaFile));
+        }
     }
 
     private static Node bcbDividerFactory(Breadcrumbs.BreadCrumbItem<Path> item) {
@@ -296,10 +336,22 @@ public class GalleryView implements FxView<StackPane> {
             resetBcbModel(null);
             predicates.clear();
             images.addAll(newValue.medias());
+            updateDateOverlay(sortedImages.stream().findFirst());
         } else {
             breadCrumbBar.setSelectedCrumb(null);
             images.clear();
             predicates.clear();
+            updateDateOverlay(empty());
+        }
+    }
+
+    private void updateDateOverlay(Optional<MediaFile> optMf) {
+        if (optMf.isPresent()) {
+//            log.info("Overlay with: {}", optMf.get().fullPath());
+            resetDateAutoHideEffect();
+            dateOverlay.setValue(Constant.DATE_FORMATTER.format(optMf.get().getOriginalDate()));
+        } else {
+            dateOverlay.setValue("");
         }
     }
 
@@ -346,6 +398,7 @@ public class GalleryView implements FxView<StackPane> {
         if (mf != null) {
             gridView.ensureVisible(mf);
         }
+//        updateDateOverlay(gridView.getFirstVisible().map(Cell::getItem));
     }
 
     private void zoomOnGrid(ZoomEvent event) {
@@ -404,11 +457,15 @@ public class GalleryView implements FxView<StackPane> {
                  event.getNewItems().size(),
                  event.getDeletedItems().size(),
                  event.getModifiedItems());
+        var selected = gridView.getSelectionModel().getSelectedItem();
         images.addAll(event.getNewItems());
         images.removeAll(event.getDeletedItems());
         // TODO: find a smoother way to update.
         images.removeAll(event.getModifiedItems());
         images.addAll(event.getModifiedItems());
+        if (selected != null) {
+            gridView.getSelectionModel().select(selected);
+        }
     }
 
 
@@ -420,12 +477,14 @@ public class GalleryView implements FxView<StackPane> {
 //            gallery.setOpacity(0);
 //             Animations.fadeIn(gallery, Duration.millis(1000)).playFromStart();
         } else {
-            log.debug("MediaCollection subpath selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
+            log.info("MediaCollection subpath selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
             currentCatalog.setValue(persistenceService.getMediaCollection(newValue.mediaCollectionId()));
             resetBcbModel(newValue.subPath());
             final var path = getCurrentCatalog().path().resolve(newValue.subPath());
             predicates.remove(PathPredicate.class);
             predicates.add(new PathPredicate(path));
+            updateDateOverlay(sortedImages.stream().findFirst());
+//            updateDateOverlay();
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);
 //            gridView.getFirstVisible().ifPresent(mediaFileCell -> gridView.getSelectionModel().set(mediaFileCell));
         }
@@ -461,7 +520,7 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     @FxEventListener
-    public void sceanREady(SceneReadyEvent event) {
+    public void sceanReady(SceneReadyEvent event) {
         root.requestFocus();
     }
 

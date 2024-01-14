@@ -57,7 +57,8 @@ public class DoubleClickEventDispatcher implements EventDispatcher {
                 return mouseEvent;
             }
         }
-        return defaultEventDispatcher.dispatchEvent(event, tail);
+        return tail.dispatchEvent(event);
+//        return defaultEventDispatcher.dispatchEvent(event, tail);
     }
 
     /**

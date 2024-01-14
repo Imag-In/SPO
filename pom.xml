@@ -68,6 +68,7 @@
         <virtualizedfx.version>21.3.1</virtualizedfx.version>
         <wellbehavedfx.version>0.3.3</wellbehavedfx.version>
         <gemsfx.version>1.92.0</gemsfx.version>
+        <animated.version>1.3.0</animated.version>
     </properties>
 
     <dependencyManagement>
@@ -97,6 +98,11 @@
             <groupId>com.ashampoo</groupId>
             <artifactId>kim-jvm</artifactId>
             <version>${kim.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>eu.iamgio</groupId>
+            <artifactId>animated</artifactId>
+            <version>${animated.version}</version>
         </dependency>
         <!--        <dependency>-->
         <!--            <groupId>com.dlsc.preferencesfx</groupId>-->

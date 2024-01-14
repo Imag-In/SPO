@@ -13,11 +13,11 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.icroco.picture.ImagInApp;
 import org.icroco.picture.util.ThemeDeserializer;
 import org.icroco.picture.util.ThemeSerializer;
 import org.icroco.picture.views.theme.SamplerTheme;
 import org.icroco.picture.views.theme.ThemeRepository;
+import org.icroco.picture.views.util.Constant;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -29,8 +29,7 @@ public class UserPreferenceService {
 
     private static final Path OLD_FILENAME = Path.of(System.getProperty("imagin.spo.home",
                                                                         STR."\{System.getProperty("user.home")}\{File.separatorChar}.icroco\{File.separatorChar}configuration.yml"));
-    private static final Path FILENAME     = Path.of(System.getProperty("imagin.spo.home",
-                                                                        STR."\{System.getProperty("user.home")}\{File.separatorChar}\{ImagInApp.CONF_HOME}\{File.separatorChar}configuration.yml"));
+    static final Path PREF_FILENAME = Constant.SPO_HOMEDIR.resolve("configuration.yml");
 
     private final ObjectMapper mapper;
     @Getter
@@ -48,20 +47,22 @@ public class UserPreferenceService {
         simpleModule.addDeserializer(SamplerTheme.class, new ThemeDeserializer(themeRepository));
         mapper.registerModule(simpleModule);
         migrateConf();
-        readConf(FILENAME);
+        readConf(PREF_FILENAME);
     }
 
     private void migrateConf() {
         if (Files.exists(OLD_FILENAME)) {
-            if (Files.exists(FILENAME)) {
-                log.warn("Cannot migrate: '{}', bacause '{}' already exist. Delete one or other", OLD_FILENAME, FILENAME);
+            if (Files.exists(PREF_FILENAME)) {
+                log.warn("Cannot migrate: '{}', bacause '{}' already exist. Delete one or other", OLD_FILENAME, PREF_FILENAME);
             } else {
                 try {
-                    Files.createDirectories(FILENAME.getParent());
-                    FileUtils.copyDirectory(OLD_FILENAME.getParent().toFile(), FILENAME.getParent().toFile());
-                    log.info("Configuration and database migrated from: '{}' to: '{}'", OLD_FILENAME.getParent(), FILENAME.getParent());
+                    Files.createDirectories(PREF_FILENAME.getParent());
+                    FileUtils.copyDirectory(OLD_FILENAME.getParent().toFile(), PREF_FILENAME.getParent().toFile());
+                    log.info("Configuration and database migrated from: '{}' to: '{}'",
+                             OLD_FILENAME.getParent(),
+                             PREF_FILENAME.getParent());
                 } catch (IOException e) {
-                    log.error("Cannot move directory: '{}' into: '{}'", OLD_FILENAME, FILENAME, e);
+                    log.error("Cannot move directory: '{}' into: '{}'", OLD_FILENAME, PREF_FILENAME, e);
                 }
 //                FileUtils.deleteQuietly(OLD_FILENAME)
             }
@@ -86,14 +87,14 @@ public class UserPreferenceService {
     @PreDestroy
     @SneakyThrows
     private void saveConfiguration() {
-        Files.createDirectories(FILENAME.getParent());
+        Files.createDirectories(PREF_FILENAME.getParent());
 
-        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(FILENAME.toFile(), false))) {
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(PREF_FILENAME.toFile(), false))) {
             mapper.writerWithDefaultPrettyPrinter().writeValue(out, getUserPreference());
             out.flush();
-            log.info("Configuration saved into: {}", FILENAME);
+            log.info("Configuration saved into: {}", PREF_FILENAME);
         } catch (IOException ex) {
-            log.error("Failed to serialized configuration: {}", FILENAME, ex);
+            log.error("Failed to serialized configuration: {}", PREF_FILENAME, ex);
         }
     }
 }

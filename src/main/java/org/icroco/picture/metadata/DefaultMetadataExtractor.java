@@ -16,9 +16,11 @@ import com.drew.metadata.png.PngDirectory;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.imaging.Imaging;
 import org.icroco.picture.config.ImagInConfiguration;
+import org.icroco.picture.event.NotificationEvent;
 import org.icroco.picture.model.Camera;
 import org.icroco.picture.model.Dimension;
 import org.icroco.picture.model.Keyword;
+import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Collections;
 import org.jooq.lambda.Unchecked;
 import org.slf4j.Logger;
@@ -40,11 +42,12 @@ import static java.util.Optional.ofNullable;
 @RequiredArgsConstructor
 public class DefaultMetadataExtractor implements IMetadataExtractor {
 
-    public static final LocalDateTime EPOCH_0 = LocalDateTime.of(0, 1, 1, 0, 0);
-    private static final Logger            log                 = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
-    private static final Supplier<Integer> DEFAULT_ORIENTATION = () -> 0;
+    public static final  LocalDateTime EPOCH_0 = LocalDateTime.of(0, 1, 1, 0, 0);
+    private static final Logger        log     = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
 
+    private static final Supplier<Integer> DEFAULT_ORIENTATION = () -> 0;
     private final IKeywordManager tagManager;
+    private final TaskService     taskService;
 
 
     @Override
@@ -64,6 +67,11 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                               }));
         } catch (Exception e) {
             log.error("Cannot read metadata for: {}", path, e);
+            taskService.sendEvent(NotificationEvent.builder()
+                                                   .message("Cannot read metadate for file: '%s'".formatted(path.toAbsolutePath()))
+                                                   .type(NotificationEvent.NotificationType.ERROR)
+                                                   .source(this)
+                                                   .build());
         }
 
         return java.util.Collections.emptyMap();
@@ -90,6 +98,11 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                               .toList();
         } catch (Exception e) {
             log.error("Cannot read metadata for: {}", path, e);
+            taskService.sendEvent(NotificationEvent.builder()
+                                                   .message("Cannot read metadate for file: '%s'".formatted(path.toAbsolutePath()))
+                                                   .type(NotificationEvent.NotificationType.ERROR)
+                                                   .source(this)
+                                                   .build());
         }
 
         return java.util.Collections.emptyList();

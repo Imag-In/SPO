@@ -64,9 +64,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -104,7 +102,6 @@ public class DetailsView extends AbstractView<VBox> {
     private final Label                 cameraModel   = createLabel();
     private final Label                 keywords      = createLabel();
     private       TabPane               tabs;
-    DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);
     private final ObjectProperty<Label> selectedTab       = new SimpleObjectProperty<>();
     private       Path                  path              = null;
     private final Button                printImageDetails = new Button(null, FontIcon.of(MaterialDesignC.CONSOLE_LINE));
@@ -400,7 +397,7 @@ public class DetailsView extends AbstractView<VBox> {
 //        log.info("Header: {}", metadataExtractor.header(mediaFile.getFullPath()));
         dbId.setText(Long.toString(mediaFile.getId()));
         name.setText(mediaFile.getFileName());
-        log.info("MIN: {}, current: {}", LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.ofHours(0)), mediaFile.originalDate());
+//        log.info("MIN: {}, current: {}", LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.ofHours(0)), mediaFile.originalDate());
         if (!mediaFile.originalDate().isEqual(LocalDateTime.MIN)) {
 //            creationDate.setText(dateTimeFormatter.format(mediaFile.originalDate()));
 //            originalDate.setValue(mediaFile.originalDate().toLocalDate());

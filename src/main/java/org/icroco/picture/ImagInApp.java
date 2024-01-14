@@ -7,7 +7,6 @@ import javafx.application.Platform;
 import javafx.application.Preloader;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
-import net.codecrete.usb.Usb;
 import net.codecrete.usb.UsbDevice;
 import org.controlsfx.dialog.ExceptionDialog;
 import org.icroco.picture.persistence.MediaFileRepository;
@@ -157,15 +156,15 @@ public class ImagInApp extends Application {
             applicationContext.publishEvent(new StageReadyEvent(primaryStage));
 
 //            Platform.runLater(primaryStage::show);
-            Usb.setOnDeviceConnected((device) -> printDetails(device, "Connected"));
-            Usb.setOnDeviceDisconnected((device) -> printDetails(device, "Disconnected"));
+//            Usb.setOnDeviceConnected((device) -> printDetails(device, "Connected"));
+//            Usb.setOnDeviceDisconnected((device) -> printDetails(device, "Disconnected"));
         } catch (Exception ex) {
             log.error("Unexpected error while starting", ex);
         }
     }
 
     private static void printDetails(UsbDevice device, String event) {
-        log.info("{}: {}", event, device.toString());
+        log.info("USB device, {}: {}", event, device.toString());
     }
 
     @Override

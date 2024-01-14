@@ -5,9 +5,11 @@ import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Metadata;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
+import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Collections;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -15,7 +17,7 @@ import java.nio.file.Paths;
 @Slf4j
 class DefaultMetadataExtractorTest {
 
-    IMetadataExtractor extractor = new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER);
+    IMetadataExtractor extractor = new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER, Mockito.mock(TaskService.class));
 
     @Test
     @Disabled

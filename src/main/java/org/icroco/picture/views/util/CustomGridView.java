@@ -1,6 +1,7 @@
 package org.icroco.picture.views.util;
 
 import impl.org.controlsfx.skin.GridViewSkin;
+import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
@@ -15,6 +16,7 @@ import javafx.scene.control.IndexedCell;
 import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.ScrollEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridView;
@@ -27,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static java.util.Optional.ofNullable;
 
@@ -36,7 +39,7 @@ public class CustomGridView<T> extends GridView<T> {
 //    @Getter
 //    private final GridCellSelectionModel selectionModel;
 
-    public CustomGridView(TaskService taskService, ObservableList<T> items) {
+    public CustomGridView(ObservableList<T> items, Consumer<T> scrollEvenConsummer) {
         super(items);
 //        selectionModel = new GridCellSelectionModel(taskService);
         setCenterShape(true);
@@ -45,6 +48,15 @@ public class CustomGridView<T> extends GridView<T> {
             if (newValue != null && newValue.intValue() >= 0) {
                 updateSelectedRow(newValue.intValue());
             }
+        });
+
+        skinProperty().addListener((_, _, _) -> {
+            Platform.runLater(() -> {
+                getVirtualFlow().addEventHandler(ScrollEvent.SCROLL, _ -> {
+                    // TODO: Add tempo.
+                    getFirstVisible().ifPresent(tCell -> scrollEvenConsummer.accept(tCell.getItem()));
+                });
+            });
         });
     }
 
@@ -262,10 +274,15 @@ public class CustomGridView<T> extends GridView<T> {
     }
 
     public Optional<Cell<T>> getFirstVisible() {
-        VirtualFlow<?> flow = getVirtualFlow();
-        if (flow.getCellCount() > 0) {
-            return ofNullable(flow.getFirstVisibleCell());
-        } else {
+        try {
+            VirtualFlow<? extends IndexedCell<T>> vf = getVirtualFlow();
+            if (vf.getCellCount() > 0) {
+                return vf.getFirstVisibleCell().getChildrenUnmodifiable().stream().map(n -> (Cell<T>) n).findFirst();
+            } else {
+                return Optional.empty();
+            }
+        } catch (Exception e) {
+            log.warn("Cannot get first visible cell", e);
             return Optional.empty();
         }
     }

@@ -82,7 +82,7 @@ public class StageInitializer {
         }
 
         if (env.isDev()) {
-            scene.focusOwnerProperty().addListener((_, _, newValue) -> log.info("Focus onwer: {}", newValue));
+            scene.focusOwnerProperty().addListener((_, _, newValue) -> log.debug("Focus onwer: {}", newValue));
         }
         context.publishEvent(new SceneReadyEvent(scene, primaryStage));
 

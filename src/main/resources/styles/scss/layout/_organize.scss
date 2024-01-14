@@ -80,6 +80,19 @@
   }
 
   .v-gallery {
+
+    #grid-current-date {
+      //-fx-background-color: rgb(252,252,252);
+      //-fx-background-color: rgb(0, 0, 0, 0.2);
+      -fx-background-color: transparent;
+      -fx-opacity: 0.9;
+      -fx-padding: 10, 5, 10, 5;
+      -fx-text-fill: rgba(255, 255, 255, 1);
+      -fx-border-radius: 10 10 10 10;
+      -fx-background-radius: 10 10 10 10;
+      -fx-effect: dropshadow(gaussian, gray, 10, 0.5, 0.0, 0.0)
+    }
+
     .grid-view {
       .grid-cell {
         .ikonli-font-icon {

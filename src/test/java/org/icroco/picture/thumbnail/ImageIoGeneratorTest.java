@@ -7,14 +7,18 @@ import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.TagManagerTest;
 import org.icroco.picture.model.Dimension;
 import org.icroco.picture.model.Thumbnail;
+import org.icroco.picture.views.task.TaskService;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.nio.file.Paths;
 
 @Slf4j
 class ImageIoGeneratorTest {
-    ImgscalrGenerator generator = new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER));
+    ImgscalrGenerator generator = new ImgscalrGenerator(new JdkHashGenerator(),
+                                                        new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
+                                                                                     Mockito.mock(TaskService.class)));
 
     @Test
     void read_thumbnail() throws IOException {

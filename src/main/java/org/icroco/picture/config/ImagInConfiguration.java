@@ -173,8 +173,8 @@ public class ImagInConfiguration {
     }
 
     @Bean
-    public IMetadataExtractor metadataExtractor(IKeywordManager tagManager) {
-        return new DefaultMetadataExtractor(tagManager);
+    public IMetadataExtractor metadataExtractor(IKeywordManager tagManager, TaskService taskService) {
+        return new DefaultMetadataExtractor(tagManager, taskService);
     }
 
     @Bean

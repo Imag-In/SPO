@@ -142,7 +142,7 @@ public class NotificationView {
     /////////////////////////////////////////////
     @FxEventListener
     public void listenEvent(NotificationEvent event) {
-        // TODO: Historize latest alerts int DB.
+        // TODO: Historize latest alerts into DB.
         log.debug("Notification: {}", event);
 
         if (!notificationPane.getChildren().contains(notificationBar)) {

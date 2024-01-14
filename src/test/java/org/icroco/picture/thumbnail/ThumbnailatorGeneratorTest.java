@@ -6,9 +6,11 @@ import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.TagManagerTest;
 import org.icroco.picture.model.Dimension;
 import org.icroco.picture.util.FileUtil;
+import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Constant;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.util.StopWatch;
 
 import java.io.IOException;
@@ -65,7 +67,8 @@ class ThumbnailatorGeneratorTest {
     void generate_thumbnails_imgscalr() throws IOException {
         IThumbnailGenerator
                 generator =
-                new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER));
+                new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
+                                                                                           Mockito.mock(TaskService.class)));
 
         StopWatch watch  = new StopWatch("ImgscalrGenerator generator");
         Path      root   = Paths.get(IMAGE_DIR);
@@ -85,7 +88,8 @@ class ThumbnailatorGeneratorTest {
 
     @Test
     void generate_thumbnails_imgscalr_bytes() throws IOException {
-        var       generator = new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER));
+        var generator = new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
+                                                                                                   Mockito.mock(TaskService.class)));
         Dimension dimension = new Dimension(600, 600);
 
         try {
