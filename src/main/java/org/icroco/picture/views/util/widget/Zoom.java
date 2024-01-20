@@ -4,7 +4,7 @@ import javafx.scene.input.GestureEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.input.ZoomEvent;
 import lombok.Getter;
-import org.icroco.picture.views.util.Constant;
+import org.icroco.picture.util.Constant;
 
 public enum Zoom {
 

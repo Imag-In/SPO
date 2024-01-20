@@ -6,6 +6,7 @@ import org.icroco.picture.config.ImagInConfiguration;
 import org.icroco.picture.event.CollectionEvent;
 import org.icroco.picture.event.FilesChangesDetectedEvent;
 import org.icroco.picture.persistence.CollectionRepository;
+import org.icroco.picture.util.Constant;
 import org.icroco.picture.views.task.TaskService;
 import org.jooq.lambda.Unchecked;
 import org.springframework.beans.factory.annotation.Autowired;

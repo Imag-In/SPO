@@ -4,7 +4,7 @@
   <groupId>org.icroco.imagin</groupId>
   <artifactId>spo</artifactId>
   <version>1.0.21-SNAPSHOT</version>
-  <description>Imag'In | Sinple Photo Organizer</description>
+    <description>Simple tool to import, sort, filter, organize your photos.</description>
 
     <properties>
         <app.name>SimplePhotoOrganizer</app.name>
@@ -38,6 +38,8 @@
         <lombok.version>1.18.30</lombok.version>
         <mainClass>org.icroco.picture.ImagInApp</mainClass>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <spo.vendor>Imge'In</spo.vendor>
+        <spo.appName>Simple Photo Organizer</spo.appName>
         <maven-compiler-plugin.version>0.2.0</maven-compiler-plugin.version>
         <maven-dependency-plugin.version>3.2.0</maven-dependency-plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>

@@ -7,9 +7,7 @@ import atlantafx.base.theme.Styles;
 import com.ashampoo.kim.Kim;
 import jakarta.annotation.PostConstruct;
 import javafx.beans.binding.Bindings;
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
@@ -41,6 +39,7 @@ import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.persistence.ThumbnailRepository;
 import org.icroco.picture.util.Env;
+import org.icroco.picture.util.FileUtil;
 import org.icroco.picture.util.LocalDateStringConverter;
 import org.icroco.picture.views.AbstractView;
 import org.icroco.picture.views.FxEventListener;
@@ -85,30 +84,30 @@ public class DetailsView extends AbstractView<VBox> {
     private final PersistenceService    persistenceService;
     @Qualifier(OrganizeConfiguration.ORGANIZE_EDIT_MODE)
     private final SimpleBooleanProperty editMode;
-    private       MaskerPane<GridPane>  maskerPane    = new MaskerPane<>(true);
-    private final VBox                  root          = new VBox();
-    private final Label                 name          = createLabel();
-    private final Label                 txtDbId       = new Label("Id: ");
-    private final Label                 dbId          = createLabel(0, 100);
-    private final Label                 creationDate  = createLabel();
-    private final Label                 creationTime  = createLabel();
-    private final DatePicker            originalDate  = new DatePicker();
-    private final Label                 gps           = createLabel();
-    private final Label                 size          = createLabel();
-    private final Label                 thumbnailType = createLabel();
-    private final Label                 thumbnailSize = createLabel();
-    private final Label                 orientation   = createLabel();
-    private final Label                 cameraMake    = createLabel();
-    private final Label                 cameraModel   = createLabel();
-    private final Label                 keywords      = createLabel();
+    private       MaskerPane<GridPane> maskerPane          = new MaskerPane<>(true);
+    private final VBox                 root                = new VBox();
+    private final Label                name                = createLabel();
+    private final Label                txtDbId             = new Label("Id: ");
+    private final Label                dbId                = createLabel(0, 100);
+    private final Label                creationDate        = createLabel();
+    private final Label                creationTime        = createLabel();
+    private final DatePicker           originalDate        = new DatePicker();
+    private final Label                gps                 = createLabel();
+    private final Label                size                = createLabel();
+    private final Label                thumbnailType       = createLabel();
+    private final Label                thumbnailSize       = createLabel();
+    private final Label                orientation         = createLabel();
+    private final Label                cameraMake          = createLabel();
+    private final Label                cameraModel         = createLabel();
+    private final Label                keywords            = createLabel();
     private       TabPane               tabs;
-    private final ObjectProperty<Label> selectedTab       = new SimpleObjectProperty<>();
-    private       Path                  path              = null;
-    private final Button                printImageDetails = new Button(null, FontIcon.of(MaterialDesignC.CONSOLE_LINE));
-    private final Button refreshThumbnail = new Button(null, FontIcon.of(MaterialDesignR.RESTART));
-    private final Button                saveThumbnail     = new Button(null, FontIcon.of(MaterialDesignC.CONTENT_SAVE_OUTLINE));
-    private final Button editDate         = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
-    private final Button editTime         = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
+    private       Path                 path                = null;
+    private final Button               printImageDetails   = new Button(null, FontIcon.of(MaterialDesignC.CONSOLE_LINE));
+    private final Button               refreshThumbnail    = new Button(null, FontIcon.of(MaterialDesignR.RESTART));
+    private final Button               saveThumbnail       = new Button(null, FontIcon.of(MaterialDesignC.CONTENT_SAVE_OUTLINE));
+    private final Button               editDate            = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
+    private final Button               editTime            = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
+    private final Button               extractDateFromFile = new Button(null, FontIcon.of(MaterialDesignC.CALENDAR_CHECK_OUTLINE));
 
     private final ChangeListener<LocalDateTime> reloadNeeded = this::reload;
     private       MediaFile                     mediaFile    = null;
@@ -139,14 +138,16 @@ public class DetailsView extends AbstractView<VBox> {
         originalDate.setConverter(new LocalDateStringConverter());
         originalDate.setEditable(false);
 
+        extractDateFromFile.setTooltip(new Tooltip("Extract date/time from filename"));
+
         setBindings();
     }
 
     private void selectTab(Tab newValue) {
         if (newValue.getId().equals(IMAGE_METADATA_DETAILS)) {
             maskerPane.start();
-            var directories = metadataExtractor.getAllByDirectory(path);
-            GridPane gp   = maskerPane.getContent();
+            var      directories = metadataExtractor.getAllByDirectory(path);
+            GridPane gp          = maskerPane.getContent();
             gp.getChildren().clear();
             int rowIdx = 0;
 
@@ -201,6 +202,7 @@ public class DetailsView extends AbstractView<VBox> {
         }
         grid.add(FontIcon.of(FontAwesomeRegular.FILE), 0, rowIdx);
         grid.add(name, 1, rowIdx);
+        grid.add(extractDateFromFile, 2, rowIdx);
         rowIdx += 1;
 
         grid.add(size, 1, rowIdx);
@@ -243,6 +245,8 @@ public class DetailsView extends AbstractView<VBox> {
         rowIdx += 1;
         grid.add(FontIcon.of(MaterialDesignI.IMAGE_SIZE_SELECT_LARGE), 0, rowIdx);
         grid.add(thumbnailType, 1, rowIdx);
+
+        FxUtil.styleCircleButton(extractDateFromFile);
         FxUtil.styleCircleButton(refreshThumbnail);
         FxUtil.styleCircleButton(printImageDetails);
         FxUtil.styleCircleButton(saveThumbnail);
@@ -266,14 +270,35 @@ public class DetailsView extends AbstractView<VBox> {
     }
 
     void setBindings() {
-        editDate.disableProperty().bind(Bindings.not(editMode));
-//        editTime.disableProperty().bind(Bindings.not(editMode));
+        var notEditing = Bindings.not(editMode);
+
+        extractDateFromFile.setDisable(true);
+        extractDateFromFile.disableProperty().bind(notEditing);
+        extractDateFromFile.setOnAction(_ -> dateExtractedAction());
+
+        editDate.disableProperty().bind(notEditing);
+        editDate.setOnAction(_ -> dateEditedAction());
+
+//        editTime.disableProperty().bind(notEditing);
         editTime.setDisable(true);
         editTime.setTooltip(new Tooltip("Not Yet Implemented")); // TODO:
 
-        editDate.setOnAction(_ -> {
-            var calendar = new Calendar();
-            calendar.setValue(mediaFile == null ? LocalDate.now() : mediaFile.getOriginalDate().toLocalDate());
+
+    }
+
+    private void dateExtractedAction() {
+        FileUtil.extractDateTime(mediaFile.getFullPath())
+                .ifPresent(dt -> {
+                    var pop = new Popover(new Label(dt.toString()));
+                    pop.setAnimated(true);
+                    pop.setArrowLocation(Popover.ArrowLocation.TOP_RIGHT);
+                    pop.show(extractDateFromFile);
+                });
+    }
+
+    private void dateEditedAction() {
+        var calendar = new Calendar();
+        calendar.setValue(mediaFile == null ? LocalDate.now() : mediaFile.getOriginalDate().toLocalDate());
 //            var calendar = new CalendarView();
 //            calendar.setShowTodayButton(true);
 //            calendar.setMonthSelectionViewEnabled(true);
@@ -282,26 +307,22 @@ public class DetailsView extends AbstractView<VBox> {
 //            calendar.setShowYearDropdown(true);
 //            calendar.setShowToday(true);
 //            calendar.getSelectionModel().setSelectedDate(mediaFile == null ? LocalDate.now() : mediaFile.getOriginalDate().toLocalDate());
-            var pop = new Popover(calendar);
-            pop.setAnimated(true);
-            pop.setArrowLocation(Popover.ArrowLocation.TOP_RIGHT);
+        var pop = new Popover(calendar);
+        pop.setAnimated(true);
+        pop.setArrowLocation(Popover.ArrowLocation.TOP_RIGHT);
 
-            calendar.setOnMouseClicked(_ -> {
-                log.info("new Date: {}", calendar.getValue());
-                pop.hide();
-                if (mediaFile != null) {
-                    LocalDateTime newDateTime = LocalDateTime.of(calendar.getValue(), mediaFile.getOriginalDate().toLocalTime());
-                    mediaFile.setOriginalDate(newDateTime);
-                    metadataWriter.setOrignialDate(mediaFile.getFullPath(), newDateTime);
+        calendar.setOnMouseClicked(_ -> {
+            log.info("new Date: {}", calendar.getValue());
+            pop.hide();
+            if (mediaFile != null) {
+                LocalDateTime newDateTime = LocalDateTime.of(calendar.getValue(), mediaFile.getOriginalDate().toLocalTime());
+                mediaFile.setOriginalDate(newDateTime);
+                metadataWriter.setOrignialDate(mediaFile.getFullPath(), newDateTime);
 //                    persistenceService.saveMediaFiles(List.of(mediaFile));
-                    // TODO: Sync image on disk.
-                }
-            });
-            pop.show(editDate);
+                // TODO: Sync image on disk.
+            }
         });
-//        editTime.setOnMouseClicked(_ -> {
-//                                       Hou
-//                                   });
+        pop.show(editDate);
     }
 
     @FxEventListener

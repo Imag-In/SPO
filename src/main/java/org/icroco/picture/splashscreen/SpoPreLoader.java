@@ -96,12 +96,13 @@ public class SpoPreLoader extends Preloader {
     public void handleStateChangeNotification(StateChangeNotification scn) {
         log.debug("type: {}", scn.getType());
         if (scn.getType() == StateChangeNotification.Type.BEFORE_START) {
-            var fadeOut = Animations.fadeOut(root, Duration.millis(1000));
-            fadeOut.setOnFinished(_ -> {
-                stage.hide();
-                stage.close();
-            });
-            fadeOut.playFromStart();
+//            var fadeOut = Animations.fadeOut(root, Duration.millis(1000));
+//            fadeOut.setOnFinished(_ -> {
+//                stage.hide();
+//                stage.close();
+//            });
+//            fadeOut.playFromStart();
+            stage.close();
         }
     }
 

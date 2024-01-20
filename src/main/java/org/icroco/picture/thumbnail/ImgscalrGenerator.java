@@ -10,7 +10,7 @@ import org.icroco.picture.model.Dimension;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.EThumbnailType;
 import org.icroco.picture.model.Thumbnail;
-import org.icroco.picture.views.util.Constant;
+import org.icroco.picture.util.Constant;
 import org.icroco.picture.views.util.ImageUtils;
 import org.jooq.lambda.Unchecked;
 

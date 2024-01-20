@@ -8,7 +8,7 @@ import org.icroco.picture.views.util.FxView;
 public abstract class AbstractView<T extends Node> implements FxView<T> {
 
     protected static Label createLabel() {
-        return createLabel(150, 200);
+        return createLabel(150, Integer.MAX_VALUE);
     }
 
     protected static Label createLabel(String text, int minWidth, int prefWidth) {

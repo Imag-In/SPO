@@ -13,11 +13,11 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.icroco.picture.util.Constant;
 import org.icroco.picture.util.ThemeDeserializer;
 import org.icroco.picture.util.ThemeSerializer;
 import org.icroco.picture.views.theme.SamplerTheme;
 import org.icroco.picture.views.theme.ThemeRepository;
-import org.icroco.picture.views.util.Constant;
 
 import java.io.*;
 import java.nio.file.Files;
