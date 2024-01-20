@@ -84,8 +84,10 @@ for %%s in ("msi" "exe") do call "%JAVA_HOME%\bin\jpackage" ^
   --java-options -XX:+UseZGC ^
   --java-options -Xms2g ^
   --java-options '--enable-preview' ^
+  --java-options -Xverify:none ^
   --java-options -D"spring.profiles.active=default" ^
   --java-options -D"spring.config.location=classpath:/application.yml" ^
+  --java-options "-Dspring.jmx.enabled=false" ^
   --runtime-image build\java-runtime ^
   --icon src\distrib\win\spo.ico ^
   --win-shortcut ^

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 APP_VERSION="${SPO_VERSION}"
 #APP_NAME=${SPO_ARTIFACT_ID}
 
@@ -52,7 +51,7 @@ echo "detected modules: ${detected_modules}"
 # This can be reduced to the actually needed locales via a jlink paramter,
 # e.g., --include-locales=en,de.
 
-manual_modules=jdk.crypto.ec,jdk.localedata
+manual_modules=jdk.crypto.ec,jdk.localedata,java.naming,java.management
 echo "manual modules: ${manual_modules}"
 
 # ------ RUNTIME IMAGE --------------------------------------------------------
@@ -71,6 +70,21 @@ echo "creating java runtime image"
   --include-locales=en,fr \
   --output ${BUILD_DIR}/java-runtime
 
+# ------ Portable app -------------
+echo "creating portable version"
+mkdir -p ${BUILD_DIR}/spo
+cp src/distrib/linux/spo.sh ${BUILD_DIR}/spo
+cp target/spo-full.jar ${BUILD_DIR}/spo
+cp -rf ${BUILD_DIR}/java-runtime ${BUILD_DIR}/spo/
+chmod a+x ${BUILD_DIR}/spo/spo.sh
+
+cd build
+
+tar czf "${SPO_ARTIFACT_ID}-linux-portable.tar.gz" spo
+mv "${SPO_ARTIFACT_ID}-linux-portable.tar.gz" "${SPO_ARTIFACT_ID}_${APP_VERSION}-linux-portable.tar.gz"
+sha256sum "${SPO_ARTIFACT_ID}_${APP_VERSION}-linux-portable.tar.gz" > "${SPO_ARTIFACT_ID}_${APP_VERSION}-linux-portable.tar.gz.sha256"
+cd ..
+
 # ------ PACKAGING ------------------------------------------------------------
 # A loop iterates over the various packaging types supported by jpackage. In
 # the end we will find all packages inside the ${BUILD_DIR}/installer directory.
@@ -88,10 +102,11 @@ do
   --main-jar "${MAIN_JAR}" \
   --java-options -XX:+UseZGC \
   --java-options -Xms2g \
+  --java-options -Xverify:none \
   --java-options '--enable-preview' \
   --java-options '-Djdk.gtk.verbose=true' \
   --java-options '-Djdk.gtk.version=3' \
-  --java-options -Xverify:none \
+  --java-options "-Dspring.jmx.enabled=false" \
   --java-options -Dspring.profiles.active=default \
   --java-options -Dspring.config.location=classpath:/application.yml \
   --runtime-image ${BUILD_DIR}/java-runtime \
@@ -124,3 +139,5 @@ else
     mv "${BUILD_DIR}/installer/${APP_NAME}-${APP_VERSION}-1.x86_64.rpm" "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm"
     sha256sum "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm" > "${BUILD_DIR}/installer/${SPO_ARTIFACT_ID}-${APP_VERSION}-1.x86_64.rpm.sha256"
 fi
+
+

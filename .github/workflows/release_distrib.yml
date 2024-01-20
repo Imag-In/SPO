@@ -42,25 +42,11 @@ jobs:
       - name: Build jar
         run: ./mvnw -V -B -fae clean verify -f pom.xml
 
-      - name: Get version
-        id: get-version
+      - name: Generte build env
+        id: gen-build-env
         run: |
           mkdir -p target
-          SPO_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
-          SPO_FINAL_NAME=$(./mvnw help:evaluate -Dexpression=project.build.finalName -q -DforceStdout)
-          SPO_DESC=$(./mvnw help:evaluate -Dexpression=project.description -q -DforceStdout)
-          SPO_ARTIFACT_ID=$(./mvnw help:evaluate -Dexpression=project.artifactId -q -DforceStdout)
-          SPO_GROUP_ID=$(./mvnw help:evaluate -Dexpression=project.groupId -q -DforceStdout)
-          echo "SPO_VERSION=${SPO_VERSION}" >> $GITHUB_OUTPUT
-          echo "JAVA_VERSION=21" > target/build.env
-          echo "MAIN_JAR=${SPO_FINAL_NAME}.jar" >> target/build.env
-          echo "SPO_ARTIFACT_ID=${SPO_ARTIFACT_ID}" >> target/build.env
-          echo "SPO_GROUP_ID=${SPO_GROUP_ID}" >> target/build.env
-          echo "SPO_VERSION=${SPO_VERSION}" >> target/build.env
-          echo "APP_NAME=Simple Photo Organizer" >> target/build.env
-          echo "APP_MAIN_CLASS=org.icroco.picture.ImagInApp" >> target/build.env
-          echo "APP_DESC=${SPO_DESC}" >> target/build.env
-          echo "APP_VENDOR=Imge'In" >> target/build.env
+          ./src/distrib/linux/generate-app-info.sh
 
       - name: Shared jar files
         uses: actions/upload-artifact@v3
@@ -129,7 +115,14 @@ jobs:
           ./src/distrib/mac/build_app_macos.sh
           ls -la build/installer
 
-      - name: Publish release
+      - name: Publish portable linux release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "build/*.tar.gz,build/*.sha256"
+          allowUpdates: "true"
+          tag: v${{ env.SPO_VERSION }}
+
+      - name: Publish linux release
         uses: ncipollo/release-action@v1
         with:
           artifacts: "build/installer/*.dmg,build/installer/*.pkg,build/installer/*.sha256"

@@ -107,10 +107,11 @@ do
   --main-jar "${MAIN_JAR}" \
   --java-options -XX:+UseZGC \
   --java-options -Xms2g \
-  --java-options '--enable-preview' \
   --java-options -Xverify:none \
-  --java-options -Dspring.profiles.active=default \
-  --java-options -Dspring.config.location=classpath:/application.yml \
+  --java-options '--enable-preview' \
+  --java-options "-Dspring.profiles.active=default" \
+  --java-options "-Dspring.config.location=classpath:/application.yml" \
+  --java-options "-Dspring.jmx.enabled=false" \
   --runtime-image build/java-runtime \
   --icon src/distrib/mac/spo.icns \
   --app-version "${APP_VERSION}" \
