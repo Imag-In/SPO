@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.icroco.imagin</groupId>
   <artifactId>spo</artifactId>
-  <version>1.0.23-SNAPSHOT</version>
+  <version>1.0.24-SNAPSHOT</version>
   <description>Simple tool to import, sort, filter, organize your photos.</description>
 
   <properties>
