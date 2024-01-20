@@ -74,7 +74,7 @@ echo "creating java runtime image"
 echo "creating portable version"
 mkdir -p ${BUILD_DIR}/spo
 cp src/distrib/linux/spo.sh ${BUILD_DIR}/spo
-cp target/spo-full.jar ${BUILD_DIR}/spo
+cp spo-full.jar ${BUILD_DIR}/spo/spo-full.jar
 cp -rf ${BUILD_DIR}/java-runtime ${BUILD_DIR}/spo/
 chmod a+x ${BUILD_DIR}/spo/spo.sh
 

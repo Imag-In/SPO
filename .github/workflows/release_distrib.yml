@@ -83,7 +83,7 @@ jobs:
           add: 'pom.xml'
   #          tag: "v${{ steps.get-version.outputs.SPO_VERSION }} --force"
 
-  build-osx-intel:
+  build-macos-intel:
     runs-on: macos-latest
     permissions:
       contents: write
@@ -97,6 +97,52 @@ jobs:
           java-version: '21'
           java-package: 'jdk+fx'
           architecture: 'x64' # defaults to 'x64'
+
+      - name: Download jar files
+        uses: actions/download-artifact@v3
+        with:
+          name: release-jar
+
+      - uses: cardinalby/export-env-action@v2
+        with:
+          envFile: 'build.env'
+
+      - name: Extract dependencies
+        run: java -Djarmode=layertools -jar spo-full.jar extract
+
+      - name: Create Distribution
+        run: |
+          ./src/distrib/mac/build_app_macos.sh
+          ls -la build/installer
+
+      - name: Publish portable linux release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "build/*.tar.gz,build/*.sha256"
+          allowUpdates: "true"
+          tag: v${{ env.SPO_VERSION }}
+
+      - name: Publish linux release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "build/installer/*.dmg,build/installer/*.pkg,build/installer/*.sha256"
+          allowUpdates: "true"
+          tag: v${{ env.SPO_VERSION }}
+
+  build-macos-arm:
+    runs-on: macos-13-xlarge
+    permissions:
+      contents: write
+    needs: build-jar
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu' # See 'Supported distributions' for available options
+          java-version: '21'
+          java-package: 'jdk+fx'
+          architecture: 'aarch64' # defaults to 'x64'
 
       - name: Download jar files
         uses: actions/download-artifact@v3
