@@ -36,6 +36,13 @@ jobs:
           restore-keys: |
             spo-maven
 
+      - name: Update CHANGELOG
+        id: changelog
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ github.token }}
+          tag: ${{ github.ref_name }}
+
       - name: Maven bump version
         run: ./mvnw -B build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}'
 
@@ -65,7 +72,10 @@ jobs:
         with:
           artifacts: "target/spo-full.jar"
           allowUpdates: "true"
+          draft: false
+          makeLatest: true
           tag: "v${{ steps.get-version.outputs.SPO_VERSION }}"
+          body: ${{ steps.changelog.outputs.changes }}
 
       - name: Maven next version
         id: next-version
@@ -80,7 +90,7 @@ jobs:
           author_name: Christophe
           author_email: ouaibsky@gmail.com
           message: "Next Version ${{ steps.next-version.outputs.SPO_NEXT_VERSION }} [skip ci]"
-          add: 'pom.xml'
+          add: '[ "pom.xml", "CHANGELOG.md" ]'
   #          tag: "v${{ steps.get-version.outputs.SPO_VERSION }} --force"
 
   build-macos-intel:
