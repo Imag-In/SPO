@@ -7,6 +7,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -55,6 +56,10 @@ import java.util.Objects;
 @Component
 @RequiredArgsConstructor
 public class CollectionView implements FxView<VBox> {
+    private final static Comparator<TreeItem<CollectionNode>> TREE_ITEM_COMPARATOR =
+            Comparator.comparing(ti -> ti.getValue().path().getFileName().toString(),
+                                 String.CASE_INSENSITIVE_ORDER);
+
     private final TaskService           taskService;
     private final PersistenceService    persistenceService;
     private final UserPreferenceService pref;
@@ -65,19 +70,17 @@ public class CollectionView implements FxView<VBox> {
     private final Button                   addCollection    = new Button();
     private final HBox                     collectionHeader = new HBox();
     @Getter
-    private final CollectionTreeItem
-            rootTreeItem =
-            new CollectionTreeItem(new CollectionNode(Path.of("Files"), -1, false, false));
+    private final CollectionTreeItem rootTreeItem = new CollectionTreeItem(new CollectionNode(Path.of("Files"),
+                                                                                              -1,
+                                                                                              false,
+                                                                                              false));
     private final TreeView<CollectionNode> treeView         = new TreeView<>(rootTreeItem);
 
     @Getter
-    private final SimpleObjectProperty<PathSelection> pathSelectionProperty = new SimpleObjectProperty<>();
-    private final BooleanProperty                     disablePathActions    = new SimpleBooleanProperty(false);
-    private final SimpleLongProperty                  catalogSizeProp       = new SimpleLongProperty(0);
-
-    private final static Comparator<TreeItem<CollectionNode>> TREE_ITEM_COMPARATOR =
-            Comparator.comparing(ti -> ti.getValue().path().getFileName().toString(),
-                                 String.CASE_INSENSITIVE_ORDER);
+    private final SimpleObjectProperty<PathSelection>              pathSelectionProperty = new SimpleObjectProperty<>();
+    private final BooleanProperty                                  disablePathActions    = new SimpleBooleanProperty(false);
+    private final SimpleLongProperty                               catalogSizeProp       = new SimpleLongProperty(0);
+    private final ChangeListener<? super TreeItem<CollectionNode>> treeSelectionListener = this::treeItemSelectionChanged;
 
     @PostConstruct
     protected void initializedOnce() {
@@ -89,7 +92,7 @@ public class CollectionView implements FxView<VBox> {
         treeView.setMinHeight(250);
         treeView.setShowRoot(false);
         treeView.setEditable(false);
-        treeView.getSelectionModel().selectedItemProperty().addListener(this::treeItemSelectionChanged);
+        treeView.getSelectionModel().selectedItemProperty().addListener(treeSelectionListener);
         treeView.setCellFactory(param -> {
             var cell = new CollectionTreeCell(taskService);
             cell.getRoot().addEventHandler(MouseEvent.ANY, event -> {
@@ -429,5 +432,28 @@ public class CollectionView implements FxView<VBox> {
                 treeItem.setValue(treeItem.getValue().withPathExist(status));
             }
         });
+    }
+
+    @FxEventListener
+    public void updatePhotoSelected(PhotoSelectedEvent event) {
+        var mediaFile = event.getMf();
+        if (mediaFile == null) {
+            return;
+        }
+
+        var parent = mediaFile.getFullPath().getParent();
+        Nodes.searchTreeItemByPredicate(rootTreeItem, collectionNode -> collectionNode.path().equals(parent))
+             .ifPresent(ti -> {
+                 treeView.getSelectionModel().selectedItemProperty().removeListener(treeSelectionListener);
+                 treeView.getSelectionModel().select(ti);
+                 treeView.getSelectionModel().selectedItemProperty().addListener(treeSelectionListener);
+                 rootTreeItem.getChildren()
+                             .forEach(tiFirstLevel -> {
+                                          if (!ti.getValue().path().startsWith(tiFirstLevel.getValue().path())) {
+                                              tiFirstLevel.setExpanded(false);
+                                          }
+                                      }
+                             );
+             });
     }
 }
