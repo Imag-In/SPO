@@ -40,6 +40,7 @@ public class RepairModel {
             if (idx == -1) {
                 group = tool.getGroup();
                 root.getChildren().add(group);
+                group.setExpanded(true);
             } else {
                 group = root.getChildren().get(idx);
             }

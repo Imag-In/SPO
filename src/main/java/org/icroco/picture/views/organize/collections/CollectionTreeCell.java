@@ -100,6 +100,8 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
             titleLabel.setGraphic(null);
             linkOff.visibleProperty().unbind();
             linkOff.managedProperty().unbind();
+            linkOff.setVisible(false);
+            linkOff.setManaged(false);
         } else {
             setGraphic(root);
 
@@ -110,6 +112,8 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
                 mediaCollectionId = -1;
                 linkOff.visibleProperty().unbind();
                 linkOff.managedProperty().unbind();
+                linkOff.setVisible(false);
+                linkOff.setManaged(false);
             } else {
                 // TODO: Better manage resources (menu and linkOf, create on the fly
                 flatMenuBtn.setManaged(true);
@@ -119,8 +123,9 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
                 titleLabel.setTooltip(value);
 
                 linkOff.setTooltip(new Tooltip(STR."Path: '\{getItem().path()}' does not exist, or is not mounted!"));
-                linkOff.visibleProperty().bind(Bindings.not(item.rootCollection().connectedProperty()));
-                linkOff.managedProperty().bind(Bindings.not(item.rootCollection().connectedProperty()));
+                var notConnected = Bindings.not(item.rootConnectedProperty());
+                linkOff.visibleProperty().bind(notConnected);
+                linkOff.managedProperty().bind(notConnected);
             }
         }
     }
