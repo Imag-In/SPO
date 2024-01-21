@@ -173,9 +173,8 @@ public class GalleryView implements FxView<StackPane> {
         breadCrumbBar.setDividerFactory(GalleryView::bcbDividerFactory);
 
         dateOverlay.visibleProperty().bind(Bindings.and(gallery.visibleProperty(), Bindings.isNotEmpty(sortedImages)).and(mouseMoved));
-        dateOverlay.getStyleClass().add(Styles.TITLE_1);
-        dateOverlay.setTranslateX(dateOverlay.getTranslateX() + 50);
-        dateOverlay.setTranslateY(dateOverlay.getTranslateY() + 50);
+        dateOverlay.setTranslateX(dateOverlay.getTranslateX() + 20);
+        dateOverlay.setTranslateY(dateOverlay.getTranslateY() + 20);
         dateOverlay.setId("grid-current-date");
 
 
