@@ -51,8 +51,8 @@ import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.*;
 import org.icroco.picture.views.util.widget.Zoom;
 import org.icroco.picture.views.util.widget.ZoomDragPane;
+import org.kordamp.ikonli.carbonicons.CarbonIcons;
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.kordamp.ikonli.javafx.StackedFontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
 import org.kordamp.ikonli.material2.Material2OutlinedAL;
 import org.kordamp.ikonli.material2.Material2OutlinedMZ;
@@ -103,11 +103,13 @@ public class GalleryView implements FxView<StackPane> {
 
     private       EGalleryClickState dblCickState     = EGalleryClickState.GALLERY;
     private       HBox               toolBar;
-    private final FontIcon           thumbsUpDownIcon = new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
+    //    private final FontIcon           thumbsUpDownIcon = new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
+    private final FontIcon  editOn    = new FontIcon(CarbonIcons.EDIT);
+    private final FontIcon  editOff   = new FontIcon(CarbonIcons.EDIT_OFF);
     private final FontIcon           blockIcon        = new FontIcon(Material2OutlinedAL.BLOCK);
-    private final StackedFontIcon    keepOrThrowIcon  = new StackedFontIcon();
-    private final Label              keepOrThrowLabel = new Label();
-    private final ModalPane          modalPane        = new ModalPane();
+    //    private final StackedFontIcon keepOrThrowIcon = new StackedFontIcon();
+    private final Label     editCell  = new Label();
+    private final ModalPane modalPane = new ModalPane();
 
 
     //    private final Label dateOverlay = new Label("Display Date");
@@ -148,8 +150,8 @@ public class GalleryView implements FxView<StackPane> {
 //        ofNullable(pref.getUserPreference().getGrid().getGridZoomFactor()).ifPresent(this::applyGridCellWidthFactor);
         gridView.setHorizontalCellSpacing(0D);
         gridView.setVerticalCellSpacing(0D);
-        keepOrThrowLabel.setOpacity(0.4);
-        editMode.bind(Bindings.greaterThan(keepOrThrowLabel.opacityProperty(), 0.4));
+//        editCell.setOpacity(0.4);
+        editMode.bind(Bindings.equal(editCell.graphicProperty(), editOn));
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader,
                                                              taskService,
                                                              expandCell,
@@ -249,18 +251,19 @@ public class GalleryView implements FxView<StackPane> {
 
 //        expand.setPrefHeight(10D);
 
-        thumbsUpDownIcon.getStyleClass().add("inner-icon");
+        editOn.getStyleClass().add("inner-icon");
+        editOff.getStyleClass().add("inner-icon");
         blockIcon.getStyleClass().add("outer-icon");
-        keepOrThrowIcon.getChildren().addAll(thumbsUpDownIcon, blockIcon);
+//        keepOrThrowIcon.getChildren().addAll(editOff, blockIcon);
 //        new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
 //        icon.setIconSize(32);
 //        icon.setId("fitGridCell");
-        keepOrThrowLabel.setGraphic(thumbsUpDownIcon);
-        keepOrThrowLabel.setOnMouseClicked(this::keepOrThrowClick);
-        keepOrThrowLabel.setCursor(Cursor.HAND);
+        editCell.setGraphic(editOff);
+        editCell.setOnMouseClicked(this::editClick);
+        editCell.setCursor(Cursor.HAND);
 //        keepOrThrowLabel.setDisable(true);
-        keepOrThrowLabel.setOpacity(.4);
-        keepOrThrowLabel.setTooltip(new Tooltip("Press 'e' to enter into edit mode (metadata)"));
+//        editCell.setOpacity(.4);
+        editCell.setTooltip(new Tooltip("Press 'e' to enter into edit mode (metadata)"));
 //        zoomThumbnails.getStyleClass().add(Styles.SMALL);
         zoomThumbnails.setSkin(new ProgressSliderSkin(zoomThumbnails));
         ofNullable(pref.getUserPreference().getGrid().getCellPerRow()).ifPresent(zoomThumbnails::setValue);
@@ -295,7 +298,7 @@ public class GalleryView implements FxView<StackPane> {
         filteredImages.setPredicate(predicates);
 
         bar.getChildren().addAll(expand,
-                                 keepOrThrowLabel,
+                                 editCell,
                                  zoomThumbnails,
                                  breadCrumbBar,
                                  new Spacer(),
@@ -598,11 +601,17 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     public void editPressed(KeyEvent keyEvent) {
-        if (keepOrThrowLabel.getOpacity() == 0.4) {
-            keepOrThrowLabel.setOpacity(1);
+        log.info("Edit, current: {}", editCell.getGraphic());
+        if (editCell.getGraphic() == editOff) {
+            editCell.setGraphic(editOn);
         } else {
-            keepOrThrowLabel.setOpacity(0.4);
+            editCell.setGraphic(editOff);
         }
+//        if (editCell.getOpacity() == 0.4) {
+//            editCell.setOpacity(1);
+//        } else {
+//            editCell.setOpacity(0.4);
+//        }
 //        keepOrThrowLabel.setDisable(!keepOrThrowLabel.isDisable());
     }
 
@@ -630,7 +639,7 @@ public class GalleryView implements FxView<StackPane> {
         }
     }
 
-    public void keepOrThrowClick(MouseEvent mouseEvent) {
+    public void editClick(MouseEvent mouseEvent) {
         editPressed(null);
     }
 
