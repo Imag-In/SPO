@@ -1,6 +1,7 @@
 package org.icroco.picture.views.util.widget;
 
 import javafx.css.Styleable;
+import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import lombok.experimental.UtilityClass;
@@ -9,6 +10,7 @@ import lombok.experimental.UtilityClass;
 public class FxUtil {
     public static Button styleCircleButton(Button button) {
         button.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        button.setCursor(Cursor.HAND);
 
         return styleCircleFlat(button);
     }
