@@ -61,6 +61,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -101,15 +102,13 @@ public class GalleryView implements FxView<StackPane> {
     private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
     private final SimpleBooleanProperty                 mouseMoved     = new SimpleBooleanProperty(true);
 
-    private       EGalleryClickState dblCickState     = EGalleryClickState.GALLERY;
+    private       EGalleryClickState dblCickState = EGalleryClickState.GALLERY;
     private       HBox               toolBar;
-    //    private final FontIcon           thumbsUpDownIcon = new FontIcon(Material2OutlinedMZ.THUMBS_UP_DOWN);
-    private final FontIcon  editOn    = new FontIcon(CarbonIcons.EDIT);
-    private final FontIcon  editOff   = new FontIcon(CarbonIcons.EDIT_OFF);
-    private final FontIcon           blockIcon        = new FontIcon(Material2OutlinedAL.BLOCK);
-    //    private final StackedFontIcon keepOrThrowIcon = new StackedFontIcon();
-    private final Label     editCell  = new Label();
-    private final ModalPane modalPane = new ModalPane();
+    private final FontIcon           editOn       = new FontIcon(CarbonIcons.EDIT);
+    private final FontIcon           editOff      = new FontIcon(CarbonIcons.EDIT_OFF);
+    private final FontIcon           blockIcon    = new FontIcon(Material2OutlinedAL.BLOCK);
+    private final Label              editCell     = new Label();
+    private final ModalPane          modalPane    = new ModalPane();
 
 
     //    private final Label dateOverlay = new Label("Display Date");
@@ -155,6 +154,7 @@ public class GalleryView implements FxView<StackPane> {
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader,
                                                              taskService,
                                                              expandCell,
+                                                             currentCatalog,
                                                              this::cellDoubleClick,
                                                              editMode));
         gridView.setOnZoom(this::zoomOnGrid);
@@ -368,6 +368,15 @@ public class GalleryView implements FxView<StackPane> {
 
     private void displayNext(MediaFile mf) {
         EGalleryClickState prev = dblCickState;
+        if (!Files.exists(mf.fullPath())) {
+            taskService.sendEvent(NotificationEvent.builder()
+                                                   .type(NotificationEvent.NotificationType.ERROR)
+                                                   .message("File path not found (or not mounted): '%s'".formatted(mf.getFullPath()))
+                                                   .source(this)
+                                                   .build());
+            return;
+        }
+
         dblCickState = dblCickState.next();
         log.atDebug()
            .log(() -> "Next click: %s, file: %s".formatted(dblCickState, ofNullable(mf).map(MediaFile::getFullPath).orElse(null)));
@@ -607,12 +616,6 @@ public class GalleryView implements FxView<StackPane> {
         } else {
             editCell.setGraphic(editOff);
         }
-//        if (editCell.getOpacity() == 0.4) {
-//            editCell.setOpacity(1);
-//        } else {
-//            editCell.setOpacity(0.4);
-//        }
-//        keepOrThrowLabel.setDisable(!keepOrThrowLabel.isDisable());
     }
 
     public void keepPressed(KeyEvent keyEvent) {

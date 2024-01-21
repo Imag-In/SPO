@@ -71,9 +71,7 @@ public class CollectionView implements FxView<VBox> {
     private final HBox                     collectionHeader = new HBox();
     @Getter
     private final CollectionTreeItem rootTreeItem = new CollectionTreeItem(new CollectionNode(Path.of("Files"),
-                                                                                              -1,
-                                                                                              false,
-                                                                                              false));
+                                                                                              -1));
     private final TreeView<CollectionNode> treeView         = new TreeView<>(rootTreeItem);
 
     @Getter
@@ -88,7 +86,7 @@ public class CollectionView implements FxView<VBox> {
         root.getStyleClass().add(ViewConfiguration.V_MEDIA_COLLECTION);
         root.getStyleClass().add("header");
         rootTreeItem.setExpanded(true);
-        rootTreeItem.setValue(new CollectionNode(Path.of("/"), -1, false, false));
+        rootTreeItem.setValue(new CollectionNode(Path.of("/"), -1));
         treeView.setMinHeight(250);
         treeView.setShowRoot(false);
         treeView.setEditable(false);
@@ -164,7 +162,7 @@ public class CollectionView implements FxView<VBox> {
     }
 
     private Pair<MediaCollection, TreeItem<CollectionNode>> createTreeView(final MediaCollection mediaCollection) {
-        var pathTreeItem = new TreeItem<>(new CollectionNode(mediaCollection.path(), mediaCollection.id(), true, true));
+        var pathTreeItem = new TreeItem<>(new CollectionNode(mediaCollection.path(), mediaCollection.id(), mediaCollection));
         log.info("Add collection: '{}', into tree view.", mediaCollection.path());
         rootTreeItem.getChildren().add(pathTreeItem);
         rootTreeItem.getChildren().sort(TREE_ITEM_COMPARATOR);
@@ -423,14 +421,12 @@ public class CollectionView implements FxView<VBox> {
 
     @FxEventListener
     public void updateCollectionStatus(CollectionsStatusEvent event) {
-        var statuses = event.getStatuses();
+        var statusesByColId = event.getStatuses();
         rootTreeItem.getChildren().forEach(treeItem -> {
-            var status = statuses.getOrDefault(treeItem.getValue().id(), false);
+            var status = statusesByColId.getOrDefault(treeItem.getValue().id(), true);
             log.debug("Collection ID: {} ({}), Status: {}", treeItem.getValue().id(), treeItem.getValue().path(), status);
 
-            if (status != treeItem.getValue().pathExist()) {
-                treeItem.setValue(treeItem.getValue().withPathExist(status));
-            }
+            treeItem.getValue().rootCollection().setConnected(status);
         });
     }
 

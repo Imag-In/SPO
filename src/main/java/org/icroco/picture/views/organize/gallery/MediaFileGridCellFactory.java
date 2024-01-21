@@ -1,6 +1,7 @@
 package org.icroco.picture.views.organize.gallery;
 
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.geometry.Pos;
 import javafx.scene.control.Cell;
 import javafx.scene.control.IndexedCell;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridCell;
 import org.controlsfx.control.GridView;
+import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.CustomGridView;
@@ -25,12 +27,21 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
     private final MediaLoader                               mediaLoader;
     private final TaskService                               taskService;
     private final BooleanProperty                           isExpandCell;
+    private final ReadOnlyObjectProperty<MediaCollection> currentMediaCollection;
     private final BiConsumer<MouseEvent, MediaFileGridCell> callBack;
-    private final BooleanProperty isEditable;
+    private final BooleanProperty                         isEditable;
 
     @Override
     public GridCell<MediaFile> call(final GridView<MediaFile> grid) {
-        final var cell = new MediaFileGridCell(taskService, true, mediaLoader, isExpandCell, (CustomGridView<MediaFile>) grid, isEditable);
+        final var
+                cell =
+                new MediaFileGridCell(taskService,
+                                      true,
+                                      mediaLoader,
+                                      isExpandCell,
+                                      currentMediaCollection,
+                                      (CustomGridView<MediaFile>) grid,
+                                      isEditable);
 
         cell.setAlignment(Pos.CENTER);
         cell.setEditable(false);

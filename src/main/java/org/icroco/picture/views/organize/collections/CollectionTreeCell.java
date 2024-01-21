@@ -3,6 +3,7 @@ package org.icroco.picture.views.organize.collections;
 import atlantafx.base.controls.Spacer;
 import atlantafx.base.theme.Styles;
 import atlantafx.base.theme.Tweaks;
+import javafx.beans.binding.Bindings;
 import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -16,8 +17,8 @@ import org.icroco.picture.event.DeleteCollectionEvent;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.widget.FxUtil;
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.kordamp.ikonli.material2.Material2OutlinedMZ;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignD;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignL;
 
 import java.util.Collection;
 import java.util.List;
@@ -33,6 +34,7 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
     private final Label titleLabel;
     private final Node  arrowIcon;
     private final Label tagLabel;
+    private final Label linkOff;
 
     int mediaCollectionId = -1;
 
@@ -53,6 +55,10 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
         tagLabel = new Label("");
         tagLabel.getStyleClass().add("tag");
 
+        linkOff = new Label("", new FontIcon(MaterialDesignL.LINK_OFF));
+//        linkOff.getStyleClass().add("tag");
+        linkOff.getStyleClass().add(Styles.DANGER);
+
         flatMenuBtn.getItems().setAll(createMenuItems());
         flatMenuBtn.getStyleClass().setAll(Styles.FLAT, Tweaks.NO_ARROW, Styles.SMALL);
         flatMenuBtn.setManaged(false);
@@ -62,37 +68,11 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
         root = new HBox();
         root.setAlignment(Pos.CENTER_LEFT);
         Spacer spacer = new Spacer();
-        root.getChildren().setAll(titleLabel, spacer, tagLabel, flatMenuBtn);
+        root.getChildren().setAll(titleLabel, spacer, linkOff, tagLabel, flatMenuBtn);
+        linkOff.setVisible(false);
+        linkOff.setManaged(false);
         root.setCursor(Cursor.HAND);
         root.getStyleClass().add("container");
-
-//        root.addEventHandler(MouseEvent.ANY, event -> {
-//            if (event.getClickCount() == 2 && event.getButton().equals(MouseButton.PRIMARY)) {
-////                if (event.getEventType().equals(MouseEvent.MOUSE_CLICKED)) {
-//                log.info("Clicked: {}", event);
-//                taskService.sendEvent(CollectionSubPathSelectedEvent.builder()
-//                                                                    .collectionId(findMainCollectionNode(newValue).getValue().id())
-//                                                                    .entry(newValue.getValue().path)
-//                                                                    .source(this)
-//                                                                    .build());
-////                }
-//
-//                event.consume();
-//            }
-//        });
-//        root.setMaxWidth(ApplicationWindow.SIDEBAR_WIDTH - 10);
-
-//        root.setOnMouseClicked(e -> {
-////            if (!(getTreeItem() instanceof Item item)) {
-////                return;
-////            }
-//
-////            if (item.isGroup() && e.getButton() == MouseButton.PRIMARY) {
-////                item.setExpanded(!item.isExpanded());
-////                // scroll slightly above the target
-////                getTreeView().scrollTo(getTreeView().getRow(item) - 10);
-////            }
-//        });
 
         getStyleClass().add("nav-tree-cell");
     }
@@ -111,34 +91,36 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
     }
 
     @Override
-    protected void updateItem(CollectionNode nav, boolean empty) {
-        super.updateItem(nav, empty);
+    protected void updateItem(CollectionNode item, boolean empty) {
+        super.updateItem(item, empty);
 
-        if (nav == null || empty) {
+        if (item == null || empty) {
             setGraphic(null);
             titleLabel.setText(null);
             titleLabel.setGraphic(null);
+            linkOff.visibleProperty().unbind();
+            linkOff.managedProperty().unbind();
         } else {
             setGraphic(root);
 
-            titleLabel.setText(nav.path().getFileName().toString());
-            if (nav.isColTopLevel()) {
-                flatMenuBtn.setManaged(true);
-                flatMenuBtn.setVisible(true);
-                mediaCollectionId = nav.id();
-                Tooltip value = new Tooltip(nav.path().toString());
-                titleLabel.setTooltip(value);
-            } else {
+            titleLabel.setText(item.path().getFileName().toString());
+            if (item.rootCollection() == null) {
                 flatMenuBtn.setVisible(false);
                 flatMenuBtn.setManaged(false);
                 mediaCollectionId = -1;
-            }
-            if (nav.pathExist()) {
-                tagLabel.setGraphic(null);
+                linkOff.visibleProperty().unbind();
+                linkOff.managedProperty().unbind();
             } else {
-                Label label = new Label(null, new FontIcon(Material2OutlinedMZ.WARNING));
-                label.setTooltip(new Tooltip(STR."Path does not exist: '\{getItem().path()}'"));
-                tagLabel.setGraphic(label);
+                // TODO: Better manage resources (menu and linkOf, create on the fly
+                flatMenuBtn.setManaged(true);
+                flatMenuBtn.setVisible(true);
+                mediaCollectionId = item.id();
+                Tooltip value = new Tooltip(item.path().toString());
+                titleLabel.setTooltip(value);
+
+                linkOff.setTooltip(new Tooltip(STR."Path: '\{getItem().path()}' does not exist, or is not mounted!"));
+                linkOff.visibleProperty().bind(Bindings.not(item.rootCollection().connectedProperty()));
+                linkOff.managedProperty().bind(Bindings.not(item.rootCollection().connectedProperty()));
             }
         }
     }

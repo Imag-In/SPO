@@ -68,9 +68,7 @@ public class CollectionManager {
                 log.info("Synching '{}' mediaCollections", mediaCollections.size());
                 updateTitle(STR."Synching '\{mediaCollections.size()}' mediaCollections");
                 updateProgress(0, mediaCollections.size());
-
                 mediaCollections.forEach(CollectionManager.this::computeDiff);
-
                 return null;
             }
         };
@@ -94,19 +92,25 @@ public class CollectionManager {
 
 
     private void computeDiff(MediaCollection mediaCollection) {
-        var recordedFiles = mediaCollection.medias()
-                                           .stream()
-                                           .map(MediaFile::getFullPath)
-                                           .collect(Collectors.toSet());
-        var currenFiles = Set.copyOf(getAllFiles(mediaCollection.path()));
-        var difference  = org.icroco.picture.views.util.Collections.difference(recordedFiles, currenFiles);
+        if (Files.exists(mediaCollection.path())) {
+            mediaCollection.setConnected(true);
+            var recordedFiles = mediaCollection.medias()
+                                               .stream()
+                                               .map(MediaFile::getFullPath)
+                                               .collect(Collectors.toSet());
+            var currenFiles = Set.copyOf(getAllFiles(mediaCollection.path()));
+            var difference  = org.icroco.picture.views.util.Collections.difference(recordedFiles, currenFiles);
 
-        difference.leftMissing().forEach(path -> log.info("Collections: '{}', file added: {}", mediaCollection.path(), path));
-        difference.rightMissing().forEach(path -> log.info("Collections: '{}', file deleted: {}", mediaCollection.path(), path));
-        //TODO: Add files updated.
+            difference.leftMissing().forEach(path -> log.info("Collections: '{}', file added: {}", mediaCollection.path(), path));
+            difference.rightMissing().forEach(path -> log.info("Collections: '{}', file deleted: {}", mediaCollection.path(), path));
+            //TODO: Add files updated.
 
-        if (difference.isNotEmpty()) { // TODO: implements update.
-            updateCollection(mediaCollection.id(), difference.leftMissing(), difference.rightMissing(), Collections.emptyList());
+            if (difference.isNotEmpty()) { // TODO: implements update.
+                updateCollection(mediaCollection.id(), difference.leftMissing(), difference.rightMissing(), Collections.emptyList());
+            }
+        } else {
+            log.warn("Media Collection dir is not found: '{}'", mediaCollection.path());
+            mediaCollection.setConnected(false);
         }
     }
 

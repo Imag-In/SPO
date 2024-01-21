@@ -1,17 +1,15 @@
 package org.icroco.picture.views.organize.collections;
 
+import org.icroco.picture.model.MediaCollection;
+
 import java.nio.file.Path;
 
-public record CollectionNode(Path path, int id, boolean isColTopLevel, boolean pathExist) {
+public record CollectionNode(Path path, int id, MediaCollection rootCollection) {
     public CollectionNode(Path path, int id) {
-        this(path, id, false, true);
+        this(path, id, null);
     }
 
-    boolean isRootCollection() {
-        return id >= 0;
-    }
-
-    public CollectionNode withPathExist(boolean exist) {
-        return new CollectionNode(this.path, this.id, this.isColTopLevel, exist);
-    }
+//    public CollectionNode withPathExist(boolean exist) {
+//        return new CollectionNode(this.path, this.id, this.isColTopLevel, exist);
+//    }
 }

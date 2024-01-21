@@ -2,11 +2,13 @@ package org.icroco.picture.views.organize.gallery;
 
 import atlantafx.base.util.Animations;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
@@ -16,6 +18,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridCell;
 import org.icroco.picture.event.UpdateMedialFileEvent;
+import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.views.task.TaskService;
@@ -25,35 +28,43 @@ import org.icroco.picture.views.util.MediaLoader;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2OutlinedMZ;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignH;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignL;
+
+import java.nio.file.Files;
 
 import static org.icroco.picture.views.util.LangUtils.EMPTY_STRING;
 
 @Slf4j
 public class MediaFileGridCell extends GridCell<MediaFile> {
-    private final TaskService               taskService;
+    private final TaskService                             taskService;
     @Getter
-    private final ImageView                 imageView;
-    private final boolean                   preserveImageProperties;
-    private final MediaLoader               mediaLoader;
-    public final  StackPane                 root;
-    public final  BooleanProperty           isExpandCell;
-    private final CustomGridView<MediaFile> grid;
-    private       String                    lastHash      = EMPTY_STRING;
-    private final FontIcon                  keepIcon      = new FontIcon(Material2OutlinedMZ.THUMB_UP);
-    private final FontIcon                  throwIcon     = new FontIcon(Material2OutlinedMZ.THUMB_DOWN);
-    private final FontIcon                  undecidedIcon = new FontIcon(MaterialDesignH.HEAD_QUESTION_OUTLINE);
-    private final Label                     keepOrThrow   = new Label();
-    private final SimpleDoubleProperty      gap           = new SimpleDoubleProperty(5);
+    private final ImageView                               imageView;
+    private final boolean                                 preserveImageProperties;
+    private final MediaLoader                             mediaLoader;
+    public final  StackPane                               root;
+    public final  BooleanProperty                         isExpandCell;
+    private final ReadOnlyObjectProperty<MediaCollection> currentMediaCollection;
+    private final CustomGridView<MediaFile>               grid;
+    private       String                                  lastHash      = EMPTY_STRING;
+    private final FontIcon                                keepIcon      = new FontIcon(Material2OutlinedMZ.THUMB_UP);
+    private final FontIcon                                throwIcon     = new FontIcon(Material2OutlinedMZ.THUMB_DOWN);
+    private final FontIcon                                undecidedIcon = new FontIcon(MaterialDesignH.HEAD_QUESTION_OUTLINE);
+    private final Label                                   keepOrThrow   = new Label();
+    private final Label                                   pathNotFound  = new Label();
+    private final SimpleDoubleProperty                    gap           = new SimpleDoubleProperty(5);
 
-    public MediaFileGridCell(TaskService taskService, boolean preserveImageProperties,
+    public MediaFileGridCell(TaskService taskService,
+                             boolean preserveImageProperties,
                              MediaLoader mediaLoader,
                              BooleanProperty isExpandCell,
+                             ReadOnlyObjectProperty<MediaCollection> currentMediaCollection,
                              CustomGridView<MediaFile> grid,
                              BooleanProperty isEditable) {
         this.taskService = taskService;
         this.preserveImageProperties = preserveImageProperties;
         this.mediaLoader = mediaLoader;
         this.isExpandCell = isExpandCell;
+        this.currentMediaCollection = currentMediaCollection;
         isExpandCell.addListener((_, _, _) -> requestLayout());
         getStyleClass().add("image-grid-cell");
 //        loadingView.maxHeight(128 - 5);
@@ -64,18 +75,24 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         imageView.setPreserveRatio(true);
         imageView.setSmooth(true);
 
-        this.keepOrThrow.setId("keepOrThrow");
-        this.keepOrThrow.setGraphic(undecidedIcon);
+        keepOrThrow.setId("keepOrThrow");
+        keepOrThrow.setGraphic(undecidedIcon);
 //        root = Borders.wrap(this.imageView).lineBorder().innerPadding(5, 5, 5,5).color(Color.WHITE).build().build();
 //        root = new StackPane(imageView);
         StackPane.setAlignment(this.keepOrThrow, Pos.BOTTOM_RIGHT);
-        this.keepOrThrow.setTranslateX(this.keepOrThrow.getTranslateX() - gap.getValue() * 2);
-        this.keepOrThrow.setTranslateY(this.keepOrThrow.getTranslateY() - gap.getValue() * 2);
-        this.keepOrThrow.setOnMouseClicked(this::keepOrThrowClick);
-        this.keepOrThrow.setCursor(Cursor.HAND);
-        this.keepOrThrow.visibleProperty().bind(isEditable);
+        keepOrThrow.setTranslateX(this.keepOrThrow.getTranslateX() - gap.getValue() * 2);
+        keepOrThrow.setTranslateY(this.keepOrThrow.getTranslateY() - gap.getValue() * 2);
+        keepOrThrow.setOnMouseClicked(this::keepOrThrowClick);
+        keepOrThrow.setCursor(Cursor.HAND);
+        keepOrThrow.visibleProperty().bind(isEditable);
 
-        root = new StackPane(imageView, this.keepOrThrow);
+        StackPane.setAlignment(pathNotFound, Pos.TOP_LEFT);
+        pathNotFound.setGraphic(FontIcon.of(MaterialDesignL.LINK_OFF));
+        pathNotFound.setVisible(false);
+        pathNotFound.setTranslateX(this.pathNotFound.getTranslateX() + gap.getValue() * 2);
+        pathNotFound.setTranslateY(this.pathNotFound.getTranslateY() + gap.getValue() * 2);
+
+        root = new StackPane(imageView, pathNotFound, keepOrThrow);
         root.getStyleClass().add("stack-pane");
         this.grid = grid;
     }
@@ -99,8 +116,12 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         if (empty || item == null) {
             this.setGraphic(null);
             lastHash = EMPTY_STRING;
+            pathNotFound.setVisible(false);
+            pathNotFound.setTooltip(null);
         } else {
             boolean contains = grid.getSelectionModel().getSelectedItem() == item;
+            pathNotFound.setTooltip(new Tooltip("File path not not found (or not mounted): %s".formatted(item.getFullPath())));
+            pathNotFound.setVisible(Files.notExists(item.fullPath()));
             if (contains) {
                 gap.set(10);
             } else {

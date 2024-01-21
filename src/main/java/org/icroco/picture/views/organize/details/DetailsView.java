@@ -100,6 +100,7 @@ public class DetailsView extends AbstractView<VBox> {
     private final Label                cameraMake          = createLabel();
     private final Label                cameraModel         = createLabel();
     private final Label                keywords            = createLabel();
+    private final Label                filePathError       = createLabel();
     private       TabPane               tabs;
     private       Path                 path                = null;
     private final Button               printImageDetails   = new Button(null, FontIcon.of(MaterialDesignC.CONSOLE_LINE));
@@ -108,6 +109,7 @@ public class DetailsView extends AbstractView<VBox> {
     private final Button               editDate            = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
     private final Button               editTime            = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
     private final Button               extractDateFromFile = new Button(null, FontIcon.of(MaterialDesignC.CALENDAR_CHECK_OUTLINE));
+    private final FontIcon             filePathErrorIcon   = FontIcon.of(MaterialDesignL.LINK_OFF);
 
     private final ChangeListener<LocalDateTime> reloadNeeded = this::reload;
     private       MediaFile                     mediaFile    = null;
@@ -137,6 +139,9 @@ public class DetailsView extends AbstractView<VBox> {
 
         originalDate.setConverter(new LocalDateStringConverter());
         originalDate.setEditable(false);
+
+        filePathErrorIcon.setVisible(false);
+        filePathErrorIcon.getStyleClass().add(Styles.DANGER);
 
         extractDateFromFile.setTooltip(new Tooltip("Extract date/time from filename"));
 
@@ -239,6 +244,13 @@ public class DetailsView extends AbstractView<VBox> {
         rowIdx += 1;
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
         rowIdx += 1;
+
+        // Last one is indicator to alert if file path is not found.
+        grid.add(filePathErrorIcon, 0, rowIdx);
+        grid.add(filePathError, 1, rowIdx);
+
+        rowIdx += 1;
+
 
         // Thumbnail section
         grid.add(new Label("Thumbnail"), 0, rowIdx, 2, 1);
@@ -407,6 +419,8 @@ public class DetailsView extends AbstractView<VBox> {
         creationDate.textProperty().unbind();
         creationDate.setText("");
         mediaFile = null;
+        filePathErrorIcon.setVisible(false);
+        filePathError.setText("");
     }
 
     private void fillForm() {
@@ -437,6 +451,10 @@ public class DetailsView extends AbstractView<VBox> {
         cameraModel.setText(mediaFile.camera().model());
         path = mediaFile.getFullPath();
         keywords.setText(mediaFile.getKeywords().stream().map(Keyword::name).collect(Collectors.joining(",")));
+        if (!Files.exists(mediaFile.fullPath())) {
+            filePathErrorIcon.setVisible(true);
+            filePathError.setText("File path doesn't exist !");
+        }
     }
 
     private void reload(ObservableValue<? extends LocalDateTime> observable, LocalDateTime oldValue, LocalDateTime newValue) {
