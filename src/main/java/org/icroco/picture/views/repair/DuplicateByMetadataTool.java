@@ -3,7 +3,10 @@ package org.icroco.picture.views.repair;
 import atlantafx.base.controls.Card;
 import jakarta.annotation.PostConstruct;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -14,7 +17,10 @@ import javafx.scene.control.cell.TreeItemPropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.HashDuplicate;
 import org.icroco.picture.model.MediaFile;
@@ -57,21 +63,27 @@ public class DuplicateByMetadataTool implements RepairTool {
 
     @Getter
     @Setter
-    @AllArgsConstructor
     @ToString
     public static class TableRow {
-        private String    hash;
-        private MediaFile mediaFile;
-        private Boolean   state;
+        private       String          hash;
+        private       MediaFile       mediaFile;
+        private       Boolean         state;
+        private final BooleanProperty stateProperty;
 
         public TableRow(String hash, MediaFile mediaFile) {
             this(hash, mediaFile, null);
         }
 
+        public TableRow(String hash, MediaFile mediaFile, Boolean state) {
+            this.hash = hash;
+            this.mediaFile = mediaFile;
+            this.state = state != null && state;
+            this.stateProperty = new SimpleBooleanProperty(this.state);
+        }
+
         public boolean isParent() {
             return mediaFile == null;
         }
-
     }
 
     @PostConstruct
@@ -142,7 +154,16 @@ public class DuplicateByMetadataTool implements RepairTool {
         stateCol.setMaxWidth(80);
         idCol.setMaxWidth(60);
 
-        stateCol.setCellValueFactory(new TreeItemPropertyValueFactory<>("state"));
+        stateCol.setCellValueFactory(new TreeItemPropertyValueFactory<>("state") {
+            @Override
+            public ObservableValue<Boolean> call(TreeTableColumn.CellDataFeatures<TableRow, Boolean> param) {
+                if (param.getValue().getValue().isParent()) {
+                    return null;
+                }
+
+                return super.call(param);
+            }
+        });
         stateCol.setCellFactory(_ -> new CheckBoxTreeTableCell<>(null, null) {
             @Override
             public void updateItem(Boolean item, boolean empty) {
@@ -161,7 +182,7 @@ public class DuplicateByMetadataTool implements RepairTool {
         );
         pathCol.setCellValueFactory(
                 c -> new SimpleStringProperty(c.getValue().getValue().isParent()
-                                              ? ""
+                                              ? STR."Hash: \{c.getValue().getValue().getHash()}"
                                               : c.getValue().getValue().mediaFile.fullPath().toString())
         );
 

@@ -1,5 +1,6 @@
 package org.icroco.picture.views.repair;
 
+import com.dlsc.gemsfx.GlassPane;
 import jakarta.annotation.PostConstruct;
 import javafx.animation.FadeTransition;
 import javafx.geometry.Insets;
@@ -32,7 +33,7 @@ public class RepairView extends AbstractView<BorderPane> {
     private final CollectionManager  collectionManager;
     private final BorderPane         root     = new BorderPane();
     private final RepairModel        model    = new RepairModel();
-    private final StackPane          toolPane = new StackPane();
+    private final StackPane toolPane = new GlassPane();
 
 
     public RepairView(TaskService taskService,
