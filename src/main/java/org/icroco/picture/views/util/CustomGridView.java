@@ -15,13 +15,13 @@ import javafx.scene.control.Cell;
 import javafx.scene.control.IndexedCell;
 import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.skin.VirtualFlow;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.input.ScrollEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridView;
 import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.views.task.TaskService;
 import org.jooq.lambda.Seq;
 
@@ -61,18 +61,18 @@ public class CustomGridView<T> extends GridView<T> {
     }
 
     public void addScrollAndKeyhandler() {
-        // example for scroll listener
-//        this.addEventFilter(ScrollEvent.ANY, e-> System.out.println("*** scroll event fired ***"));
-
-        // add UP and DOWN arrow key listener, to set scroll position
-        addEventHandler(KeyEvent.KEY_PRESSED, e -> {
-            switch (e.getCode()) {
-                case UP -> Nodes.runAndConsume(e, this::oneRowUp);
-                case DOWN -> Nodes.runAndConsume(e, this::oneRowDown);
-                case LEFT -> Nodes.runAndConsume(e, this::oneRowLeft);
-                case RIGHT -> Nodes.runAndConsume(e, this::oneRowRight);
-            }
-        });
+//        // example for scroll listener
+////        this.addEventFilter(ScrollEvent.ANY, e-> System.out.println("*** scroll event fired ***"));
+//
+//        // add UP and DOWN arrow key listener, to set scroll position
+//        addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+//            switch (e.getCode()) {
+//                case UP -> Nodes.runAndConsume(e, this::oneRowUp);
+//                case DOWN -> Nodes.runAndConsume(e, this::oneRowDown);
+//                case LEFT -> Nodes.runAndConsume(e, this::oneRowLeft);
+//                case RIGHT -> Nodes.runAndConsume(e, this::oneRowRight);
+//            }
+//        });
     }
 
 
@@ -175,7 +175,7 @@ public class CustomGridView<T> extends GridView<T> {
         return Seq.concat(getLeftIndex(idx), getRightIndex(idx), getLeftIndex(idx - 1), getRightIndex(idx + 1)).toList();
     }
 
-    private void oneRowUp() {
+    public void oneRowUp() {
 //        log.info("*** KeyEvent before oneRowUp: {}  ***", selectedRow);
 
         // get the underlying VirtualFlow object
@@ -205,7 +205,7 @@ public class CustomGridView<T> extends GridView<T> {
         }
     }
 
-    private void oneRowDown() {
+    public void oneRowDown() {
 //        log.info("*** KeyEvent before oneRowDown: {}  ***", selectedRow);
         // get the underlying VirtualFlow object
         VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
@@ -231,6 +231,31 @@ public class CustomGridView<T> extends GridView<T> {
         }
     }
 
+
+    public void pageUp() {
+        VirtualFlow<? extends IndexedCell<T>> flow  = getVirtualFlow();
+        var                                   first = flow.getFirstVisibleCell();
+        var                                   last  = flow.getLastVisibleCell();
+
+        var diff = last.getIndex() - first.getIndex();
+        log.info("page UP: first: {}, last: {}, diff: {}, next: {}", first.getIndex(), last.getIndex(), diff, first.getIndex() - diff);
+        flow.scrollTo(Math.max(0, first.getIndex() - diff));
+    }
+
+    public void pageDown() {
+        VirtualFlow<? extends IndexedCell<T>> flow  = getVirtualFlow();
+        var                                   first = flow.getFirstVisibleCell();
+        var                                   last  = flow.getLastVisibleCell();
+
+        var diff = last.getIndex() - first.getIndex();
+        log.info("page UP: first: {}, last: {}, diff: {}, next: {}, count: {}",
+                 first.getIndex(),
+                 last.getIndex(),
+                 diff,
+                 last.getIndex() + diff,
+                 flow.getCellCount());
+        flow.scrollTo(Math.min(flow.getCellCount(), last.getIndex() + diff));
+    }
 
     public void oneRowLeft() {
         VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();

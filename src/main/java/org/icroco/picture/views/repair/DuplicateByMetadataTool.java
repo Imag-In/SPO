@@ -5,6 +5,7 @@ import jakarta.annotation.PostConstruct;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -28,6 +29,7 @@ import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.views.CollectionManager;
 import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;
+import org.icroco.picture.views.util.HyperlinkTreeCell;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.Nodes;
 import org.icroco.picture.views.util.widget.FxUtil;
@@ -38,6 +40,7 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignT;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -68,7 +71,8 @@ public class DuplicateByMetadataTool implements RepairTool {
         private       String          hash;
         private       MediaFile       mediaFile;
         private       Boolean         state;
-        private final BooleanProperty stateProperty;
+        private final BooleanProperty            stateProperty;
+        private final SimpleObjectProperty<Path> pathProperty;
 
         public TableRow(String hash, MediaFile mediaFile) {
             this(hash, mediaFile, null);
@@ -79,6 +83,7 @@ public class DuplicateByMetadataTool implements RepairTool {
             this.mediaFile = mediaFile;
             this.state = state != null && state;
             this.stateProperty = new SimpleBooleanProperty(this.state);
+            this.pathProperty = new SimpleObjectProperty<>(mediaFile == null ? null : mediaFile.fullPath());
         }
 
         public boolean isParent() {
@@ -141,7 +146,7 @@ public class DuplicateByMetadataTool implements RepairTool {
         var hashCol  = new TreeTableColumn<TableRow, String>("Duplicates");
         var stateCol = new TreeTableColumn<TableRow, Boolean>("Delete ?");
         var idCol    = new TreeTableColumn<TableRow, String>("ID");
-        var pathCol  = new TreeTableColumn<TableRow, String>("Path");
+        var pathCol = new TreeTableColumn<TableRow, Path>("Path");
 
         hashCol.setSortable(false);
 
@@ -180,11 +185,14 @@ public class DuplicateByMetadataTool implements RepairTool {
                                               ? STR."\{c.getValue().getChildren().size()} files(s) - "
                                               : "")
         );
-        pathCol.setCellValueFactory(
-                c -> new SimpleStringProperty(c.getValue().getValue().isParent()
-                                              ? STR."Hash: \{c.getValue().getValue().getHash()}"
-                                              : c.getValue().getValue().mediaFile.fullPath().toString())
-        );
+//        pathCol.setCellValueFactory(
+//                c -> new SimpleStringProperty(c.getValue().getValue().isParent()
+//                                              ? STR."Hash: \{c.getValue().getValue().getHash()}"
+//                                              : c.getValue().getValue().mediaFile.fullPath().toString())
+//        );
+
+        pathCol.setCellValueFactory(param -> param.getValue().getValue().pathProperty);
+        pathCol.setCellFactory(new HyperlinkTreeCell<>());
 
         var treeTable = new TreeTableView<TableRow>();
         treeTable.setEditable(true);

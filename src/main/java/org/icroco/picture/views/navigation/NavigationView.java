@@ -25,6 +25,7 @@ import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.widget.FxUtil;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2OutlinedMZ;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -103,9 +104,9 @@ public class NavigationView implements FxView<HBox> {
 
         selectedTab.set(organizeLbl);
 
-        FontIcon settingsIcon = new FontIcon(Material2OutlinedMZ.SETTINGS);
+        var settingsIcon = FontIcon.of(Material2OutlinedMZ.SETTINGS);
         settingsIcon.setId("settings");
-
+        settingsIcon.getStyleClass().add("button-top-bar");
         var settings = new Button(null, settingsIcon);
         settings.setTooltip(new Tooltip("Settings"));
         settings.setDisable(false);
@@ -115,8 +116,16 @@ public class NavigationView implements FxView<HBox> {
                                                                                .scene(getRootContent().getScene())
                                                                                .source(this)
                                                                                .build()));
+        var photoDiffIcon = FontIcon.of(MaterialDesignC.COMPARE);
+        var photoDiff     = new Button(null, photoDiffIcon);
+        photoDiffIcon.getStyleClass().add("button-top-bar");
 
-        root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, repairLbl, peopleLbl, exportLbl, new Spacer(), settings);
+//        photoDiff.setTooltip(new Tooltip("Settings"));
+        photoDiff.setDisable(true);
+        photoDiff.getStyleClass().add(Styles.LARGE);
+        FxUtil.styleCircleButton(photoDiff); //.setOnAction(this::openSettings);
+
+        root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, repairLbl, peopleLbl, exportLbl, new Spacer(), photoDiff, settings);
 
     }
 

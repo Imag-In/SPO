@@ -1,15 +1,11 @@
 package org.icroco.picture.views.repair;
 
-import com.dlsc.gemsfx.GlassPane;
 import jakarta.annotation.PostConstruct;
-import javafx.animation.FadeTransition;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
-import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.views.AbstractView;
@@ -33,7 +29,7 @@ public class RepairView extends AbstractView<BorderPane> {
     private final CollectionManager  collectionManager;
     private final BorderPane         root     = new BorderPane();
     private final RepairModel        model    = new RepairModel();
-    private final StackPane toolPane = new GlassPane();
+    private final StackPane toolPane = new StackPane();
 
 
     public RepairView(TaskService taskService,
@@ -77,29 +73,33 @@ public class RepairView extends AbstractView<BorderPane> {
     }
 
     private void loadTool(RepairTool nextTool) {
-
-        final var prevTool = toolPane.getChildren().stream()
-                                     .filter(RepairTool.class::isInstance)
-                                     .map(RepairTool.class::cast)
-                                     .findFirst()
-                                     .orElse(null);
-
-        if (root.getScene() == null || prevTool == null) {
-            toolPane.getChildren().add(nextTool.getView());
-            return;
-        }
-
+        toolPane.getChildren().clear();
         toolPane.getChildren().add(nextTool.getView());
-        toolPane.getChildren().remove(prevTool.getView());
-        var transition = new FadeTransition(Duration.millis(PAGE_TRANSITION_DURATION), nextTool.getView());
-        transition.setFromValue(0.0);
-        transition.setToValue(1.0);
-        transition.setOnFinished(t -> {
-            if (nextTool.getView() instanceof Pane nextPane) {
-                nextPane.toFront();
-            }
-        });
-        transition.play();
+//        if (nextTool.getView() instanceof Pane pane) {
+//            pane.toFront();
+//        }
+//        final var prevTool = toolPane.getChildren().stream()
+//                                     .filter(RepairTool.class::isInstance)
+//                                     .map(RepairTool.class::cast)
+//                                     .findFirst()
+//                                     .orElse(null);
+//
+//        if (root.getScene() == null || prevTool == null) {
+//            toolPane.getChildren().add(nextTool.getView());
+//            return;
+//        }
+//
+//        toolPane.getChildren().add(nextTool.getView());
+//        toolPane.getChildren().remove(prevTool.getView());
+//        var transition = new FadeTransition(Duration.millis(PAGE_TRANSITION_DURATION), nextTool.getView());
+//        transition.setFromValue(0.0);
+//        transition.setToValue(1.0);
+//        transition.setOnFinished(t -> {
+//            if (nextTool.getView() instanceof Pane nextPane) {
+//                nextPane.toFront();
+//            }
+//        });
+//        transition.play();
     }
 
     @Override

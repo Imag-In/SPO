@@ -48,6 +48,7 @@ public class RepairModel {
             group.getChildren().add(page);
         });
         navTree.set(root);
+        root.getChildren().sort((o1, o2) -> o2.getValue().title().compareToIgnoreCase(o1.getValue().title()));
         root.getChildren().getFirst().setExpanded(true);
     }
 

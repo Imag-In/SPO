@@ -32,7 +32,7 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignL;
 
 import java.nio.file.Files;
 
-import static org.icroco.picture.views.util.LangUtils.EMPTY_STRING;
+import static org.icroco.picture.util.LangUtils.EMPTY_STRING;
 
 @Slf4j
 public class MediaFileGridCell extends GridCell<MediaFile> {

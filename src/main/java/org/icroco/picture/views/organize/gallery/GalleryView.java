@@ -564,6 +564,14 @@ public class GalleryView implements FxView<StackPane> {
         breadCrumbBar.setSelectedCrumb(model);
     }
 
+    public void enterPressed(KeyEvent keyEvent) {
+        if (dblCickState == EGalleryClickState.GALLERY) {
+            displayNext(photo.getMediaFile());
+        } else if (dblCickState.isImage()) {
+//            displayNext(photo.getMediaFile());
+        }
+    }
+
     public void escapePressed(KeyEvent keyEvent) {
         if (dblCickState == EGalleryClickState.ZOOM) {
             displayNext(photo.getMediaFile());
@@ -584,6 +592,8 @@ public class GalleryView implements FxView<StackPane> {
                                                         .build());
                 mediaLoader.getOrLoadImage(mf);
             });
+        } else if (dblCickState.isImage()) {
+            gridView.oneRowLeft();
         }
         keyEvent.consume();
     }
@@ -600,8 +610,39 @@ public class GalleryView implements FxView<StackPane> {
                                                                 .build());
                         mediaLoader.getOrLoadImage(mf);
                     });
+        } else if (dblCickState.isImage()) {
+            gridView.oneRowRight();
         }
-        keyEvent.consume();
+//        keyEvent.consume();
+    }
+
+    public void upPressed(KeyEvent keyEvent) {
+        gridView.oneRowUp();
+//        if (dblCickState.isImage() && photo.getMediaFile() != null) {
+//            gridView.getRight(photo.getMediaFile())
+//                    .ifPresent(mf -> {
+//                        // TODO: Test by adding to selection ?
+//                        taskService.sendEvent(PhotoSelectedEvent.builder()
+//                                                                .mf(mf)
+//                                                                .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+//                                                                .source(this)
+//                                                                .build());
+//                        mediaLoader.getOrLoadImage(mf);
+//                    });
+//        }
+////        keyEvent.consume();
+    }
+
+    public void downPressed(KeyEvent keyEvent) {
+        gridView.oneRowDown();
+    }
+
+    public void pageUpPressed(KeyEvent keyEvent) {
+        gridView.pageUp();
+    }
+
+    public void pageDownPressed(KeyEvent keyEvent) {
+        gridView.pageDown();
     }
 
     private void skipPressed(KeyEvent keyEvent) {

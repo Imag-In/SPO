@@ -2,6 +2,7 @@ package org.icroco.picture.views.util;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.SystemUtils;
 import org.jooq.lambda.Unchecked;
 
 import java.awt.*;
@@ -14,6 +15,10 @@ public class SystemUtil {
     public static boolean isWindoww() {
         String os = System.getProperty("os.name").toLowerCase();
         return os.contains("win");
+    }
+
+    public static boolean isMac() {
+        return SystemUtils.IS_OS_MAC;
     }
 
     public static void browseFile(Path path) {

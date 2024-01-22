@@ -13,6 +13,7 @@ import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.model.*;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.thumbnail.IThumbnailGenerator;
+import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.views.task.AbstractTask;
 import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;

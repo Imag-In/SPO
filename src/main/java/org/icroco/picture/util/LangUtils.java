@@ -1,4 +1,4 @@
-package org.icroco.picture.views.util;
+package org.icroco.picture.util;
 
 
 import org.springframework.lang.Nullable;
