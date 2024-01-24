@@ -8,6 +8,7 @@ on:
     branches: [ main ]
 #    tags:
 #      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 jobs:
   build-jar:
@@ -17,7 +18,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
@@ -36,18 +39,33 @@ jobs:
           restore-keys: |
             spo-maven
 
+      - name: Get previous tag
+        uses: oprypin/find-latest-tag@v1
+        with:
+          repository: Imag-In/SPO  # The repository to scan.
+          releases-only: true  # We know that all relevant tags have a GitHub release for them.
+        id: get-latest-tag  # The step ID to refer to later.
+
       - name: Update CHANGELOG
         id: changelog
         uses: requarks/changelog-action@v1
         with:
           token: ${{ github.token }}
-          tag: ${{ github.ref_name }}
+          #          tag: ${{ github.ref_name }}
+          fromTag: ${{ github.ref_name }}
+          toTag: ${{ steps.get-latest-tag.outputs.tag }}
 
       - name: Maven bump version
         run: ./mvnw -B build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}'
 
       - name: Build jar
         run: ./mvnw -V -B -fae clean verify -f pom.xml
+
+      - name: Get version
+        id: get-version
+        run: |
+          SPO_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "SPO_VERSION=${SPO_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Generte build env
         id: gen-build-env
