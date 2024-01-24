@@ -337,13 +337,13 @@ public class GalleryView implements FxView<StackPane> {
             images.clear();
             gridView.getSelectionModel().clearSelection();
             resetBcbModel(null);
-            predicates.clear();
+//            predicates.clear();
             images.addAll(newValue.medias());
             updateDateOverlay(sortedImages.stream().findFirst());
         } else {
             breadCrumbBar.setSelectedCrumb(null);
             images.clear();
-            predicates.clear();
+//            predicates.clear();
             updateDateOverlay(empty());
         }
     }
@@ -490,6 +490,7 @@ public class GalleryView implements FxView<StackPane> {
 //             Animations.fadeIn(gallery, Duration.millis(1000)).playFromStart();
         } else {
             log.info("MediaCollection subpath selected: root: {}, entry: {}", newValue.mediaCollectionId(), newValue.subPath());
+//            filteredImages.setPredicate(predicates); // TODO: hook, better to invalidate with listener.
             currentCatalog.setValue(persistenceService.getMediaCollection(newValue.mediaCollectionId()));
             resetBcbModel(newValue.subPath());
             final var path = getCurrentCatalog().path().resolve(newValue.subPath());

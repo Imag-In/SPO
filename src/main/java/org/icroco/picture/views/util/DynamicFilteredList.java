@@ -3,7 +3,6 @@ package org.icroco.picture.views.util;
 
 import impl.org.controlsfx.collections.NonIterableChange;
 import javafx.beans.NamedArg;
-import javafx.beans.Observable;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.collections.ListChangeListener;
@@ -106,7 +105,7 @@ public final class DynamicFilteredList<E> extends TransformationList<E, E> {
         predicateProperty().set(predicate);
         if (predicate instanceof MultiplePredicates<? super E> multiplePredicates) {
             multiplePredicates.getPredicates().addListener((ListChangeListener.Change<?> _) -> refilter());
-            multiplePredicates.getPredicates().addListener((Observable _) -> refilter());
+//            multiplePredicates.getPredicates().addListener((Observable _) -> refilter());
         }
     }
 
