@@ -17,7 +17,7 @@ class FileUtilTest {
 
         var dateTime = "IMG_20160805_150220.jpg";
 
-        var matches = FileUtil.DATE_TINE_PATTERN.matcher(dateTime);
+        var matches = FileUtil.DATE_TINE_PATTERN_1.matcher(dateTime);
 
         SoftAssertions soft = new SoftAssertions();
 
@@ -41,7 +41,7 @@ class FileUtilTest {
 
         var dateTime = "IMG_20160805_1502.jpg";
 
-        var matches = FileUtil.DATE_TINE_PATTERN.matcher(dateTime);
+        var matches = FileUtil.DATE_TINE_PATTERN_1.matcher(dateTime);
 
         SoftAssertions soft = new SoftAssertions();
 
@@ -60,7 +60,7 @@ class FileUtilTest {
 
         var dateTime = "IMG_20160805.jpg";
 
-        var matches = FileUtil.DATE_TINE_PATTERN.matcher(dateTime);
+        var matches = FileUtil.DATE_TINE_PATTERN_1.matcher(dateTime);
 
         SoftAssertions soft = new SoftAssertions();
 
@@ -132,6 +132,40 @@ class FileUtilTest {
         var dateTime = FileUtil.extractDateTime(path);
 
         assertThat(dateTime).isEmpty();
+    }
+
+    @Test
+    void should_get_datetime_format_fr() {
+        var path = Path.of("IMG_05082016_150220.jpg");
+
+        var dateTime = FileUtil.extractDateTime(path);
+
+        assertThat(dateTime).isPresent()
+                            .get()
+                            .extracting(LocalDateTime::toLocalDate)
+                            .isEqualTo(LocalDate.of(2016, 8, 5));
+
+        assertThat(dateTime).isPresent()
+                            .get()
+                            .extracting(LocalDateTime::toLocalTime)
+                            .isEqualTo(LocalTime.of(15, 2, 20));
+    }
+
+    @Test
+    void should_get_date_only_format_fr() {
+        var path = Path.of("IMG_05082016_blabla.jpg");
+
+        var dateTime = FileUtil.extractDateTime(path);
+
+        assertThat(dateTime).isPresent()
+                            .get()
+                            .extracting(LocalDateTime::toLocalDate)
+                            .isEqualTo(LocalDate.of(2016, 8, 5));
+
+        assertThat(dateTime).isPresent()
+                            .get()
+                            .extracting(LocalDateTime::toLocalTime)
+                            .isEqualTo(LocalTime.of(0, 0, 0));
     }
 
 }

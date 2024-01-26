@@ -149,6 +149,7 @@ jobs:
           artifacts: "build/installer/*.dmg,build/installer/*.pkg,build/installer/*.sha256"
           allowUpdates: "true"
           tag: v${{ env.SPO_VERSION }}
+          omitBody: "true"
 
   #  build-macos-arm:
   #    runs-on: macos-13-xlarge
@@ -274,6 +275,7 @@ jobs:
           artifacts: "build/*.tar.gz,build/*.sha256"
           allowUpdates: "true"
           tag: v${{ env.SPO_VERSION }}
+          omitBody: "true"
 
       - name: Publish release
         uses: ncipollo/release-action@v1
@@ -281,6 +283,7 @@ jobs:
           artifacts: "build/installer/*.deb,build/installer/*.rpm,build/installer/*.sha256"
           allowUpdates: "true"
           tag: v${{ env.SPO_VERSION }}
+          omitBody: "true"
 
   build-windows:
     runs-on: windows-latest
@@ -331,3 +334,4 @@ jobs:
           artifacts: "build/installer/*.msi,build/installer/*.exe,build/installer/*.sha256"
           allowUpdates: "true"
           tag: v${{ env.SPO_VERSION }}
+          omitBody: "true"
