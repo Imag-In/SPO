@@ -7,6 +7,7 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -18,6 +19,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.GridCell;
 import org.icroco.picture.event.UpdateMedialFileEvent;
+import org.icroco.picture.model.EKeepOrThrow;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
@@ -101,10 +103,9 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         if (event.getClickCount() == 1) {
             getItem().setNextKeepOrThrow();
             log.info("keepOrThrow: {}", getItem().getKeepOrThrow());
-            displayKeepOrThrowIcon();
             taskService.sendEvent(UpdateMedialFileEvent.builder().mediaFile(getItem()).source(this).build());
+            event.consume();
         }
-        event.consume();
     }
 
     @Override
@@ -118,6 +119,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
             lastHash = EMPTY_STRING;
             pathNotFound.setVisible(false);
             pathNotFound.setTooltip(null);
+            keepOrThrow.graphicProperty().unbind();
         } else {
             boolean contains = grid.getSelectionModel().getSelectedItem() == item;
             pathNotFound.setTooltip(new Tooltip("File path not not found (or not mounted): %s".formatted(item.getFullPath())));
@@ -127,7 +129,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
             } else {
                 gap.set(5);
             }
-
+            keepOrThrow.graphicProperty().bind(item.getKeepOrThrowProperty().map(this::displayKeepOrThrowIcon));
             updateSelected(contains);
             if (item.isLoadedInCache()) {
                 if ((lastHash != null && !lastHash.equals(item.getHash())
@@ -145,9 +147,6 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
                     setImage(mediaLoader.getCachedValue(item)
                                         .map(Thumbnail::getImage)
                                         .orElse(ImageUtils.getNoThumbnailImage()));
-                    if (keepOrThrow.isVisible()) {
-                        displayKeepOrThrowIcon();
-                    }
                 }
             } else {
                 setImage(ImageUtils.getNoThumbnailImage());
@@ -156,12 +155,12 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
         }
     }
 
-    void displayKeepOrThrowIcon() {
-        switch (getItem().getKeepOrThrow()) {
-            case UNKNOW -> keepOrThrow.setGraphic(undecidedIcon);
-            case KEEP -> keepOrThrow.setGraphic(keepIcon);
-            case THROW -> keepOrThrow.setGraphic(throwIcon);
-        }
+    Node displayKeepOrThrowIcon(EKeepOrThrow flag) {
+        return switch (flag) {
+            case UNKNOW -> undecidedIcon;
+            case KEEP -> keepIcon;
+            case THROW -> throwIcon;
+        };
     }
 
     private ImageView setImage(Image image) {

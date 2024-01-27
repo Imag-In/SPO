@@ -41,9 +41,9 @@ import java.util.function.Predicate;
 @Slf4j
 public class Nodes {
 
-    public static void runAndConsume(KeyEvent kEvt, Runnable runnable) {
-        runnable.run();
-        kEvt.consume();
+    public static void applyAndConsume(KeyEvent event, Consumer<KeyEvent> eventConsumer) {
+        eventConsumer.accept(event);
+        event.consume();
     }
 
     public static <R> Optional<R> show(Dialog<R> alert, Scene scene) {

@@ -5,7 +5,9 @@ import javafx.animation.Timeline;
 import javafx.event.*;
 import javafx.scene.input.MouseEvent;
 import javafx.util.Duration;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor
 public class DoubleClickEventDispatcher implements EventDispatcher {
 
     /**
@@ -16,21 +18,11 @@ public class DoubleClickEventDispatcher implements EventDispatcher {
     /**
      * Default event dispatcher of a node.
      */
-    private final EventDispatcher defaultEventDispatcher;
 
     /**
      * Timeline for dispatching mouse clicked event.
      */
     private Timeline clickedTimeline;
-
-    /**
-     * Constructor.
-     *
-     * @param initial Default event dispatcher of a node
-     */
-    public DoubleClickEventDispatcher(final EventDispatcher initial) {
-        defaultEventDispatcher = initial;
-    }
 
     @Override
     public Event dispatchEvent(final Event event, final EventDispatchChain tail) {
@@ -44,21 +36,19 @@ public class DoubleClickEventDispatcher implements EventDispatcher {
                     clickedTimeline = null;
                     final MouseEvent dblClickedEvent = copy(mouseEvent, CustomMouseEvent.MOUSE_DOUBLE_CLICKED);
                     Event.fireEvent(eventTarget, dblClickedEvent);
+                } else {
+                    final MouseEvent clickedEvent = copy(mouseEvent, mouseEvent.getEventType());
+                    clickedTimeline = new Timeline(new KeyFrame(Duration.millis(DEFAULT_DOUBLE_CLICK_DELAY), e -> {
+                        Event.fireEvent(eventTarget, clickedEvent);
+                        clickedTimeline = null;
+                    }));
+                    clickedTimeline.play();
                 }
-                return mouseEvent;
-            }
-            if (clickedTimeline == null) {
-                final MouseEvent clickedEvent = copy(mouseEvent, mouseEvent.getEventType());
-                clickedTimeline = new Timeline(new KeyFrame(Duration.millis(DEFAULT_DOUBLE_CLICK_DELAY), e -> {
-                    Event.fireEvent(eventTarget, clickedEvent);
-                    clickedTimeline = null;
-                }));
-                clickedTimeline.play();
+                mouseEvent.consume();
                 return mouseEvent;
             }
         }
         return tail.dispatchEvent(event);
-//        return defaultEventDispatcher.dispatchEvent(event, tail);
     }
 
     /**

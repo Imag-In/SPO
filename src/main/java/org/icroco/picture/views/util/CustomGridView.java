@@ -257,6 +257,16 @@ public class CustomGridView<T> extends GridView<T> {
         flow.scrollTo(Math.min(flow.getCellCount(), last.getIndex() + diff));
     }
 
+    public void selectionRequestFocus() {
+        VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
+        if (flow.getCellCount() == 0) {
+            return; // check that rows exist
+        }
+        ofNullable(getSelectionModel().getSelectedItem())
+                .flatMap(item -> findItem(flow, item))
+                .ifPresentOrElse(Node::requestFocus, () -> getSelectionModel().selectFirst());
+    }
+
     public void oneRowLeft() {
         VirtualFlow<? extends IndexedCell<T>> flow = getVirtualFlow();
         if (flow.getCellCount() == 0) {

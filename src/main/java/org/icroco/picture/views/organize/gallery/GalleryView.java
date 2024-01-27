@@ -129,7 +129,7 @@ public class GalleryView implements FxView<StackPane> {
         root.getStyleClass().add(ViewConfiguration.V_GALLERY);
         root.setId(ViewConfiguration.V_GALLERY);
         root.setMinSize(350, 250);
-        root.setEventDispatcher(new DoubleClickEventDispatcher(root.getEventDispatcher()));
+        root.setEventDispatcher(new DoubleClickEventDispatcher());
 
         gridView = new CustomGridView<>(FXCollections.emptyObservableList(), this::gridScrollEvent);
         gridView.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
@@ -403,13 +403,19 @@ public class GalleryView implements FxView<StackPane> {
 
     private void displayGallery(MediaFile mf) {
         dblCickState = EGalleryClickState.GALLERY;
-        gallery.requestFocus();
-        Animations.fadeOut(carousel, Duration.millis(1000)).playFromStart();
-        gallery.setVisible(true);
-        carousel.setVisible(false);
-        if (mf != null) {
-            gridView.ensureVisible(mf);
-        }
+        Timeline timeline1 = Animations.fadeOut(carousel, Duration.millis(500));
+        timeline1.setOnFinished(_ -> {
+            gallery.setVisible(true);
+            carousel.setVisible(false);
+            if (mf != null) {
+                gallery.requestFocus();
+                gridView.getSelectionModel().select(mf);
+                gridView.selectionRequestFocus();
+                gridView.ensureVisible(mf);
+            }
+        });
+        timeline1.playFromStart();
+
 //        updateDateOverlay(gridView.getFirstVisible().map(Cell::getItem));
     }
 
@@ -567,7 +573,7 @@ public class GalleryView implements FxView<StackPane> {
 
     public void enterPressed(KeyEvent keyEvent) {
         if (dblCickState == EGalleryClickState.GALLERY) {
-            displayNext(photo.getMediaFile());
+            displayNext(gridView.getSelectionModel().getSelectedItem());
         } else if (dblCickState.isImage()) {
 //            displayNext(photo.getMediaFile());
         }
@@ -583,17 +589,23 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     public void leftPressed(KeyEvent keyEvent) {
-        if (dblCickState.isImage() && photo.getMediaFile() != null) {
-            gridView.getLeft(photo.getMediaFile()).ifPresent(mf -> {
-                // TODO: Test by adding to selection ?
-                taskService.sendEvent(PhotoSelectedEvent.builder()
-                                                        .mf(mf)
-                                                        .type(PhotoSelectedEvent.ESelectionType.SELECTED)
-                                                        .source(this)
-                                                        .build());
-                mediaLoader.getOrLoadImage(mf);
-            });
-        } else if (dblCickState.isImage()) {
+        if (dblCickState.isImage()) {
+            if (keyEvent.isMetaDown()) {
+                escapePressed(keyEvent);
+            } else {
+                if (photo.getMediaFile() != null) {
+                    gridView.getLeft(photo.getMediaFile()).ifPresent(mf -> {
+                        // TODO: Test by adding to selection ?
+                        taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                                .mf(mf)
+                                                                .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+                                                                .source(this)
+                                                                .build());
+                        mediaLoader.getOrLoadImage(mf);
+                    });
+                }
+            }
+        } else if (dblCickState == EGalleryClickState.GALLERY) {
             gridView.oneRowLeft();
         }
         keyEvent.consume();
@@ -611,7 +623,7 @@ public class GalleryView implements FxView<StackPane> {
                                                                 .build());
                         mediaLoader.getOrLoadImage(mf);
                     });
-        } else if (dblCickState.isImage()) {
+        } else if (dblCickState == EGalleryClickState.GALLERY) {
             gridView.oneRowRight();
         }
 //        keyEvent.consume();
@@ -651,7 +663,6 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     public void editPressed(KeyEvent keyEvent) {
-        log.info("Edit, current: {}", editCell.getGraphic());
         if (editCell.getGraphic() == editOff) {
             editCell.setGraphic(editOn);
         } else {
@@ -661,14 +672,18 @@ public class GalleryView implements FxView<StackPane> {
 
     public void keepPressed(KeyEvent keyEvent) {
 //        gridView.getSelectionModel().getSelection().forEach();
+        ofNullable(gridView.getSelectionModel().getSelectedItem())
+                .ifPresent(mediaFile -> mediaFile.setKeepOrThrow(EKeepOrThrow.KEEP));
     }
 
     public void throwPressed(KeyEvent keyEvent) {
-
+        ofNullable(gridView.getSelectionModel().getSelectedItem())
+                .ifPresent(mediaFile -> mediaFile.setKeepOrThrow(EKeepOrThrow.THROW));
     }
 
     public void undecidePressed(KeyEvent keyEvent) {
-
+        ofNullable(gridView.getSelectionModel().getSelectedItem())
+                .ifPresent(mediaFile -> mediaFile.setKeepOrThrow(EKeepOrThrow.UNKNOW));
     }
 
     public void expandGridCell(MouseEvent mouseEvent) {
