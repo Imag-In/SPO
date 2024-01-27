@@ -24,7 +24,7 @@ public class FileUtil {
     public static Pattern
             DATE_TINE_PATTERN_1 =
             Pattern.compile(
-                    ".*[-_](?<DATE>(?<YEAR>[0-9]{4})(?<MONTH>[0-9]{2})(?<DAY>[0-9]{2}))([_-](?<TIME>(?<HOUR>[0-9]{2})(?<MIN>[0-9]{2})(?<SEC>[0-9]{2})?))?.*");
+                    ".*[-_](?<DATE>(?<YEAR>[0-9]{4})(?<MONTH>[0-9]{2})(?<DAY>[0-9]{2}))([T_-](?<TIME>(?<HOUR>[0-9]{2})(?<MIN>[0-9]{2})(?<SEC>[0-9]{2})?))?.*");
 
     public static Pattern
             DATE_TINE_PATTERN_2 =
