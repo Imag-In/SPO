@@ -210,6 +210,7 @@ public class MediaFile implements IMediaFile {
         this.selected = source.selected;
         this.thumbnailType = source.thumbnailType;
         this.setKeepOrThrow(source.getKeepOrThrow());
+        this.setOriginalDate(source.getOriginalDate());
     }
 
     public void setNextKeepOrThrow() {

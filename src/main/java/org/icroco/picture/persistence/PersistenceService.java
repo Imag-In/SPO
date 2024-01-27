@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.config.ImagInConfiguration;
 import org.icroco.picture.event.CollectionsLoadedEvent;
+import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.model.HashDuplicate;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
@@ -24,9 +25,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static java.util.function.Function.identity;
@@ -40,6 +43,7 @@ public class PersistenceService {
     private final CollectionRepository      collectionRepo;
     private final MediaFileRepository       mfRepo;
     private final ThumbnailRepository       thumbRepo;
+    private final IHashGenerator hashGenerator;
     private final MediaCollectionMapper     colMapper;
     private final MediaFileMapper           mfMapper;
     private final ThumbnailMapper           thMapper;
@@ -177,8 +181,21 @@ public class PersistenceService {
     }
 
     @Transactional
-    public void saveMediaFiles(Collection<MediaFile> files) {
-        mfRepo.saveAll(files.stream().map(mfMapper::toEntity).toList());
+    public void saveMediaFile(MediaFile file, Consumer<MediaFile> preAction) {
+        if (preAction != null) {
+            preAction.accept(file);
+            hashGenerator.compute(file.fullPath()).ifPresent(h -> {
+                file.setHash(h);
+                file.setHashDate(LocalDate.now());
+                log.debug("Hash: '{}'", file.getHash());
+            });
+        }
+        file.initFrom(mfMapper.toDomain(mfRepo.save(mfMapper.toEntity(file))));
+    }
+
+    @Transactional
+    public void saveMediaFile(MediaFile file) {
+        saveMediaFile(file, null);
     }
 
     @Transactional

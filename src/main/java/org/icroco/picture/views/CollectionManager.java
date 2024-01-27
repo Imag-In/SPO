@@ -152,8 +152,12 @@ public class CollectionManager {
                                        .filter(mf -> hasBeenModified.contains(mf.fullPath()))
                                        .collect(Collectors.toSet());
 
-        // We skip if changes are only about fide date changes.
+        // We skip if changes are only about file date changes.
         return mfUpdated.stream()
+                        .peek(mf -> log.atDebug()
+                                       .log(() -> "Hash: '%s', newHash: '%s'".formatted(mf.getHash(),
+                                                                                        hashGenerator.compute(mf.fullPath()).orElse(""))))
+                        .filter(mf -> !Objects.equals(mf.getHash(), hashGenerator.compute(mf.fullPath()).orElse(null)))
                         .map(mf -> create(now, mf.fullPath(), true)
                                 // TODO: do not create a new MedialFile pointer, copy new one into current.
                                 .filter(newMf -> MediaFile.UPDATED_COMP.compare(newMf, mf) != 0)
@@ -208,24 +212,28 @@ public class CollectionManager {
     @EventListener(FilesChangesDetectedEvent.class)
     public void filesChangeDetected(FilesChangesDetectedEvent event) {
         Thread.ofVirtual().name("FileUpdatedInNg").start(() -> { // operation can be long, we do not block the event bus.
-            groupByCollection(event.getCreated()).forEach((mediaCollection, files) -> updateCollection(mediaCollection.id(),
-                                                                                                       files,
-                                                                                                       Collections.emptyList(),
-                                                                                                       Collections.emptyList()));
-            groupByCollection(event.getDeleted()).forEach((mediaCollection, files) -> updateCollection(mediaCollection.id(),
-                                                                                                       Collections.emptyList(),
-                                                                                                       files,
-                                                                                                       Collections.emptyList()));
-            groupByCollection(event.getModified()).forEach((mediaCollection, files) -> updateCollection(mediaCollection.id(),
-                                                                                                        Collections.emptyList(),
-                                                                                                        Collections.emptyList(),
-                                                                                                        files));
+            groupByCollection(event.getCreated())
+                    .forEach((mediaCollection, files) -> updateCollection(mediaCollection.id(),
+                                                                          files,
+                                                                          Collections.emptyList(),
+                                                                          Collections.emptyList()));
+            groupByCollection(event.getDeleted())
+                    .forEach((mediaCollection, files) -> updateCollection(mediaCollection.id(),
+                                                                          Collections.emptyList(),
+                                                                          files,
+                                                                          Collections.emptyList()));
+            groupByCollection(event.getModified())
+                    .forEach((mediaCollection, files) -> updateCollection(mediaCollection.id(),
+                                                                          Collections.emptyList(),
+                                                                          Collections.emptyList(),
+                                                                          files));
         });
     }
 
     @EventListener
     public void mediaFileUpdate(UpdateMedialFileEvent event) {
-        persistenceService.saveMediaFile(event.getMediaFile().getCollectionId(), event.getMediaFile());
+//        persistenceService.saveMediaFile(event.getMediaFile().getCollectionId(), event.getMediaFile());
+        persistenceService.saveMediaFile(event.getMediaFile());
         Platform.runLater(() -> event.getMediaFile().setLastUpdated(LocalDateTime.now()));
     }
 

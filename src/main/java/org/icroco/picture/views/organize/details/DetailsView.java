@@ -13,6 +13,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -28,6 +29,7 @@ import org.apache.commons.imaging.formats.jpeg.exif.ExifRewriter;
 import org.apache.commons.imaging.formats.tiff.JpegImageData;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
 import org.icroco.picture.event.ForceGenerateThumbnailEvent;
+import org.icroco.picture.event.NotificationEvent;
 import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.IMetadataExtractor;
@@ -300,12 +302,43 @@ public class DetailsView extends AbstractView<VBox> {
 
     private void dateExtractedAction() {
         FileUtil.extractDateTime(mediaFile.getFullPath())
-                .ifPresent(dt -> {
-                    var pop = new Popover(new Label(dt.toString()));
+                .ifPresentOrElse(dt -> {
+                    var pop = new Popover();
+
+                    var vbox = new VBox();
+                    vbox.setSpacing(5);
+                    var hbDate = new HBox();
+                    hbDate.getChildren().addAll(new Label("Date "), new TextField(dt.toLocalDate().toString()));
+                    hbDate.setAlignment(Pos.CENTER);
+
+                    var hbTime = new HBox();
+                    hbTime.getChildren().addAll(new Label("Time "), new TextField(dt.toLocalTime().toString()));
+                    hbTime.setAlignment(Pos.CENTER);
+
+                    var hbApply = new HBox();
+                    var save    = new Button(null, FontIcon.of(MaterialDesignC.CONTENT_SAVE_OUTLINE));
+                    FxUtil.styleCircleButton(save);
+                    save.setCursor(Cursor.HAND);
+                    save.setOnAction(_ -> {
+                        updateDate(mediaFile, dt);
+                        pop.hide();
+                    });
+//                    hbApply.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+                    hbApply.setAlignment(Pos.CENTER_RIGHT);
+                    hbApply.getChildren().addAll(save);
+
+                    vbox.getChildren().addAll(hbDate, hbTime, hbApply);
+                    pop.setContentNode(vbox);
                     pop.setAnimated(true);
+                    pop.setCloseButtonEnabled(true);
                     pop.setArrowLocation(Popover.ArrowLocation.TOP_RIGHT);
                     pop.show(extractDateFromFile);
-                });
+                }, () -> taskService.sendEvent(NotificationEvent.builder()
+                                                                .type(NotificationEvent.NotificationType.ERROR)
+                                                                .message("Cannot extract Date/Time from filename: '%s'".formatted(mediaFile.getFullPath()
+                                                                                                                                           .getFileName()))
+                                                                .source(this)
+                                                                .build()));
     }
 
     private void dateEditedAction() {
@@ -324,17 +357,18 @@ public class DetailsView extends AbstractView<VBox> {
         pop.setArrowLocation(Popover.ArrowLocation.TOP_RIGHT);
 
         calendar.setOnMouseClicked(_ -> {
-            log.info("new Date: {}", calendar.getValue());
             pop.hide();
             if (mediaFile != null) {
                 LocalDateTime newDateTime = LocalDateTime.of(calendar.getValue(), mediaFile.getOriginalDate().toLocalTime());
-                mediaFile.setOriginalDate(newDateTime);
-                metadataWriter.setOrignialDate(mediaFile.getFullPath(), newDateTime);
-//                    persistenceService.saveMediaFiles(List.of(mediaFile));
-                // TODO: Sync image on disk.
+                updateDate(mediaFile, newDateTime);
             }
         });
         pop.show(editDate);
+    }
+
+    private void updateDate(MediaFile file, LocalDateTime dateTime) {
+        file.setOriginalDate(dateTime);
+        persistenceService.saveMediaFile(file, mf -> metadataWriter.setOrignialDate(mf.getFullPath(), dateTime));
     }
 
     @FxEventListener
@@ -415,6 +449,7 @@ public class DetailsView extends AbstractView<VBox> {
         cameraModel.setText("");
         keywords.setText("");
         thumbnailSize.setText("");
+        creationTime.textProperty().unbind();
         creationTime.setText("");
         creationDate.textProperty().unbind();
         creationDate.setText("");
@@ -433,12 +468,12 @@ public class DetailsView extends AbstractView<VBox> {
         dbId.setText(Long.toString(mediaFile.getId()));
         name.setText(mediaFile.getFileName());
 //        log.info("MIN: {}, current: {}", LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.ofHours(0)), mediaFile.originalDate());
-        if (!mediaFile.originalDate().isEqual(LocalDateTime.MIN)) {
+//        if (!mediaFile.originalDate().isEqual(LocalDateTime.MIN)) {
 //            creationDate.setText(dateTimeFormatter.format(mediaFile.originalDate()));
 //            originalDate.setValue(mediaFile.originalDate().toLocalDate());
-            creationDate.textProperty().bind(mediaFile.getOriginalDateProperty().map(DateTimeFormatter.ISO_DATE::format));
-            creationTime.setText(DateTimeFormatter.ISO_TIME.format(mediaFile.originalDate()));
-        }
+        creationDate.textProperty().bind(mediaFile.getOriginalDateProperty().map(DateTimeFormatter.ISO_DATE::format));
+        creationTime.textProperty().bind(mediaFile.getOriginalDateProperty().map(DateTimeFormatter.ISO_TIME::format));
+//        }
         if (mediaFile.getGeoLocation().isSomewhere()) {
             gps.setText(mediaFile.getGeoLocation().toDMSString());
         }
@@ -458,7 +493,6 @@ public class DetailsView extends AbstractView<VBox> {
     }
 
     private void reload(ObservableValue<? extends LocalDateTime> observable, LocalDateTime oldValue, LocalDateTime newValue) {
-        log.info("Reload needed");
         fillForm();
     }
 
