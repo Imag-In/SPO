@@ -38,6 +38,7 @@ import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.task.AbstractTask;
 import org.icroco.picture.views.task.FxRunAllScope;
+import org.icroco.picture.views.task.IFxCallable;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Nodes;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -305,6 +306,17 @@ public class ImportView extends AbstractView<StackPane> {
                                                          .orElseThrow();
             strategy.reset();
             isRunning.set(true);
+
+//            try (var scope = new FxRunAllScope<Set<Path>>(taskService, "Import files.")) {
+//                var dirTask= scope.fork(IFxCallable.wrap(STR."Scanning directory: \{sourcePath.get()}",
+//                                                        () -> collectionManager.scanDir(sourcePath.get(), false)));
+//                scope.join();
+//                dirTask.get().re;
+//            } catch (InterruptedException e) {
+//                log.error("Unexpected error", e);
+//            }
+
+
             taskService.supply(task)
                        .thenAccept(paths -> {
                            var files = paths.stream()
@@ -327,9 +339,9 @@ public class ImportView extends AbstractView<StackPane> {
                                                                                  .directory(targetCollection)
                                                                                  .source(this)
                                                                                  .build());
-                                          reset();
-                                          var filesToBeDeleted = askForDeletion(mediaFiles, deleteFiles);
+                                          var filesToBeDeleted = askForDeletion(mediaFiles, deleteFiles, sourcePath.get());
                                           Thread.ofVirtual().start(() -> deleteAllFiles(filesToBeDeleted));
+                                          reset();
                                       }));
                        })
                        .exceptionally(throwable -> {
@@ -360,14 +372,13 @@ public class ImportView extends AbstractView<StackPane> {
         };
     }
 
-    private List<MediaFile> askForDeletion(List<MediaFile> files, boolean deleteFiles) {
+    private List<MediaFile> askForDeletion(List<MediaFile> files, boolean deleteFiles, Path path) {
         if (deleteFiles) {
-            // TODO: Delete if flag is check.
             log.info("Delete '{}' files.", files.size());
             final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, """
                     Do you really want to deleted all source files ?
                       '%d' files living into: '%s'.
-                    """.formatted(files.size(), sourceDir.getText()));
+                    """.formatted(files.size(), path));
             dlg.initOwner(getRootContent().getScene().getWindow());
             dlg.setTitle("Delete files");
 
@@ -380,20 +391,25 @@ public class ImportView extends AbstractView<StackPane> {
     }
 
     private void deleteAllFiles(List<MediaFile> mediaFiles) {
-        try (var scope = new FxRunAllScope<>(taskService, STR."Deletes '\{mediaFiles.size()}' files.", mediaFiles.size())) {
-            mediaFiles.forEach(mf -> scope.fork(() -> {
-                FileUtils.deleteQuietly(mf.getFullPath().toFile());
-                return null;
-            }));
-            scope.join();
-            taskService.sendEvent(NotificationEvent.builder()
-                                                   .message("'%s' file(s) deleted !".formatted(
-                                                           mediaFiles.size()))
-                                                   .type(NotificationEvent.NotificationType.SUCCESS)
-                                                   .source(this)
-                                                   .build());
-        } catch (InterruptedException e) {
-            log.error("Unexpected error", e);
+        if (!mediaFiles.isEmpty()) {
+            try (var scope = new FxRunAllScope<>(taskService, STR."Deletes '\{mediaFiles.size()}' files.")) {
+                final AtomicInteger i = new AtomicInteger(1);
+                var tasks = mediaFiles.stream()
+                                      .map(mf -> IFxCallable.wrap(STR."File: '\{mf.getFullPath().getFileName()}' deleted.", () -> {
+                                          FileUtils.deleteQuietly(mf.getFullPath().toFile());
+                                          return null;
+                                      }))
+                                      .map(scope::fork)
+                                      .toList();
+                scope.join();
+                taskService.sendEvent(NotificationEvent.builder()
+                                                       .message("'%s' file(s) deleted !".formatted(tasks.size()))
+                                                       .type(NotificationEvent.NotificationType.SUCCESS)
+                                                       .source(this)
+                                                       .build());
+            } catch (InterruptedException e) {
+                log.error("Unexpected error", e);
+            }
         }
     }
 

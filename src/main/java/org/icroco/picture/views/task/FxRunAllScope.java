@@ -1,55 +1,82 @@
 package org.icroco.picture.views.task;
 
-import javafx.concurrent.Task;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.StructuredTaskScope;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
-public class FxRunAllScope<T> extends StructuredTaskScope<T> {
-    private final CountDownLatch latch;
-    private final Queue<T>       results;
+public class FxRunAllScope<T> extends StructuredTaskScope<TaskResult<T>> {
+    private final AtomicInteger                  nbOfTasks   = new AtomicInteger(0);
+    private final Phaser                         phaser      = new Phaser(0);
+    private final AtomicReference<TaskResult<T>> latestValue = new AtomicReference<>(null);
+    private final Thread                         monitor;
 
-    public FxRunAllScope(TaskService taskService, final String title, final int nbOfTasks) {
-        latch = new CountDownLatch(nbOfTasks);
-        results = new ConcurrentLinkedQueue<>();
-        Task<Void> task = taskService.runAndWait(() -> new AbstractTask<Void>() {
+    @SneakyThrows
+    public FxRunAllScope(TaskService taskService, final String title) {
+        log.debug("Starting Virtuale Thread: {}", title);
+        monitor = taskService.vSupply("FxRunAllScope", true, new AbstractTask<Void>() {
             @Override
-            protected Void call() throws Exception {
-                boolean allTaskDone = false;
-                long    lastCount   = 0;
-
+            protected Void call() {
                 updateTitle(title);
-                updateProgress(lastCount, nbOfTasks);
-                while (!allTaskDone) {
-                    lastCount = latch.getCount();
-                    allTaskDone = latch.await(50, TimeUnit.MILLISECONDS);
-                    if (lastCount != latch.getCount()) {
-                        long progress = (nbOfTasks - lastCount) + 1;
-                        updateProgress(progress, nbOfTasks);
+                long progress = 0;
+                updateProgress(progress, nbOfTasks.get());
+                while (!phaser.isTerminated()) {
+                    try {
+                        Thread.sleep(Duration.ofMillis(50));
+                        long newProgress = (nbOfTasks.get() - phaser.getUnarrivedParties());
+                        if (progress != newProgress) {
+                            updateProgress(newProgress, nbOfTasks.get());
+                            Optional.ofNullable(latestValue.get())
+                                    .ifPresent(r -> updateMessage(r.title()));
+                            progress = newProgress;
+                        }
+                    } catch (InterruptedException e) {
+                        log.trace("Thread interrupted", e);
                     }
                 }
+                log.debug("End of monitoring scope: {}", phaser.getUnarrivedParties());
                 return null;
             }
-        }).orElseThrow();
-
-        Thread.ofVirtual().name("FxRunAllScope").start(task);
+        });
     }
 
     @Override
-    protected void handleComplete(Subtask<? extends T> subtask) {
-        super.handleComplete(subtask);
-        latch.countDown();
-        results.add(subtask.get());
-//        log.info("Subtask complete: {}", subtask.state());
+    public <U extends TaskResult<T>> Subtask<U> fork(Callable<? extends U> task) {
+        nbOfTasks.incrementAndGet();
+        phaser.register();
+        return super.fork(task);
     }
 
-    public List<T> getValues() {
-        return results.stream().toList();
+    @SneakyThrows
+    @Override
+    public StructuredTaskScope<TaskResult<T>> join() throws InterruptedException {
+        var result = super.join();
+        try {
+            phaser.forceTermination();
+            try {
+                monitor.interrupt();
+                monitor.join();
+            } catch (InterruptedException e) {
+                log.warn("Thread interrupted: {}", monitor.getName());
+            }
+            latestValue.set(null);
+        } finally {
+            log.debug("Phase terminated: {}, monitor alive: {}", phaser.isTerminated(), monitor.isAlive());
+        }
+        return result;
+    }
+
+    @Override
+    protected void handleComplete(Subtask<? extends TaskResult<T>> subtask) {
+        super.handleComplete(subtask);
+        phaser.arriveAndDeregister();
+        latestValue.set(subtask.get());
     }
 }

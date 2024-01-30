@@ -6,7 +6,9 @@ import org.threeten.extra.AmountFormats;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Locale;
+import java.util.SequencedCollection;
 import java.util.stream.Stream;
 
 public class LangUtils {
@@ -30,6 +32,18 @@ public class LangUtils {
         return collection == null || collection.isEmpty()
                ? Stream.empty()
                : collection.stream();
+    }
+
+    public static <T> SequencedCollection<T> safeCollection(SequencedCollection<T> collection) {
+        return collection == null || collection.isEmpty()
+               ? Collections.emptyList()
+               : collection;
+    }
+
+    public static <T> Collection<T> safeCollection(Collection<T> collection) {
+        return collection == null || collection.isEmpty()
+               ? Collections.emptyList()
+               : collection;
     }
 
     public static boolean isNullOrEmpty(Collection<?> collection) {

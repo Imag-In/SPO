@@ -50,15 +50,19 @@ public class TaskService {
     }
 
 
-    public <T> void vSupply(final Task<T> task, boolean visualFeedback) {
-        vSupply("FxSupplyVThread", task, visualFeedback);
+    public <T> Thread vSupply(boolean visualFeedback, final Task<T> task) {
+        return vSupply("FxSupplyVThread", visualFeedback, task);
     }
 
-    public <T> void vSupply(final String vThreadName, final Task<T> task, boolean visualFeedback) {
+    public <T> Thread vSupply(final String vThreadName, final Task<T> task) {
+        return vSupply(vThreadName, true, task);
+    }
+
+    public <T> Thread vSupply(final String vThreadName, boolean visualFeedback, final Task<T> task) {
         if (visualFeedback) {
             Platform.runLater(() -> taskView.addTask(task));
         }
-        Thread.ofVirtual().name(vThreadName).start(task);
+        return Thread.ofVirtual().name(vThreadName).start(task);
     }
 
     public <T> CompletableFuture<T> supply(final Task<T> task, boolean visualFeedback) {

@@ -316,9 +316,9 @@ public class CollectionManager {
         };
     }
 
-    private Set<Path> scanDir(Path rootPath, boolean resursiveScan) {
+    public Set<Path> scanDir(Path rootPath, boolean resursiveScan) {
         try (var images = Files.walk(rootPath, resursiveScan ? Integer.MAX_VALUE : 1)) {
-            return images.filter(p -> !Files.isDirectory(p))   // not a directory
+            return images.filter(p -> !Files.isDirectory(p))
                          .filter(Constant::isSupportedExtension)
                          .filter(metadataExtractor::isFileTypeSupported)
                          .map(Path::normalize)
