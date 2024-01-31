@@ -1,6 +1,7 @@
 package org.icroco.picture.util;
 
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -10,11 +11,31 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 @UtilityClass
+@Slf4j
 public class Constant {
 
     // We save 1 thread for FxPlatform (UX)
-    public static final int     NB_CORE       = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
-    public              Pattern SUPPORTED_EXT = Pattern.compile(".*\\.(png|jpg|jpeg)$", Pattern.CASE_INSENSITIVE);
+    public static final int NB_CORE = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
+
+    public static final long MAX_MEM = Runtime.getRuntime().maxMemory();
+
+    static {
+        log.info("Nb Core: '{}',  Max mem: '{}'", NB_CORE, MAX_MEM);
+    }
+//    {
+//        Runtime env = Runtime.getRuntime();
+//
+//        System.out.println("Max Heap Size = maxMemory() = " + env.maxMemory()); //max heap size from -Xmx, i.e. is constant during runtime
+//        System.out.println("Current Heap Size = totalMemory() = " + env.totalMemory()); //currently assigned  heap
+//        System.out.println("Available in Current Heap = freeMemory() = "
+//                           + env.freeMemory()); //current heap will extend if no more freeMemory to a maximum of maxMemory
+//        System.out.println("Currently Used Heap = " + (env.totalMemory() - env.freeMemory()));
+//        System.out.println("Unassigned Heap = " + (env.maxMemory() - env.totalMemory()));
+//        System.out.println("Currently Totally Available Heap Space = " + ((env.maxMemory() - env.totalMemory())
+//                                                                          + env.freeMemory())); //available=unassigned + free
+//    }
+
+    public Pattern SUPPORTED_EXT = Pattern.compile(".*\\.(png|jpg|jpeg)$", Pattern.CASE_INSENSITIVE);
 //    public              Pattern SUPPORTED_EXT = Pattern.compile(".*\\.(png|jpg|jpeg|tiff|tif)$", Pattern.CASE_INSENSITIVE);
 
     public static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);

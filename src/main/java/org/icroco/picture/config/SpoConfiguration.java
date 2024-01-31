@@ -1,7 +1,6 @@
 package org.icroco.picture.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
-import jakarta.annotation.PostConstruct;
 import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
 import net.samuelcampos.usbdrivedetector.USBDeviceDetectorManager;
@@ -43,9 +42,9 @@ import java.util.concurrent.TimeUnit;
 @AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)
 @EnableCaching
 @Slf4j
-public class ImagInConfiguration {
+public class SpoConfiguration {
 
-    public static final String CACHE_THUMBNAILS      = "thumbnails";
+    private static final String CACHE_THUMBNAILS = "thumbnails";
     public static final String CACHE_THUMBNAILS_RAW  = CACHE_THUMBNAILS + "-raw";
     public static final String CACHE_IMAGE_FULL_SIZE = "imageFullSize";
     public static final String CACHE_IMAGE_HEADER    = "imageHeader";
@@ -56,10 +55,6 @@ public class ImagInConfiguration {
     public static final String FX_EXECUTOR       = "FX_EXECUTOR";
     public static final String IMAG_IN_EXECUTOR  = "IMAG_IN_EXEC";
 
-    @PostConstruct
-    void postConstruc() {
-        log.info("SPO INIT");
-    }
 
     @Bean(name = CACHE_THUMBNAILS)
     public Cache thumbnails() {
@@ -68,7 +63,7 @@ public class ImagInConfiguration {
                                          .recordStats()
 //                                         .softValues()
                                          .maximumSize(1000) // TODO: Compute this at runtime, based on RAM and -Xmx.
-                                         .removalListener((key, value, cause) -> Platform.runLater(() -> {
+                                         .removalListener((key, _, _) -> Platform.runLater(() -> {
                                              if (key != null) {
                                                  ((MediaFile) key).setLoadedInCache(false);
                                              }
@@ -120,7 +115,6 @@ public class ImagInConfiguration {
 
     @Bean(IMAG_IN_EXECUTOR)
     public TaskExecutor threadPoolTaskExecutor() {
-        log.info("Nb core: {}", Constant.NB_CORE);
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(Constant.NB_CORE);
         executor.setMaxPoolSize(Constant.NB_CORE);
@@ -154,7 +148,7 @@ public class ImagInConfiguration {
                                                        .deviceName(evt.getStorageDevice().getDeviceName())
                                                        .rootDirectory(evt.getStorageDevice().getRootDirectory().toPath())
                                                        .type(map(evt.getEventType()))
-                                                       .source(ImagInConfiguration.this)
+                                                       .source(SpoConfiguration.this)
                                                        .build());
         });
         return usbDetector;

@@ -2,7 +2,7 @@ package org.icroco.picture.views.util;
 
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.config.ImagInConfiguration;
+import org.icroco.picture.config.SpoConfiguration;
 import org.icroco.picture.event.CollectionEvent;
 import org.icroco.picture.event.FilesChangesDetectedEvent;
 import org.icroco.picture.persistence.CollectionRepository;
@@ -45,7 +45,7 @@ public class DirectoryWatcher {
     @Autowired
     public DirectoryWatcher(TaskService taskService,
                             CollectionRepository repository,
-                            @Qualifier(ImagInConfiguration.DIRECTORY_WATCHER) ExecutorService executorService) throws IOException {
+                            @Qualifier(SpoConfiguration.DIRECTORY_WATCHER) ExecutorService executorService) throws IOException {
         this(taskService, null, true);
         executorService.submit(this::processEvents);
         drainerVThread = Thread.ofVirtual().name("File-Watcher-drainer")

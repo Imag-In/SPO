@@ -15,7 +15,7 @@ import com.drew.metadata.jpeg.JpegDirectory;
 import com.drew.metadata.png.PngDirectory;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.imaging.Imaging;
-import org.icroco.picture.config.ImagInConfiguration;
+import org.icroco.picture.config.SpoConfiguration;
 import org.icroco.picture.event.NotificationEvent;
 import org.icroco.picture.model.Camera;
 import org.icroco.picture.model.Dimension;
@@ -47,11 +47,11 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 
     private static final Supplier<Integer> DEFAULT_ORIENTATION = () -> 0;
     private final IKeywordManager tagManager;
-    private final TaskService     taskService;
+    private final TaskService taskService; // Should remove this.
 
 
     @Override
-    @Cacheable(cacheNames = ImagInConfiguration.CACHE_IMAGE_HEADER, unless = "#result != null")
+    @Cacheable(cacheNames = SpoConfiguration.CACHE_IMAGE_HEADER, unless = "#result != null")
     public Map<String, Object> getAllInformation(Path path) {
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());

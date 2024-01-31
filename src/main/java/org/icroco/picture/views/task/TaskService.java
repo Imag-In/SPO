@@ -4,7 +4,7 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.config.ImagInConfiguration;
+import org.icroco.picture.config.SpoConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.event.ApplicationEventMulticaster;
@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 public class TaskService {
     private final ApplicationEventMulticaster eventBus;
     private final TaskView                    taskView;
-    @Qualifier(ImagInConfiguration.IMAG_IN_EXECUTOR)
+    @Qualifier(SpoConfiguration.IMAG_IN_EXECUTOR)
     private final TaskExecutor                executor;
 
     /**

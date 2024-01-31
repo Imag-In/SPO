@@ -17,6 +17,8 @@ public interface MediaFileMapper {
     //    @Mapping(target = "manufacturer", source = "make")
     MediaFile toDomain(MediaFileEntity mediaFile);
 
+    MediaFile fromEntityToDomain(MediaFileEntity mediaFile, @MappingTarget MediaFile mediafile);
+
     Collection<MediaFile> toDomains(Collection<MediaFileEntity> mediaFiles);
 
     @InheritInverseConfiguration(name = "toDomain")

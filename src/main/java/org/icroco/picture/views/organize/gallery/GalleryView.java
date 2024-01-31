@@ -367,7 +367,7 @@ public class GalleryView implements FxView<StackPane> {
 
     private void displayNext(MediaFile mf) {
         EGalleryClickState prev = dblCickState;
-        if (!Files.exists(mf.fullPath())) {
+        if (mf != null && !Files.exists(mf.fullPath())) {
             taskService.sendEvent(NotificationEvent.builder()
                                                    .type(NotificationEvent.NotificationType.ERROR)
                                                    .message("File path not found (or not mounted): '%s'".formatted(mf.getFullPath()))
@@ -502,6 +502,7 @@ public class GalleryView implements FxView<StackPane> {
             final var path = getCurrentCatalog().path().resolve(newValue.subPath());
             predicates.remove(PathPredicate.class);
             predicates.add(new PathPredicate(path));
+            mediaLoader.loadAndCachedValues(sortedImages);
             updateDateOverlay(sortedImages.stream().findFirst());
 //            updateDateOverlay();
 //        mediaLoader.warmThumbnailCache(getCurrentCatalog(), filteredImages);

@@ -3,7 +3,6 @@ package org.icroco.picture.model;
 import javafx.beans.Observable;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.util.Callback;
 import lombok.Builder;
@@ -27,7 +26,6 @@ public class MediaFile implements IMediaFile {
     private Long           id;
     private Path           fullPath;
     private String         fileName;
-    //    private LocalDateTime  originalDate;
     private Set<Keyword>   keywords;
     private GeoLocation    geoLocation;
     private String         hash;
@@ -37,18 +35,10 @@ public class MediaFile implements IMediaFile {
     private Camera         camera;
     private Integer        collectionId;
     private boolean        selected;
-    //    @Builder.Default
-//    private EKeepOrThrow   keepOrThrow   = EKeepOrThrow.UNKNOW;
-//    @Builder.Default
     private EThumbnailType thumbnailType;
 
-
-    //    @NonNull
-//    @Builder.Default
-//    private SimpleObjectProperty<Thumbnail> thumbnail = new SimpleObjectProperty<>(null);
     private final SimpleObjectProperty<LocalDateTime> lastUpdated          = new SimpleObjectProperty<>(LocalDateTime.MIN);
     private final SimpleBooleanProperty              loadedInCache       = new SimpleBooleanProperty(false);
-    private final SimpleLongProperty                  idProperty           = new SimpleLongProperty(0);
     private final SimpleObjectProperty<LocalDateTime> originalDateProperty = new SimpleObjectProperty<>();
     private final SimpleObjectProperty<EKeepOrThrow> keepOrThrowProperty = new SimpleObjectProperty<>();
 
@@ -71,7 +61,6 @@ public class MediaFile implements IMediaFile {
         this.id = id;
         this.fullPath = fullPath;
         this.fileName = fileName;
-//        this.originalDate = originalDate;
         this.keywords = keywords;
         this.geoLocation = geoLocation;
         this.hash = hash;
@@ -81,12 +70,16 @@ public class MediaFile implements IMediaFile {
         this.camera = camera;
         this.collectionId = collectionId;
         this.selected = selected;
-//        this.keepOrThrow = keepOrThrow;
-        this.thumbnailType = Objects.requireNonNullElse(thumbnailType, EThumbnailType.ABSENT);
 
+        this.thumbnailType = Objects.requireNonNullElse(thumbnailType, EThumbnailType.ABSENT);
         this.originalDateProperty.setValue(originalDate);
         this.keepOrThrowProperty.setValue(Objects.requireNonNullElse(keepOrThrow, EKeepOrThrow.UNKNOW));
     }
+
+    public static Callback<MediaFile, Observable[]> extractor() {
+        return mf -> new Observable[] { mf.loadedInCache, mf.lastUpdated, mf.originalDateProperty };
+    }
+
 
     public SimpleBooleanProperty loadedInCacheProperty() {
         return loadedInCache;
@@ -117,9 +110,6 @@ public class MediaFile implements IMediaFile {
     }
 
     public ReadOnlyObjectProperty<LocalDateTime> getOriginalDateProperty() {
-//        if (originalDateProperty == null) {
-//            originalDateProperty = new SimpleObjectProperty<>(originalDate);
-//        }
         return originalDateProperty;
     }
 
@@ -172,15 +162,6 @@ public class MediaFile implements IMediaFile {
         selected = !selected;
     }
 
-    public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[] { mf.loadedInCache, mf.lastUpdated, mf.originalDateProperty };
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-        idProperty.set(id);
-    }
-
     public void setLoadedInCache(boolean value) {
         loadedInCache.set(value);
     }
@@ -209,6 +190,7 @@ public class MediaFile implements IMediaFile {
         this.collectionId = source.collectionId;
         this.selected = source.selected;
         this.thumbnailType = source.thumbnailType;
+        this.setLoadedInCache(false);
         this.setKeepOrThrow(source.getKeepOrThrow());
         this.setOriginalDate(source.getOriginalDate());
     }

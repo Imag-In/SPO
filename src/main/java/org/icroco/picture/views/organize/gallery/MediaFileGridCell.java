@@ -138,7 +138,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
                     log.atDebug().log(() -> "Grid Cell updated(%s): %s: %s - %s - %s ('%s'/'%s') - %s".formatted(this.hashCode(),
                                                                                                                  item.getFullPath(),
                                                                                                                  item.getKeywords(),
-                                                                                                                 item.isLoadedInCache(),
+                                                                                                                 false,/*item.isLoadedInCache(),*/
                                                                                                                  lastHash,
                                                                                                                  item.getHash(),
                                                                                                                  (!lastHash.equals(item.getHash())),

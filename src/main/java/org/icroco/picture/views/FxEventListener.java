@@ -1,7 +1,7 @@
 package org.icroco.picture.views;
 
 
-import org.icroco.picture.config.ImagInConfiguration;
+import org.icroco.picture.config.SpoConfiguration;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 
@@ -12,7 +12,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
-@Async(ImagInConfiguration.FX_EXECUTOR)
+@Async(SpoConfiguration.FX_EXECUTOR)
 @EventListener()
 public @interface FxEventListener {
 }

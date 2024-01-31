@@ -3,7 +3,7 @@ package org.icroco.picture.persistence;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.config.ImagInConfiguration;
+import org.icroco.picture.config.SpoConfiguration;
 import org.icroco.picture.event.CollectionsLoadedEvent;
 import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.model.HashDuplicate;
@@ -43,13 +43,13 @@ public class PersistenceService {
     private final CollectionRepository      collectionRepo;
     private final MediaFileRepository       mfRepo;
     private final ThumbnailRepository       thumbRepo;
-    private final IHashGenerator hashGenerator;
+    private final IHashGenerator            hashGenerator;
     private final MediaCollectionMapper     colMapper;
     private final MediaFileMapper           mfMapper;
     private final ThumbnailMapper           thMapper;
-    @Qualifier(ImagInConfiguration.CACHE_CATALOG)
+    @Qualifier(SpoConfiguration.CACHE_CATALOG)
     private final Cache                     mcCache;
-    @Qualifier(ImagInConfiguration.CACHE_THUMBNAILS_RAW)
+    @Qualifier(SpoConfiguration.CACHE_THUMBNAILS_RAW)
     private final Map<MediaFile, Thumbnail> thCache;
     private final TaskService               taskService;
     private final ReentrantReadWriteLock    mcLock = new ReentrantReadWriteLock();
@@ -190,7 +190,7 @@ public class PersistenceService {
                 log.debug("Hash: '{}'", file.getHash());
             });
         }
-        file.initFrom(mfMapper.toDomain(mfRepo.save(mfMapper.toEntity(file))));
+        mfMapper.fromEntityToDomain(mfRepo.save(mfMapper.toEntity(file)), file);
     }
 
     @Transactional
@@ -231,6 +231,32 @@ public class PersistenceService {
                             .stream()
                             .map(thMapper::toDomain)
                             .toList();
+        } finally {
+            wLock.unlock();
+        }
+    }
+
+    @Transactional
+    public Thumbnail save(Thumbnail thumbnail) {
+        var wLock = mcLock.writeLock();
+        try {
+            wLock.lock();
+            thumbRepo.deleteById(thumbnail.getMfId());
+            return thMapper.toDomain(thumbRepo.saveAndFlush(thMapper.toEntity(thumbnail)));
+        } finally {
+            wLock.unlock();
+        }
+    }
+
+    @Transactional
+    public Thumbnail save(MediaFile mf, Thumbnail thumbnail) {
+        var wLock = mcLock.writeLock();
+        try {
+            wLock.lock();
+//            thumbnail.setDimension(new Dimension(thumbnail.getImage().getWidth(), thumbnail.getImage().getHeight()));
+            mf.setThumbnailType(thumbnail.getOrigin());
+            saveMediaFile(mf);
+            return save(thumbnail);
         } finally {
             wLock.unlock();
         }
@@ -321,7 +347,8 @@ public class PersistenceService {
                                                                                    entity.setCollectionId(mc.id());
                                                                                    return mfRepo.save(entity);
                                                                                })
-                                                                               .map(mfMapper::toDomain)
+                                                                               .map(mfEntity -> mfMapper.fromEntityToDomain(mfEntity,
+                                                                                                                            mediaFile))
                                                                                .orElse(null))
                                                        .filter(Objects::nonNull)
                                                        .toList();

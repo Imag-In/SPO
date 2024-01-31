@@ -34,6 +34,13 @@ public class NotificationView {
     public NotificationView(TaskService taskService, MainView mainView) {
         this.taskService = taskService;
         notificationPane = mainView.getRootContent();
+        notificationPane.getChildren().add(notificationBar);
+        StackPane.setAlignment(notificationBar, Pos.TOP_RIGHT);
+        notificationBar.setSpacing(10);
+        notificationBar.setMaxHeight(0);
+        notificationBar.setMaxWidth(400);
+        notificationBar.setMinWidth(400);
+        notificationBar.setPadding(new Insets(20, 20, 20, 20));
     }
 
     @FxEventListener
@@ -53,8 +60,7 @@ public class NotificationView {
             var yesBtn = getButton(event, msg);
             msg.setPrimaryActions(yesBtn);
 
-            addAlert(msg, Duration.seconds(15));
-
+            addAlert(msg, Duration.seconds(30));
         }
     }
 
@@ -72,12 +78,14 @@ public class NotificationView {
     }
 
     private void addAlert(Notification msg, Duration showDuration) {
+        msg.setPrefWidth(300);
         if (!notificationBar.getChildren().contains(msg)) {
             if (notificationBar.getChildren().size() > 5) {
                 notificationBar.getChildren().removeFirst();
             }
             HBox.setHgrow(msg, Priority.ALWAYS);
             notificationBar.getChildren().add(msg);
+
             msg.setOnClose(_ -> {
                 var close = Animations.slideOutUp(msg, Duration.millis(250));
                 close.setOnFinished(_ -> removeAlert(msg));
@@ -144,16 +152,6 @@ public class NotificationView {
     public void listenEvent(NotificationEvent event) {
         // TODO: Historize latest alerts into DB.
         log.debug("Notification: {}", event);
-
-        if (!notificationPane.getChildren().contains(notificationBar)) {
-            notificationPane.getChildren().add(notificationBar);
-            StackPane.setAlignment(notificationBar, Pos.TOP_RIGHT);
-            notificationBar.setSpacing(10);
-            notificationBar.setMaxHeight(0);
-            notificationBar.setMaxWidth(400);
-            notificationBar.setMinWidth(300);
-            notificationBar.setPadding(new Insets(20, 20, 20, 20));
-        }
 
         final var msg = new Notification(event.getMessage(), new FontIcon(Material2OutlinedAL.HELP_OUTLINE));
         customizeIcon(event.getType(), msg, null);

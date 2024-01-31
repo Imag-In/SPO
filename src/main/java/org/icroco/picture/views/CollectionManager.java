@@ -157,7 +157,7 @@ public class CollectionManager {
                         .peek(mf -> log.atDebug()
                                        .log(() -> "Hash: '%s', newHash: '%s'".formatted(mf.getHash(),
                                                                                         hashGenerator.compute(mf.fullPath()).orElse(""))))
-                        .filter(mf -> !Objects.equals(mf.getHash(), hashGenerator.compute(mf.fullPath()).orElse(null)))
+//                        .filter(mf -> !Objects.equals(mf.getHash(), hashGenerator.compute(mf.fullPath()).orElse(null)))
                         .map(mf -> create(now, mf.fullPath(), true)
                                 // TODO: do not create a new MedialFile pointer, copy new one into current.
                                 .filter(newMf -> MediaFile.UPDATED_COMP.compare(newMf, mf) != 0)
@@ -295,9 +295,12 @@ public class CollectionManager {
                                                })
                                                .orElseThrow(() -> new UserAbortedException(STR."User aborted action, collection too large: \{size}"));
                          })
-                         .onSuccess((myself, mediaCollection) -> log.info("Collections entries: {}, time: {}",
-                                                                          mediaCollection.medias().size(),
-                                                                          LangUtils.wordBased(myself.getDuration())))
+                         .onSuccess((myself, mediaCollection) -> {
+                             log.info("Collections entries: {}, time: {}",
+                                      mediaCollection.medias().size(),
+                                      LangUtils.wordBased(myself.getDuration()));
+                             mediaCollection.setConnected(Files.exists(rootPath));
+                         })
                          .onFailed(throwable -> {
                              log.error("While scanning dir: '{}'", rootPath, throwable);
                          })
