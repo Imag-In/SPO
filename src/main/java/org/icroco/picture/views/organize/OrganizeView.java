@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import static org.icroco.picture.views.util.Nodes.applyAndConsume;
 
-//@FxViewBinding(id = "main", fxmlLocation = "main.fxml", isPrimary = true)
+//@FxViewBinding(mcId = "main", fxmlLocation = "main.fxml", isPrimary = true)
 @Slf4j
 @RequiredArgsConstructor
 @Component

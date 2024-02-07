@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
 import org.icroco.picture.event.*;
+import org.icroco.picture.event.FilesChangesDetectedEvent.PathItem;
 import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.HashDuplicate;
@@ -36,6 +37,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.icroco.picture.util.LangUtils.getAllFiles;
 
 @Component
 @RequiredArgsConstructor
@@ -97,9 +100,12 @@ public class CollectionManager {
             var recordedFiles = mediaCollection.medias()
                                                .stream()
                                                .map(MediaFile::getFullPath)
+                                               .map(path -> new PathItem(path, Files.isDirectory(path)))
                                                .collect(Collectors.toSet());
-            var currenFiles = Set.copyOf(getAllFiles(mediaCollection.path()));
-            var difference  = org.icroco.picture.views.util.Collections.difference(recordedFiles, currenFiles);
+            var currenFiles = Set.copyOf(getAllFiles(mediaCollection.path()).stream()
+                                                                            .map(path -> new PathItem(path, Files.isDirectory(path)))
+                                                                            .toList());
+            var difference = org.icroco.picture.views.util.Collections.difference(recordedFiles, currenFiles);
 
             difference.leftMissing().forEach(path -> log.info("Collections: '{}', file added: {}", mediaCollection.path(), path));
             difference.rightMissing().forEach(path -> log.info("Collections: '{}', file deleted: {}", mediaCollection.path(), path));
@@ -108,34 +114,48 @@ public class CollectionManager {
             if (difference.isNotEmpty()) { // TODO: implements update.
                 updateCollection(mediaCollection.id(), difference.leftMissing(), difference.rightMissing(), Collections.emptyList());
             }
+            // TODO: Check empty sub dir and clean database / ui.
         } else {
             log.warn("Media Collection dir is not found: '{}'", mediaCollection.path());
             mediaCollection.setConnected(false);
         }
     }
 
-    public void updateCollection(int collectionId,
-                                 Collection<Path> toBeAdded,
-                                 Collection<Path> toBeDeleted,
-                                 Collection<Path> hasBeenModified) {
+    private void updateCollection(int collectionId,
+                                  Collection<PathItem> toBeAdded,
+                                  Collection<PathItem> toBeDeleted,
+                                  Collection<PathItem> hasBeenModified) {
         var now = LocalDate.now();
         hasBeenModified = new ArrayList<>(hasBeenModified);
         hasBeenModified.removeAll(toBeDeleted); // To make sure !
         var res = persistenceService.updateCollection(collectionId,
                                                       toBeAdded.stream()
+                                                               .filter(PathItem::isRegularFile)
+                                                               .map(PathItem::path)
                                                                .flatMap(p -> create(now, p, false).stream())
                                                                .collect(Collectors.toSet()),
                                                       toBeDeleted.stream()
+                                                                 .filter(PathItem::isRegularFile)
+                                                                 .map(PathItem::path)
                                                                  .map(p -> MediaFile.builder().fullPath(p).build())
                                                                  .collect(Collectors.toSet()),
                                                       reloadMetadate(persistenceService.getMediaCollection(collectionId),
-                                                                     hasBeenModified,
+                                                                     hasBeenModified.stream()
+                                                                                    .filter(PathItem::isRegularFile)
+                                                                                    .map(PathItem::path)
+                                                                                    .toList(),
                                                                      now));
+
+        var mceIds = persistenceService.removeSubDirFromCollection(collectionId, toBeDeleted.stream()
+                                                                                            .filter(PathItem::isDirectory)
+                                                                                            .map(PathItem::path)
+                                                                                            .collect(Collectors.toSet()));
         taskService.sendEvent(CollectionUpdatedEvent.builder()
                                                     .mcId(collectionId)
                                                     .newItems(res.added())
                                                     .deletedItems(res.deleted())
                                                     .modifiedItems(res.updated())
+                                                    .subPathDeletedIds(mceIds)
                                                     .source(this)
                                                     .build());
         taskService.sendEvent(CustomExtractThumbnailEvent.builder()
@@ -144,6 +164,8 @@ public class CollectionManager {
                                                          .modifiedItems(res.updated())
                                                          .source(this)
                                                          .build());
+
+        // TODO: Send event to clean collection subdir nodes.
     }
 
     private Set<MediaFile> reloadMetadate(MediaCollection mediaCollection, Collection<Path> hasBeenModified, LocalDate now) {
@@ -168,18 +190,6 @@ public class CollectionManager {
                                 .orElse(null))
                         .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
-    }
-
-    List<Path> getAllFiles(Path rootPath) {
-        try (var images = Files.walk(rootPath)) {
-            return images.filter(p -> !Files.isDirectory(p))   // not a directory
-                         .map(Path::normalize)
-                         .filter(Constant::isSupportedExtension)
-                         .toList();
-        } catch (IOException e) {
-            log.error("Cannot walk through directory: '{}'", rootPath);
-            return Collections.emptyList();
-        }
     }
 
     public Optional<MediaFile> create(LocalDate now, Path p, boolean generateHash) {
@@ -237,12 +247,12 @@ public class CollectionManager {
         Platform.runLater(() -> event.getMediaFile().setLastUpdated(LocalDateTime.now()));
     }
 
-    private Map<MediaCollection, List<Path>> groupByCollection(Collection<Path> files) {
-        record PathAndCollection(Path path, MediaCollection mediaCollection) {
+    private Map<MediaCollection, List<PathItem>> groupByCollection(Collection<PathItem> files) {
+        record PathAndCollection(PathItem path, MediaCollection mediaCollection) {
         }
 
         return files.stream()
-                    .map(path -> new PathAndCollection(path, persistenceService.findMediaCollectionForFile(path).orElse(null)))
+                    .map(pi -> new PathAndCollection(pi, persistenceService.findMediaCollectionForFile(pi.path()).orElse(null)))
                     .filter(it -> it.mediaCollection != null)
                     .collect(Collectors.groupingBy(pathAndCollection -> pathAndCollection.mediaCollection,
                                                    Collectors.mapping(PathAndCollection::path, Collectors.toList())));

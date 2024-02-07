@@ -20,9 +20,9 @@ public class PathSerializer extends StdSerializer<Path> {
     @Override
     public void serialize(Path path, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
 //        jgen.writeStartObject();
-//        jgen.writeNumberField("id", value.id);
+//        jgen.writeNumberField("mcId", value.mcId);
 //        jgen.writeStringField("itemName", value.itemName);
-//        jgen.writeNumberField("owner", value.owner.id);
+//        jgen.writeNumberField("owner", value.owner.mcId);
 //        jgen.writeEndObject();
         jsonGenerator.writeString(path.toString());
     }

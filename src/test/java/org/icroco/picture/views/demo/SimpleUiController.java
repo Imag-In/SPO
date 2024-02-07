@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 //import org.icroco.javafx.FxViewBinding;
 //import org.icroco.javafx.I18N;
 
-//@FxViewBinding(id = "blabla", fxmlLocation = "/fxml/ui.fxml", isPrimary = false)
+//@FxViewBinding(mcId = "blabla", fxmlLocation = "/fxml/ui.fxml", isPrimary = false)
 @RequiredArgsConstructor
 @Slf4j
 public class SimpleUiController {

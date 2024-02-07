@@ -40,7 +40,9 @@ import org.icroco.picture.views.task.AbstractTask;
 import org.icroco.picture.views.task.FxRunAllScope;
 import org.icroco.picture.views.task.IFxCallable;
 import org.icroco.picture.views.task.TaskService;
+import org.icroco.picture.views.util.DirectoryWatcher;
 import org.icroco.picture.views.util.Nodes;
+import org.jooq.lambda.Unchecked;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignI;
@@ -52,6 +54,7 @@ import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -68,21 +71,23 @@ import static javafx.beans.binding.Bindings.or;
 @Slf4j
 @Component
 public class ImportView extends AbstractView<StackPane> {
-    public static final int             SECOND_COL_PREF_WIDTH = 600;
+    public static final int              SECOND_COL_PREF_WIDTH = 600;
     private final       TaskService        taskService;
     private final       PersistenceService persistenceService;
     private final       CollectionManager  collectionManager;
-    private final       StackPane       root                  = new StackPane();
-    private final       CustomTextField sourceDir             = new CustomTextField();
-    private             TextField          targetCollectionTf;
-    private             TextField          targetSubDirTf;
-    private             TextField          tags;
-    private final       TextArea        exampleTf             = new TextArea();
-    private final       CustomTextField filePrefix            = new CustomTextField("");
-    private final       Label           filesCounter          = new Label("");
-    private final       Button          importBtn             = new Button("Import");
-    private final       ToggleSwitch    genThumbailsCb        = new ToggleSwitch("Generate high quality thumbnails");
-    private final       ToggleSwitch    deleteFilesCb         = new ToggleSwitch("Delete imported files");
+    private final       DirectoryWatcher directoryWatcher;
+
+    private final StackPane       root           = new StackPane();
+    private final CustomTextField sourceDir      = new CustomTextField();
+    private       TextField       targetCollectionTf;
+    private       TextField       targetSubDirTf;
+    private       TextField       tags;
+    private final TextArea        exampleTf      = new TextArea();
+    private final CustomTextField filePrefix     = new CustomTextField("");
+    private final Label           filesCounter   = new Label("");
+    private final Button          importBtn      = new Button("Import");
+    private final ToggleSwitch    genThumbailsCb = new ToggleSwitch("Generate high quality thumbnails");
+    private final ToggleSwitch    deleteFilesCb  = new ToggleSwitch("Delete imported files");
 
     private final MediaFile[] fakeMf = new MediaFile[] { MediaFile.builder()
                                                                   .originalDate(LocalDateTime.now())
@@ -108,11 +113,12 @@ public class ImportView extends AbstractView<StackPane> {
 
     public ImportView(TaskService taskService,
                       PersistenceService persistenceService,
-                      CollectionManager collectionManager,
+                      CollectionManager collectionManager, DirectoryWatcher directoryWatcher,
                       Collection<IRenameFilesStrategy> strategies) {
         this.taskService = taskService;
         this.persistenceService = persistenceService;
         this.collectionManager = collectionManager;
+        this.directoryWatcher = directoryWatcher;
         this.strategies = new SortedList<>(FXCollections.observableArrayList(strategies),
                                            Comparator.comparing(IRenameFilesStrategy::displayName));
     }
@@ -138,9 +144,9 @@ public class ImportView extends AbstractView<StackPane> {
             final var task = collectionManager.scanDirectory(newValue, false);
             task.setOnSucceeded(_ -> {
                 filesCounter.setText("'" + task.getValue().size() + "' files found.");
-                updateExanple();
+                updateExample();
             });
-            task.setOnFailed(_ -> updateExanple());
+            task.setOnFailed(_ -> updateExample());
             taskService.supply(task);
         }
     }
@@ -189,6 +195,7 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(createLabel("Sub-directory", 200, 300), 0, rowIdx);
         targetSubDirTf = new TextField();
         targetSubDirTf.setPromptText("Create a new sub-directory into collection.");
+        targetSubDirTf.textProperty().addListener((_, _, _) -> updateExample());
         // TODO check if directory already exits into collections.
         grid.add(targetSubDirTf, 1, rowIdx);
 
@@ -236,7 +243,7 @@ public class ImportView extends AbstractView<StackPane> {
         filePrefix.setPromptText("Add a filename prefix like: Ibiza-");
         filePrefix.setPrefWidth(SECOND_COL_PREF_WIDTH);
         filePrefix.textProperty().addListener((_, _, newV) -> {
-            updateExanple();
+            updateExample();
             filePrefix.pseudoClassStateChanged(Styles.STATE_DANGER, false);
             filePrefix.pseudoClassStateChanged(Styles.STATE_SUCCESS, false);
             filePrefix.pseudoClassStateChanged(LangUtils.isBlank(newV) ? Styles.STATE_DANGER : Styles.STATE_SUCCESS, true);
@@ -249,7 +256,7 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(createLabel("File pattern", 200, 350), 0, rowIdx);
         renamingStrategyCb.setItems(strategies);
         grid.add(renamingStrategyCb, 1, rowIdx);
-        renamingStrategyCb.getSelectionModel().selectedItemProperty().addListener((_, _, _) -> updateExanple());
+        renamingStrategyCb.getSelectionModel().selectedItemProperty().addListener((_, _, _) -> updateExample());
 
         rowIdx += 1;
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
@@ -319,6 +326,11 @@ public class ImportView extends AbstractView<StackPane> {
 
             taskService.supply(task)
                        .thenAccept(paths -> {
+                           Path target = LangUtils.isBlank(targetSubDirTf.getText())
+                                         ? targetCollection
+                                         : Unchecked.<Path>unaryOperator(Files::createDirectories)
+                                                    .apply(targetCollection.resolve(targetSubDirTf.getText()));
+                           directoryWatcher.registerAll(target);
                            var files = paths.stream()
                                             .peek(path -> log.debug("Importing: '{}'", path))
                                             .flatMap(f -> collectionManager.create(now, f, false).stream())
@@ -336,7 +348,7 @@ public class ImportView extends AbstractView<StackPane> {
                                           isRunning.set(false);
                                           taskService.sendEvent(ShowOrganizeEvent.builder()
                                                                                  .collectionsId(mc.id())
-                                                                                 .directory(targetCollection)
+                                                                                 .directory(target)
                                                                                  .source(this)
                                                                                  .build());
                                           var filesToBeDeleted = askForDeletion(mediaFiles, deleteFiles, sourcePath.get());
@@ -416,6 +428,7 @@ public class ImportView extends AbstractView<StackPane> {
     private static RenameFile copyAndRename(RenameFile rf) {
         log.info("File copied from: '{}', to: '{}'", rf.source, rf.target);
         try {
+            Files.createDirectories(rf.target.getParent());
             Files.copy(rf.source.getFullPath(), rf.target);
             return rf;
         } catch (FileAlreadyExistsException e) {
@@ -450,10 +463,12 @@ public class ImportView extends AbstractView<StackPane> {
         alert.getDialogPane().contentProperty().setValue(treeView);
         Nodes.show(alert, getRootContent().getScene()).filter(buttonType -> buttonType == ButtonType.OK)
              .ifPresent(_ -> {
-                 log.info("OK: {}", treeView.getSelectionModel().getSelectedItem().getValue());
-                 targetCollection = treeView.getSelectionModel().getSelectedItem().getValue();
-                 targetCollectionTf.setText(targetCollection.toString());
-                 updateExanple();
+                 if (treeView.getSelectionModel().getSelectedItem() != null) {
+                     log.info("OK: {}", treeView.getSelectionModel().getSelectedItem().getValue());
+                     targetCollection = treeView.getSelectionModel().getSelectedItem().getValue();
+                     targetCollectionTf.setText(targetCollection.toString());
+                     updateExample();
+                 }
              });
     }
 
@@ -500,7 +515,7 @@ public class ImportView extends AbstractView<StackPane> {
         textField.pseudoClassStateChanged(Styles.STATE_DANGER, true);
         textField.textProperty().addListener((_, _, newV) -> {
             if (isUpdateExample) {
-                updateExanple();
+                updateExample();
             }
 
             textField.pseudoClassStateChanged(Styles.STATE_DANGER, false);
@@ -529,7 +544,7 @@ public class ImportView extends AbstractView<StackPane> {
         button.pseudoClassStateChanged(Styles.STATE_DANGER, true);
         textField.textProperty().addListener((_, _, newV) -> {
             if (isUpdateExample) {
-                updateExanple();
+                updateExample();
             }
             button.pseudoClassStateChanged(Styles.STATE_DANGER, false);
             button.pseudoClassStateChanged(Styles.STATE_SUCCESS, true);
@@ -552,7 +567,7 @@ public class ImportView extends AbstractView<StackPane> {
         return group;
     }
 
-    private void updateExanple() {
+    private void updateExample() {
         exampleTf.setText("");
         var strategy = renamingStrategyCb.getSelectionModel().getSelectedItem();
         var stringBuilder = new StringBuilder();
@@ -579,10 +594,13 @@ public class ImportView extends AbstractView<StackPane> {
 
 
     Path createDestinationPath(MediaFile mediaFile, IRenameFilesStrategy strategy) {
+        String target = LangUtils.isBlank(targetSubDirTf.getText())
+                        ? filePrefix.getText()
+                        : Paths.get(targetSubDirTf.getText(), filePrefix.getText()).toString();
         if (targetCollection != null) {
-            return targetCollection.resolve(filePrefix.getText() + strategy.computeNewFileName(mediaFile));
+            return targetCollection.resolve(target + strategy.computeNewFileName(mediaFile));
         }
-        return Path.of(filePrefix.getText() + strategy.computeNewFileName(mediaFile));
+        return Path.of(target + strategy.computeNewFileName(mediaFile));
     }
 
     private void chooseDirectory(MouseEvent event) {

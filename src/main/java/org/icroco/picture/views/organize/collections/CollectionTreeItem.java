@@ -21,6 +21,6 @@ public class CollectionTreeItem extends TreeItem<CollectionNode> {
     }
 
     boolean isRootCollection() {
-        return node.id() >= 0;
+        return node.mcId() >= 0;
     }
 }

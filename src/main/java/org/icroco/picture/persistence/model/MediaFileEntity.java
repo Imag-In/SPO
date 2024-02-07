@@ -56,7 +56,7 @@ public class MediaFileEntity {
 
     //    @ManyToMany(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER, mappedBy = "entities")
 //    @JoinTable(name = "MF_TAGS", joinColumns = @JoinColumn(name = "tag_id"))
-//    @JoinColumn(name = "tag_id", referencedColumnName = "id")
+//    @JoinColumn(name = "tag_id", referencedColumnName = "mcId")
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "MF_KEYWORDS",
                joinColumns = @JoinColumn(name = "MF_ID"),

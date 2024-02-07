@@ -41,7 +41,7 @@ public class MediaCollection {
     @Override
     public String toString() {
         return "MediaCollection{" +
-               "id:" + id +
+               "mcId:" + id +
                ", path:" + path +
                ", subDir:" + subPaths.size() +
                ", files:" + medias.size() +

@@ -200,7 +200,7 @@ public class MediaFile implements IMediaFile {
     }
 }
 
-//public record MediaFile(long id,
+//public record MediaFile(long mcId,
 //                        Path fullPath,
 //                        String fileName,
 //                        LocalDate originalDate,
@@ -208,8 +208,8 @@ public class MediaFile implements IMediaFile {
 //                        SimpleObjectProperty<Thumbnail> thumbnail) implements IMediaFile {
 //
 //    @Builder
-//    public MediaFile(long id, Path fullPath, String fileName, LocalDate originalDate, Set<Tag> tags, SimpleObjectProperty<Thumbnail> thumbnail) {
-//        this.id = id;
+//    public MediaFile(long mcId, Path fullPath, String fileName, LocalDate originalDate, Set<Tag> tags, SimpleObjectProperty<Thumbnail> thumbnail) {
+//        this.mcId = mcId;
 //        this.fullPath = fullPath;
 //        this.fileName = fileName;
 //        this.originalDate = originalDate;
@@ -235,7 +235,7 @@ public class MediaFile implements IMediaFile {
 //        if (this == o) return true;
 //        if (o == null || getClass() != o.getClass()) return false;
 //        MediaFile mediaFile = (MediaFile) o;
-//        return id == mediaFile.id;
+//        return mcId == mediaFile.mcId;
 //    }
 //
 //    public static Callback<MediaFile, Observable[]> extractor() {

@@ -176,7 +176,9 @@ public class GalleryView implements FxView<StackPane> {
         dateOverlay.setTranslateX(dateOverlay.getTranslateX() + 20);
         dateOverlay.setTranslateY(dateOverlay.getTranslateY() + 20);
         dateOverlay.setId("grid-current-date");
-
+        dateOverlay.setFocusTraversable(false);
+//        dateOverlay.setEventDispatcher((event, tail) -> gridView.getEventDispatcher().dispatchEvent(event, tail));
+//        dateOverlay.setOnMouseClicked(event -> Event.fireEvent(gridView, event));
 
         gridView.addEventHandler(MouseEvent.MOUSE_MOVED, event -> resetDateAutoHideEffect());
 
@@ -187,6 +189,7 @@ public class GalleryView implements FxView<StackPane> {
         carousel.setVisible(false);
         StackPane.setAlignment(dateOverlay, Pos.TOP_LEFT);
         root.getChildren().addAll(modalPane, gallery, carousel, dateOverlay);
+
 
         ofNullable(pref.getUserPreference().getGrid().getCellPerRow()).ifPresent(zoomThumbnails::setValue);
         gridView.cellWidthProperty().bind(Bindings.divide(Bindings.subtract(gallery.widthProperty(), 18), zoomThumbnails.valueProperty()));
@@ -502,6 +505,7 @@ public class GalleryView implements FxView<StackPane> {
             final var path = getCurrentCatalog().path().resolve(newValue.subPath());
             predicates.remove(PathPredicate.class);
             predicates.add(new PathPredicate(path));
+//            log.info("First item: {}, latest: {}", sortedImages.getFirst(), sortedImages.getLast());
             mediaLoader.loadAndCachedValues(sortedImages);
             updateDateOverlay(sortedImages.stream().findFirst());
 //            updateDateOverlay();
@@ -524,7 +528,7 @@ public class GalleryView implements FxView<StackPane> {
             log.atDebug().log(() -> {
                 Optional<Thumbnail> cache = persistenceService.getThumbnailFromCache(mf);
                 Optional<Thumbnail> db    = persistenceService.findByPathOrId(mf);
-                return "Photo selected: root: '%s', '%s', '%s', from: '%s'. Thumbhnail DB id: '%s', type: '%s'. Tumbhnail Cache, id: '%s', type: '%s'"
+                return "Photo selected: root: '%s', '%s', '%s', from: '%s'. Thumbhnail DB mcId: '%s', type: '%s'. Tumbhnail Cache, mcId: '%s', type: '%s'"
                         .formatted(mf.getId(),
                                    mf.getFileName(),
                                    mf.getThumbnailType(),

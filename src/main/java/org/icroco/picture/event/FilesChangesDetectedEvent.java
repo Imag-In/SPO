@@ -11,9 +11,19 @@ import java.util.Collection;
 @ToString(onlyExplicitlyIncluded = true)
 @SuperBuilder
 public final class FilesChangesDetectedEvent extends IiEvent {
-    private final Collection<Path> created;
-    private final Collection<Path> deleted;
-    private final Collection<Path> modified;
+    private final Collection<PathItem> created;
+    private final Collection<PathItem> deleted;
+    private final Collection<PathItem> modified;
+
+    public record PathItem(Path path, boolean isDirectory) {
+        public PathItem(Path path) {
+            this(path, false);
+        }
+
+        public boolean isRegularFile() {
+            return !isDirectory;
+        }
+    }
 
     public boolean isEmpty() {
         return created.isEmpty() && deleted.isEmpty() && modified.isEmpty();

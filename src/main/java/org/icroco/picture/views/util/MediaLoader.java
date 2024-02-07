@@ -79,7 +79,7 @@ public class MediaLoader {
                                                                                      thCache.put(mf, t);
                                                                                      return t;
                                                                                  })
-                                                                                 .orElseThrow());
+                                                                                 .orElseThrow(() -> new IllegalArgumentException(STR."Cannot find thumbnail for: '\{mf.getFullPath()}', id: '\{mf.getId()}'")));
     }
 
 
@@ -98,8 +98,11 @@ public class MediaLoader {
 
     public void loadAndCachedValues(final Collection<MediaFile> files) {
         Thread.ofVirtual().start(() -> {
-            files.stream().limit(200)
-                 .forEach(cacheOrLoad::apply);
+            var head = files.stream()
+                            .limit(200)
+                            .toList();
+            head.forEach(cacheOrLoad::apply);
+            Platform.runLater(() -> head.forEach(mf -> mf.setLoadedInCache(false)));
         });
     }
 
@@ -376,22 +379,22 @@ public class MediaLoader {
 //                                                   mediaFiles.size(),
 //                                                   LangUtils.wordBased(Duration.ofMillis(System.currentTimeMillis() - start))
 //                         ))
-//                         .thenAccept(_ -> catalogToReGenerate.add(mediaCollection.id()))
+//                         .thenAccept(_ -> catalogToReGenerate.add(mediaCollection.mcId()))
 //                         .thenAccept(_ -> taskService.sendEvent(GalleryRefreshEvent.builder()
-//                                                                                   .mediaCollectionId(mediaCollection.id())
+//                                                                                   .mediaCollectionId(mediaCollection.mcId())
 //                                                                                   .source(this)
 //                                                                                   .build()))
 //                         .thenAccept(_ -> {
 //                             if (sendReadyEvent) {
 //                                 taskService.sendEvent(CollectionEvent.builder()
-//                                                                      .mcId(mediaCollection.id())
+//                                                                      .mcId(mediaCollection.mcId())
 //                                                                      .type(CollectionEvent.EventType.READY)
 //                                                                      .source(this)
 //                                                                      .build());
 //                             }
 //                         })
 //                         .thenAccept(_ -> taskService.sendEvent(GenerateThumbnailEvent.builder()
-//                                                                                      .mcId(mediaCollection.id())
+//                                                                                      .mcId(mediaCollection.mcId())
 //                                                                                      .source(this)
 //                                                                                      .build()))
 //        ;
@@ -588,7 +591,10 @@ public class MediaLoader {
 
                       // Post compute.
                       var files = tasks.stream().map(StructuredTaskScope.Subtask::get).map(TaskResult::result).toList();
-                      persistenceService.updateCollection(mediaCollection.id(), Set.copyOf(files), emptySet(), emptySet());
+                      persistenceService.updateCollection(mediaCollection.id(),
+                                                          Set.copyOf(LangUtils.safeCollection(files)),
+                                                          emptySet(),
+                                                          emptySet());
                       mediaCollection.replaceMedias(files);
 
                       Platform.runLater(() -> {

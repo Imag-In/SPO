@@ -118,7 +118,7 @@ public class CollectionTreeCell extends TreeCell<CollectionNode> {
                 // TODO: Better manage resources (menu and linkOf, create on the fly
                 flatMenuBtn.setManaged(true);
                 flatMenuBtn.setVisible(true);
-                mediaCollectionId = item.id();
+                mediaCollectionId = item.mcId();
                 Tooltip value = new Tooltip(item.path().toString());
                 titleLabel.setTooltip(value);
 

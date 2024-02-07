@@ -2,6 +2,7 @@ package org.icroco.picture.util;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -20,7 +21,7 @@ public class Constant {
     public static final long MAX_MEM = Runtime.getRuntime().maxMemory();
 
     static {
-        log.info("Nb Core: '{}',  Max mem: '{}'", NB_CORE, MAX_MEM);
+        log.info("Nb Core: '{}',  Max mem: '{}'", NB_CORE, FileUtils.byteCountToDisplaySize(MAX_MEM));
     }
 //    {
 //        Runtime env = Runtime.getRuntime();

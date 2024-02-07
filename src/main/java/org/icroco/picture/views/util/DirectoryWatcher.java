@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.config.SpoConfiguration;
 import org.icroco.picture.event.CollectionEvent;
 import org.icroco.picture.event.FilesChangesDetectedEvent;
+import org.icroco.picture.event.FilesChangesDetectedEvent.PathItem;
 import org.icroco.picture.persistence.CollectionRepository;
 import org.icroco.picture.util.Constant;
 import org.icroco.picture.util.LangUtils;
@@ -92,7 +93,7 @@ public class DirectoryWatcher {
     }
 
     /**
-     * Register the given directory, and all its sub-directories, with the
+     * Register the given directory, and all its subdirectories, with the
      * WatchService.
      */
     public void registerAll(final Path start) {
@@ -119,7 +120,10 @@ public class DirectoryWatcher {
         MODIFIED
     }
 
-    record FileChange(Path path, FileChangeType type) {
+    record FileChange(Path path, FileChangeType type, boolean isDirectory) {
+        PathItem toPathItem() {
+            return new PathItem(path, isDirectory);
+        }
     }
 
     /**
@@ -153,6 +157,7 @@ public class DirectoryWatcher {
                         Path             name  = ev.context();
                         Path             child = path.resolve(name);
 
+
                         // print out event
                         log.debug("{}: {}", event.kind().name(), child);
 
@@ -162,18 +167,21 @@ public class DirectoryWatcher {
                             if (kind == ENTRY_CREATE && recursive) {
                                 log.info("Watch new dir: {}", child);
                                 registerAll(child);
-                            } else if (kind == ENTRY_DELETE) {
-                                log.info("Un-watch dir: {}", child);
+                                changes.add(new FileChange(child, FileChangeType.CREATED, true));
+//                            } else if (kind == ENTRY_DELETE) {
+//                                log.info("Un-watch dir: {}", child);
+//                                changes.add(new FileChange(child, FileChangeType.CREATED, true));
                             } else if (kind == ENTRY_MODIFY) {
                                 log.debug("Dir modified: {}", child);
                             }
                         } else {
                             if (kind == ENTRY_CREATE) {
-                                changes.add(new FileChange(child, FileChangeType.CREATED));
+                                changes.add(new FileChange(child, FileChangeType.CREATED, false));
                             } else if (kind == ENTRY_DELETE) {
-                                changes.add(new FileChange(child, FileChangeType.DELETED));
+                                changes.add(new FileChange(child, FileChangeType.DELETED, keys.containsKey(child)));
+                                keys.computeIfPresent(child, (_, _) -> null);
                             } else if (kind == ENTRY_MODIFY) {
-                                changes.add(new FileChange(child, FileChangeType.MODIFIED));
+                                changes.add(new FileChange(child, FileChangeType.MODIFIED, false));
                             }
                         }
                     }
@@ -181,7 +189,7 @@ public class DirectoryWatcher {
                     // reset key and remove from set if directory no longer accessible
                     boolean valid = key.reset();
                     if (!valid) {
-                        log.info("Key reset failed: {}", key.watchable());
+                        log.warn("Key reset failed: {}", ((Path) key.watchable()).toAbsolutePath());
                     }
                 }
             }
@@ -201,28 +209,39 @@ public class DirectoryWatcher {
                     log.info("Drain files changes detected: nb changes: '{}': ten first: {}",
                              changes.size(),
                              changes.stream().limit(10).toList());
+//                    var dirEvent = changes.stream().filter(fc -> Files.isDirectory(fc.path)).toList();
+//                    dirEvent.forEach(changes::remove);
+
+                    // Add files when dire is created (sometime when you copy a dir, there is missing event for existing files)
+                    changes.stream().filter(fc -> fc.type == FileChangeType.CREATED)
+                           .flatMap(fc -> LangUtils.getAllFiles(fc.path).stream())
+                           .map(p -> new FileChange(p, FileChangeType.CREATED, false))
+                           .forEach(changes::add);
+
                     var event = FilesChangesDetectedEvent.builder()
                                                          .created(changes.stream()
                                                                          .filter(fc -> fc.type == FileChangeType.CREATED)
                                                                          .filter(fc -> Files.isDirectory(fc.path) ||
                                                                                        Constant.isSupportedExtension(fc.path))
-                                                                         .map(FileChange::path)
+                                                                         .map(FileChange::toPathItem)
                                                                          .toList())
                                                          .modified(changes.stream()
                                                                           .filter(fc -> fc.type == FileChangeType.MODIFIED)
-                                                                          .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                        Constant.isSupportedExtension(fc.path))
-                                                                          .map(FileChange::path)
+                                                                          .filter(fc -> Constant.isSupportedExtension(fc.path))
+                                                                          .map(FileChange::toPathItem)
                                                                           .toList())
-                                                         .deleted(
-                                                                 changes.stream()
-                                                                        .filter(fc -> fc.type == FileChangeType.DELETED)
-                                                                        .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                      Constant.isSupportedExtension(fc.path))
-                                                                        .map(FileChange::path)
-                                                                        .toList())
+                                                         .deleted(changes.stream()
+                                                                         .filter(fc -> fc.type == FileChangeType.DELETED)
+                                                                         .filter(fc -> fc.isDirectory ||
+                                                                                       Constant.isSupportedExtension(fc.path))
+                                                                         .map(FileChange::toPathItem)
+                                                                         .toList())
                                                          .source(this)
                                                          .build();
+//                    // Add files when dir is deleted, we have to notifty UI.
+//                    dirEvent.stream().
+//                            filter(fc -> fc.type == FileChangeType.DELETED)
+//                            .forEach(fc -> event.getDeleted().add(fc.path));
 
                     if (event.isNotEmpty()) {
                         log.info("Drain files changes detected: valid changes are: '{}' creation, '{}' deletion, '{}' updates",

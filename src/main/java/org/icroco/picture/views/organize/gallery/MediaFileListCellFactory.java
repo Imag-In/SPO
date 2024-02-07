@@ -73,7 +73,7 @@ public class MediaFileListCellFactory implements Callback<ListView<MediaFile>, L
 //////                log.info("new Cell: "+newMediaItem.fullPath());
 //////                if (newMediaItem.getThumbnailType().get() == EThumbnailType.ABSENT) {
 //////                    mediaLoader.loadThumbnailFromFx(newMediaItem);
-////////                                              newMediaItem.thumbnail().setThumbnail(mediaLoader.loadThumbnail(newMediaItem.id(), newMediaItem.fullPath()));
+////////                                              newMediaItem.thumbnail().setThumbnail(mediaLoader.loadThumbnail(newMediaItem.mcId(), newMediaItem.fullPath()));
 //////                }
 ////            }
 ////        });

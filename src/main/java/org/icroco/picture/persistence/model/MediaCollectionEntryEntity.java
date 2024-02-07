@@ -12,7 +12,8 @@ import java.nio.file.Path;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "MEDIA_COLLECTION_ENTRY")
+@Table(name = "MEDIA_COLLECTION_ENTRY", uniqueConstraints = {
+        @UniqueConstraint(name = "UK_THUMB_PATH", columnNames = { "PATH" }) })
 public class MediaCollectionEntryEntity {
 
     @Id
@@ -23,4 +24,7 @@ public class MediaCollectionEntryEntity {
     @Column(name = "PATH", length = 1024, nullable = false)
     @Type(PathType.class)
     private Path name;
+
+    @Column(name = "SUB_PATH_ID")
+    Integer mcId;
 }
