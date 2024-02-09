@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu' # See 'Supported distributions' for available options
           java-version: '21'
@@ -31,11 +31,12 @@ jobs:
       #          cache: 'maven'
 
       - name: Cache Maven packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: spo-maven
         with:
           path: ~/.m2/repository
           key: spo-maven
+          save-always: true
           restore-keys: |
             spo-maven
 
@@ -74,7 +75,7 @@ jobs:
           ./src/distrib/linux/generate-app-info.sh
 
       - name: Shared jar files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-jar
           path: |
@@ -119,7 +120,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu' # See 'Supported distributions' for available options
           java-version: '21'
@@ -127,7 +128,7 @@ jobs:
           architecture: 'x64' # defaults to 'x64'
 
       - name: Download jar files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-jar
 
@@ -159,7 +160,7 @@ jobs:
   #    steps:
   #      - uses: actions/checkout@v4
   #      - name: Set up JDK 21
-  #        uses: actions/setup-java@v3
+  #        uses: actions/setup-java@v4
   #        with:
   #          distribution: 'zulu' # See 'Supported distributions' for available options
   #          java-version: '21'
@@ -167,7 +168,7 @@ jobs:
   #          architecture: 'aarch64' # defaults to 'x64'
   #
   #      - name: Download jar files
-  #        uses: actions/download-artifact@v3
+  #        uses: actions/download-artifact@v4
   #        with:
   #          name: release-jar
   #
@@ -205,7 +206,7 @@ jobs:
   #    steps:
   #      - uses: actions/checkout@v4
   #      - name: Set up JDK 21
-  #        uses: actions/setup-java@v3
+  #        uses: actions/setup-java@v4
   #        with:
   #          distribution: 'zulu' # See 'Supported distributions' for available options
   #          java-version: '21'
@@ -244,7 +245,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu' # See 'Supported distributions' for available options
           java-version: '21'
@@ -252,7 +253,7 @@ jobs:
           architecture: 'x64' # defaults to 'x64'
 
       - name: Download jar files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-jar
 
@@ -293,7 +294,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu' # See 'Supported distributions' for available options
           java-version: '21'
@@ -301,7 +302,7 @@ jobs:
           architecture: 'x64' # defaults to 'x64'
 
       - name: Download jar files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-jar
 
