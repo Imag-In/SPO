@@ -25,10 +25,7 @@ import org.icroco.picture.event.*;
 import org.icroco.picture.event.CollectionEvent.EventType;
 import org.icroco.picture.event.NotificationEvent.NotificationType;
 import org.icroco.picture.model.MediaCollection;
-import org.icroco.picture.model.MediaCollectionEntry;
 import org.icroco.picture.persistence.PersistenceService;
-import org.icroco.picture.util.FileUtil;
-import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.views.CollectionManager;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
@@ -53,8 +50,6 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Objects;
-
-import static java.util.Optional.ofNullable;
 
 @Slf4j
 @Component
@@ -166,13 +161,13 @@ public class CollectionView implements FxView<VBox> {
     }
 
     private Pair<MediaCollection, TreeItem<CollectionNode>> createTreeView(final MediaCollection mediaCollection) {
-        var pathTreeItem = new TreeItem<>(new CollectionNode(mediaCollection.path(), mediaCollection.id(), mediaCollection, null));
+        var pathTreeItem = new TreeItem<>(new CollectionNode(mediaCollection.path(), mediaCollection.id(), mediaCollection));
         log.info("Add collection: '{}', into tree view.", mediaCollection.path());
         rootTreeItem.getChildren().add(pathTreeItem);
         rootTreeItem.getChildren().sort(TREE_ITEM_COMPARATOR);
-        mediaCollection.subPaths().forEach(c -> {
-            var p = c.name();//mediaCollection.path().relativize(c.name());
-            addSubDir(pathTreeItem, p, mediaCollection.id(), c);
+        mediaCollection.getSubdir().forEach(c -> {
+            var p = c;//mediaCollection.path().relativize(c.name());
+            addSubDir(pathTreeItem, p, mediaCollection.id());
             log.debug("Path: '{}'", p);
         });
 
@@ -183,23 +178,22 @@ public class CollectionView implements FxView<VBox> {
         return new Pair<>(mediaCollection, pathTreeItem);
     }
 
-    private void updateTreeView(final TreeItem<CollectionNode> treeItem, final MediaCollection mediaCollection,
-                                Collection<Long> subPathDeletedIds) {
-        mediaCollection.subPaths().forEach(e -> {
+    private void updateTreeView(final TreeItem<CollectionNode> treeItem, final MediaCollection mediaCollection) {
+        mediaCollection.getSubdir().forEach(e -> {
 //            var p = mediaCollection.path().relativize(c.name());
-            addSubDir(treeItem, e.name(), mediaCollection.id(), e);
-            log.debug("Path: {}", e.name());
-        });
-        subPathDeletedIds.forEach(mceId -> {
-            Nodes.searchTreeItemByPredicate(treeItem, collectionNode -> ofNullable(collectionNode.mce())
-                         .map(MediaCollectionEntry::id)
-                         .map(id -> id == mceId)
-                         .orElse(Boolean.FALSE))
-                 .ifPresent(collectionNodeTreeItem -> collectionNodeTreeItem.getParent().getChildren().remove(collectionNodeTreeItem));
+            addSubDir(treeItem, e, mediaCollection.id());
+            log.debug("Path: {}", e);
         });
     }
 
-    private void addSubDir(TreeItem<CollectionNode> current, Path path, int mcId, MediaCollectionEntry mce) {
+    private void cleanTreeView(final TreeItem<CollectionNode> treeItem, Collection<Path> subPathDeletedIds) {
+        subPathDeletedIds.forEach(path -> Nodes.searchTreeItemByPredicate(treeItem, collectionNode -> collectionNode.path().equals(path))
+                                               .ifPresent(collectionNodeTreeItem -> collectionNodeTreeItem.getParent()
+                                                                                                          .getChildren()
+                                                                                                          .remove(collectionNodeTreeItem)));
+    }
+
+    private void addSubDir(TreeItem<CollectionNode> current, Path path, int mcId) {
         path = current.getValue().path().relativize(path);
         for (int i = 0; i < path.getNameCount(); i++) {
             var       subPath = path.subpath(i, i + 1);
@@ -210,7 +204,7 @@ public class CollectionView implements FxView<VBox> {
                              .filter(pathTreeItem -> pathTreeItem.getValue().path().equals(child))
                              .findFirst()
                              .orElseGet(() -> {
-                                 var newItem = new TreeItem<>(new CollectionNode(child, mcId, null, mce));
+                                 var newItem = new TreeItem<>(new CollectionNode(child, mcId, null));
                                  c.getChildren().add(newItem);
                                  c.getChildren().sort(TREE_ITEM_COMPARATOR);
                                  return newItem;
@@ -392,36 +386,30 @@ public class CollectionView implements FxView<VBox> {
 
     @FxEventListener
     public void updateImages(CollectionUpdatedEvent event) {
+        log.info(
+                "Recieved CollectionUpdatedEvent on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}', subDirDeleted: '{}'",
+                event.getMcId(),
+                event.getNewItems().size(),
+                event.getDeletedItems().size(),
+                event.getModifiedItems().size(),
+                event.getSubDirsDeleted().size());
         if (event.isEmpty()) {
             return;
         }
-        log.info("Recieved CollectionUpdatedEvent on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}'",
-                 event.getMcId(),
-                 event.getNewItems().size(),
-                 event.getDeletedItems().size(),
-                 event.getModifiedItems().size());
+
+        var treeItem = rootTreeItem.getChildren()
+                                   .stream()
+                                   .filter(i -> i.getValue().mcId() == event.getMcId())
+                                   .findFirst()
+                                   .orElseThrow();
         if (!event.getNewItems().isEmpty()) {
             var mc = persistenceService.getMediaCollection(event.getMcId());
-            var directories = event.getNewItems()
-                                   .stream()
-                                   .map(mediaFile -> mediaFile.getFullPath().normalize().getParent())
-                                   .distinct()
-                                   .filter(FileUtil::isLastDir)
-                                   .filter(p -> !p.equals(mc.path()))
-                                   .map(p -> MediaCollectionEntry.builder().name(p).build())
-                                   .toList();
-            // FIXME: Should not be there:
-//            mc.subPaths().addAll(directories);
-
-            // TODO: Update raw by raw mediaCollectrion entries.
-//            var mcSaved = persistenceService.saveCollection(mc);
-
-            rootTreeItem.getChildren()
-                        .stream()
-                        .filter(treeItem -> treeItem.getValue().mcId() == event.getMcId())
-                        .findFirst()
-                        .ifPresent(treeItem -> updateTreeView(treeItem, mc, LangUtils.safeCollection(event.getSubPathDeletedIds())));
+            updateTreeView(treeItem, mc);
         }
+        if (!event.getSubDirsDeleted().isEmpty()) {
+            cleanTreeView(treeItem, event.getSubDirsDeleted());
+        }
+
         catalogSizeProp.set(persistenceService.countMediaFiles());
     }
 

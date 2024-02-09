@@ -31,9 +31,4 @@ public class MediaCollectionEntity {
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "COLLECTION_ID")
     private Set<MediaFileEntity> medias;
-
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @Type(PathType.class)
-    @JoinColumn(name = "SUB_PATH_ID")
-    protected Set<MediaCollectionEntryEntity> subPaths;
 }

@@ -5,7 +5,7 @@ import org.icroco.picture.persistence.model.MediaCollectionEntity;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 
-@Mapper(uses = { MediaCollectionEntryMapper.class, MediaFileMapper.class })
+@Mapper(uses = { MediaFileMapper.class })
 public interface MediaCollectionMapper {
     //    @Mapping(target = "manufacturer", source = "make")
     MediaCollection toDomain(MediaCollectionEntity catalog);

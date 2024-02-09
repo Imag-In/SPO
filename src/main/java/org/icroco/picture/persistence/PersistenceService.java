@@ -6,13 +6,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.config.SpoConfiguration;
 import org.icroco.picture.event.CollectionsLoadedEvent;
 import org.icroco.picture.hash.IHashGenerator;
-import org.icroco.picture.model.*;
-import org.icroco.picture.persistence.mapper.MediaCollectionEntryMapper;
+import org.icroco.picture.model.HashDuplicate;
+import org.icroco.picture.model.MediaCollection;
+import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.persistence.mapper.MediaCollectionMapper;
 import org.icroco.picture.persistence.mapper.MediaFileMapper;
 import org.icroco.picture.persistence.mapper.ThumbnailMapper;
-import org.icroco.picture.persistence.model.MediaCollectionEntryEntity;
-import org.icroco.picture.persistence.model.MediaFileEntity;
 import org.icroco.picture.persistence.model.MfDuplicate;
 import org.icroco.picture.views.task.TaskService;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -29,7 +29,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.function.Function.identity;
@@ -43,12 +42,10 @@ public class PersistenceService {
     private final CollectionRepository           collectionRepo;
     private final MediaFileRepository            mfRepo;
     private final ThumbnailRepository            thumbRepo;
-    private final MediaCollectionEntryRepository mceRepo;
     private final IHashGenerator                 hashGenerator;
     private final MediaCollectionMapper          colMapper;
     private final MediaFileMapper                mfMapper;
     private final ThumbnailMapper                thMapper;
-    private final MediaCollectionEntryMapper     mceMapper;
     @Qualifier(SpoConfiguration.CACHE_CATALOG)
     private final Cache                          mcCache;
     @Qualifier(SpoConfiguration.CACHE_THUMBNAILS_RAW)
@@ -312,18 +309,20 @@ public class PersistenceService {
         var wLock = mcLock.writeLock();
         try {
             wLock.lock();
-            final var mc         = getMediaCollection(id);
-            final var mediaFiles = mc.medias();
+            final var mc = getMediaCollection(id);
 
             // Proces items to DELETE
             if (!toBeDeleted.isEmpty()) {
-                mfRepo.deleteAllById(toBeDeleted.stream()
-                                                .map(mfMapper::toEntity)
-                                                .map(mce -> mfRepo.findByFullPath(mce.getFullPath()).orElse(null))
-                                                .filter(Objects::nonNull)
-                                                .map(MediaFileEntity::getId)
-                                                .toList());
-                mediaFiles.removeIf(toBeDeleted::contains);
+                var files = toBeDeleted.stream()
+                                       .map(mf -> mfRepo.findByFullPath(mf.getFullPath()).orElse(null))
+                                       .filter(Objects::nonNull)
+                                       .map(mfMapper::toDomain)
+                                       .toList();
+                var ids = files.stream().map(MediaFile::getId).toList();
+                mfRepo.deleteAllById(ids);
+                thumbRepo.deleteAllById(ids);
+                files.forEach(thCache::remove);
+                mc.removeMediaFilesIf(toBeDeleted::contains);
             }
 
             // Proces items to ADD
@@ -334,20 +333,9 @@ public class PersistenceService {
                                                  .peek(dbMf -> dbMf.setCollectionId(mc.id()))
                                                  .toList();
                 toBeAddedEntities = mfRepo.saveAllAndFlush(toBeAddedEntities);
-                mediaFiles.removeAll(toBeAdded);
+                mc.removeAllMediaFiles(toBeAdded);
                 toBeAddedSaved = toBeAddedEntities.stream().map(mfMapper::toDomain).toList();
-                mediaFiles.addAll(toBeAddedSaved);
-
-                //Update sub-path
-                Set<Path> newParent = toBeAddedEntities.stream()
-                                                       .map(MediaFileEntity::getFullPath)
-                                                       .map(Path::getParent)
-                                                       .collect(Collectors.toSet());
-
-                var subDirByPath = mc.subPaths().stream().collect(Collectors.toMap(MediaCollectionEntry::name, Function.identity()));
-                newParent = newParent.stream().filter(p -> !subDirByPath.containsKey(p)).collect(Collectors.toSet());
-                var newEntries = mceRepo.saveAll(newParent.stream().map(p -> new MediaCollectionEntryEntity(null, p, mc.id())).toList());
-                mc.getSubPaths().addAll(newEntries.stream().map(mceMapper::toDomain).toList());
+                mc.addAllMediaFiles(toBeAddedSaved);
             }
 
             // Proces items to UPDATE
@@ -380,28 +368,31 @@ public class PersistenceService {
         }
     }
 
-    @Transactional
-    public Set<Long> removeSubDirFromCollection(int id, Set<Path> subdirs) {
-        if (subdirs.isEmpty()) {
-            return null;
-        }
-        try {
-            mcLock.writeLock().lock();
-            final var mc = getMediaCollection(id);
-
-            var ids = mc.subPaths()
-                        .stream()
-                        .filter(mce -> subdirs.contains(mce.name()))
-                        .map(MediaCollectionEntry::id)
-                        .collect(Collectors.toSet());
-
-            mc.subPaths().removeIf(mce -> ids.contains(mce.id()));
-            mceRepo.deleteAllById(ids);
-            return ids;
-        } finally {
-            mcLock.writeLock().unlock();
-        }
-    }
+//    @Transactional
+//    public Set<Long> removeSubDirFromCollection(int id, Set<Path> subdirs) {
+//        if (subdirs.isEmpty()) {
+//            return null;
+//        }
+//        try {
+//            mcLock.writeLock().lock();
+//            final var mc = getMediaCollection(id);
+//            final var subDirs = mc.getSubdir();
+//            mc.getMedias().stream()
+//                    .filter(mf -> containsPath(mf, subDirs))
+//                    .toList();
+//            var ids = mc.getSubdir()
+//                        .stream()
+//                        .filter(mce -> subdirs.contains(mce.name()))
+//                        .map(MediaCollectionEntry::id)
+//                        .collect(Collectors.toSet());
+//
+//            mc.subPaths().removeIf(mce -> ids.contains(mce.id()));
+//            mceRepo.deleteAllById(ids);
+//            return ids;
+//        } finally {
+//            mcLock.writeLock().unlock();
+//        }
+//    }
 
 
     public long countMediaFiles() {

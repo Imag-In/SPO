@@ -11,12 +11,10 @@ import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.HashDuplicate;
 import org.icroco.picture.model.MediaCollection;
-import org.icroco.picture.model.MediaCollectionEntry;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.CollectionRepository;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.Constant;
-import org.icroco.picture.util.FileUtil;
 import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.util.UserAbortedException;
 import org.icroco.picture.views.task.AbstractTask;
@@ -126,8 +124,20 @@ public class CollectionManager {
                                   Collection<PathItem> toBeDeleted,
                                   Collection<PathItem> hasBeenModified) {
         var now = LocalDate.now();
+        var mc = persistenceService.getMediaCollection(collectionId);
         hasBeenModified = new ArrayList<>(hasBeenModified);
         hasBeenModified.removeAll(toBeDeleted); // To make sure !
+
+        var deletedSubDirs = toBeDeleted.stream()
+                                        .filter(PathItem::isDirectory)
+                                        .map(PathItem::path)
+                                        .collect(Collectors.toSet());
+        mc.getMedias()
+          .stream()
+          .map(MediaFile::getFullPath)
+          .filter(p -> containsPath(p.getParent(), deletedSubDirs))
+          .forEach(p -> toBeDeleted.add(new PathItem(p, false)));
+
         var res = persistenceService.updateCollection(collectionId,
                                                       toBeAdded.stream()
                                                                .filter(PathItem::isRegularFile)
@@ -139,25 +149,25 @@ public class CollectionManager {
                                                                  .map(PathItem::path)
                                                                  .map(p -> MediaFile.builder().fullPath(p).build())
                                                                  .collect(Collectors.toSet()),
-                                                      reloadMetadate(persistenceService.getMediaCollection(collectionId),
+                                                      reloadMetadate(mc,
                                                                      hasBeenModified.stream()
                                                                                     .filter(PathItem::isRegularFile)
                                                                                     .map(PathItem::path)
                                                                                     .toList(),
                                                                      now));
 
-        var mceIds = persistenceService.removeSubDirFromCollection(collectionId, toBeDeleted.stream()
-                                                                                            .filter(PathItem::isDirectory)
-                                                                                            .map(PathItem::path)
-                                                                                            .collect(Collectors.toSet()));
         taskService.sendEvent(CollectionUpdatedEvent.builder()
                                                     .mcId(collectionId)
                                                     .newItems(res.added())
                                                     .deletedItems(res.deleted())
                                                     .modifiedItems(res.updated())
-                                                    .subPathDeletedIds(mceIds)
+                                                    .subDirsDeleted(toBeDeleted.stream()
+                                                                               .filter(PathItem::isDirectory)
+                                                                               .map(PathItem::path)
+                                                                               .collect(Collectors.toSet()))
                                                     .source(this)
                                                     .build());
+        // Ask for thumbnail extract / generation
         taskService.sendEvent(CustomExtractThumbnailEvent.builder()
                                                          .mcId(collectionId)
                                                          .newItems(res.added())
@@ -166,6 +176,10 @@ public class CollectionManager {
                                                          .build());
 
         // TODO: Send event to clean collection subdir nodes.
+    }
+
+    private boolean containsPath(Path path, Set<Path> deletedDirs) {
+        return deletedDirs.contains(path);
     }
 
     private Set<MediaFile> reloadMetadate(MediaCollection mediaCollection, Collection<Path> hasBeenModified, LocalDate now) {
@@ -269,31 +283,25 @@ public class CollectionManager {
                          .execute(myself -> {
                              myself.updateTitle(STR."Scanning directory: \{rootPath.getFileName()}");
                              myself.updateMessage("%s: scanning".formatted(rootPath));
-                             Set<MediaCollectionEntry> children;
-                             var                       now = LocalDate.now();
-                             try (var s = Files.walk(rootPath)) {
-                                 children = s.filter(Files::isDirectory)
-                                             .map(Path::normalize)
-                                             .filter(p -> !p.equals(rootPath))
-                                             .filter(FileUtil::isLastDir)
-                                             .map(p -> MediaCollectionEntry.builder().name(p).build())
-                                             .collect(Collectors.toSet());
-                             }
                              final var filteredImages = scanDir(rootPath, true);
                              final var size           = filteredImages.size();
+                             var now = LocalDate.now();
                              myself.updateProgress(0, size);
-                             var mc = MediaCollection.builder()
-                                                     .path(rootPath)
-                                                     .subPaths(children)
-                                                     .medias(EntryStream.of(List.copyOf(filteredImages))
-                                                                        .peek(i -> myself.updateProgress(i.getKey(), size))
-                                                                        .flatMap(i -> create(now, i.getValue(), false).stream())
-                                                                        .collect(Collectors.toSet()))
-                                                     .build();
+
 
                              return taskService.runAndWait(() -> askConfirmation.apply((long) size), false)
                                                .filter(b -> b)
                                                .map(_ -> {
+                                                   var mc = MediaCollection.builder()
+                                                                           .path(rootPath)
+                                                                           .medias(EntryStream.of(List.copyOf(filteredImages))
+                                                                                              .peek(i -> myself.updateProgress(i.getKey(),
+                                                                                                                               size))
+                                                                                              .flatMap(i -> create(now,
+                                                                                                                   i.getValue(),
+                                                                                                                   false).stream())
+                                                                                              .collect(Collectors.toSet()))
+                                                                           .build();
                                                    var mcSaved = persistenceService.saveCollection(mc);
                                                    taskService.sendEvent(ExtractThumbnailEvent.builder()
                                                                                               .mcId(mcSaved.id())
@@ -305,15 +313,11 @@ public class CollectionManager {
                                                })
                                                .orElseThrow(() -> new UserAbortedException(STR."User aborted action, collection too large: \{size}"));
                          })
-                         .onSuccess((myself, mediaCollection) -> {
-                             log.info("Collections entries: {}, time: {}",
-                                      mediaCollection.medias().size(),
-                                      LangUtils.wordBased(myself.getDuration()));
-                             mediaCollection.setConnected(Files.exists(rootPath));
+                         .onSuccess((myself, mc) -> {
+                             log.info("Collections entries: {}, time: {}", mc.medias().size(), LangUtils.wordBased(myself.getDuration()));
+                             mc.setConnected(Files.exists(rootPath));
                          })
-                         .onFailed(throwable -> {
-                             log.error("While scanning dir: '{}'", rootPath, throwable);
-                         })
+                         .onFailed(throwable -> log.error("While scanning dir: '{}'", rootPath, throwable))
                          .build();
     }
 
@@ -356,10 +360,7 @@ public class CollectionManager {
                                          taskService.sendEvent(CollectionEvent.builder()
                                                                               .mcId(mc.id())
                                                                               .type(CollectionEvent.EventType.DELETED)
-                                                                              .subDirs(mc.subPaths()
-                                                                                         .stream()
-                                                                                         .map(MediaCollectionEntry::name)
-                                                                                         .toList())
+                                                                              .subDirs(mc.getSubdir())
                                                                               .source(this)
                                                                               .build());
                                          myself.updateMessage("Deleting database items ...");
@@ -377,7 +378,7 @@ public class CollectionManager {
                                  .findFirst()
                                  .stream()
                                  .flatMap(mc -> Stream.concat(Stream.of(rootPath),
-                                                              mc.subPaths().stream().map(e -> mc.path().resolve(e.name()))))
+                                                              mc.getSubdir().stream().map(e -> mc.path().resolve(e))))
                                  .filter(p -> p.equals(rootPath))
                                  .findFirst();
     }

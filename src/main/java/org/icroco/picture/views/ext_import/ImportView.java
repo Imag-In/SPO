@@ -209,6 +209,7 @@ public class ImportView extends AbstractView<StackPane> {
         var infoThumb = new Label("", new FontIcon(MaterialDesignI.INFORMATION_OUTLINE));
         infoThumb.setPadding(new Insets(0, 10, 0, 0));
         infoThumb.getStyleClass().addAll(Styles.SMALL, Styles.ACCENT);
+        infoThumb.setTooltip(new Tooltip("Generate thumbnail even if image already contains one."));
         GridPane.setHalignment(infoThumb, HPos.RIGHT);
         grid.add(infoThumb, 0, rowIdx);
 
@@ -222,7 +223,7 @@ public class ImportView extends AbstractView<StackPane> {
         infoDelete.getStyleClass().addAll(Styles.SMALL, Styles.ACCENT);
         Tooltip tt = new Tooltip("""
                                          !! After being imported,
-                                            Files we'll be deleted from source drive !!
+                                            Files will be deleted from source drive !!
                                          """);
         infoDelete.setTooltip(tt);
         GridPane.setHalignment(infoDelete, HPos.RIGHT);
@@ -478,10 +479,11 @@ public class ImportView extends AbstractView<StackPane> {
         pathTreeItem.setExpanded(false);
         log.info("Root Path: {}", pathTreeItem.getValue());
 
-        mediaCollection.subPaths().forEach(subPath -> {
-            var p = mediaCollection.path().resolve(subPath.name());
-            addSubDir(pathTreeItem, p, mediaCollection.id());
-        });
+        mediaCollection.getSubdir()
+                       .forEach(subPath -> {
+                           var p = mediaCollection.path().resolve(subPath);
+                           addSubDir(pathTreeItem, p, mediaCollection.id());
+                       });
     }
 
     private void addSubDir(TreeItem<Path> current, Path path, int id) {

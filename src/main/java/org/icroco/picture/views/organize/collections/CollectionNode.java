@@ -3,13 +3,12 @@ package org.icroco.picture.views.organize.collections;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import org.icroco.picture.model.MediaCollection;
-import org.icroco.picture.model.MediaCollectionEntry;
 
 import java.nio.file.Path;
 
-public record CollectionNode(Path path, int mcId, MediaCollection rootCollection, MediaCollectionEntry mce) {
+public record CollectionNode(Path path, int mcId, MediaCollection rootCollection) {
     public CollectionNode(Path path, int id) {
-        this(path, id, null, null);
+        this(path, id, null);
     }
 
     public ReadOnlyBooleanProperty rootConnectedProperty() {

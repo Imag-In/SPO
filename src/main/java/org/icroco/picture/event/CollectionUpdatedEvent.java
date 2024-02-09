@@ -5,6 +5,7 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.icroco.picture.model.MediaFile;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Set;
 
@@ -16,7 +17,7 @@ public class CollectionUpdatedEvent extends IiEvent {
     private final Collection<MediaFile> newItems;
     private final Collection<MediaFile> deletedItems;
     private final Collection<MediaFile> modifiedItems;
-    private final Set<Long> subPathDeletedIds;
+    private final Set<Path> subDirsDeleted;
 
     public boolean isEmpty() {
         return newItems.isEmpty() && deletedItems.isEmpty() && modifiedItems.isEmpty();
