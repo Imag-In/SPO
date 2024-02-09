@@ -8,11 +8,14 @@ import org.icroco.picture.model.Dimension;
 import org.icroco.picture.util.Constant;
 import org.icroco.picture.util.FileUtil;
 import org.icroco.picture.views.task.TaskService;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.util.StopWatch;
 
+import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +29,16 @@ class ThumbnailatorGeneratorTest {
 
     public static final String IMAGE_DIR = "./src/test/resources/images/valid";
     public static final Dimension DIM       = new Dimension(600, 600);
+
+    @BeforeAll
+    static void beforeAll() {
+        System.setProperty("java.awt.headless", "true");
+    }
+
+    @AfterAll
+    static void afterAll() {
+        System.setProperty("java.awt.headless", "false");
+    }
 
     @AfterEach
     void afterEach() {
@@ -88,6 +101,9 @@ class ThumbnailatorGeneratorTest {
 
     @Test
     void generate_thumbnails_imgscalr_bytes() throws IOException {
+        if (GraphicsEnvironment.isHeadless()) {
+            return;
+        }
         var generator = new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
                                                                                                    Mockito.mock(TaskService.class)));
         Dimension dimension = new Dimension(600, 600);
