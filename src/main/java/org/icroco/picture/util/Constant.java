@@ -8,6 +8,10 @@ import java.io.File;
 import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -19,6 +23,25 @@ public class Constant {
     public static final int NB_CORE = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
 
     public static final long MAX_MEM = Runtime.getRuntime().maxMemory();
+
+    /**
+     * get the supported Locales.
+     *
+     * @return List of Locale objects.
+     */
+    public static List<Locale> getSupportedLocales() {
+        return new ArrayList<>(Arrays.asList(Locale.ENGLISH, Locale.FRENCH));
+    }
+
+    /**
+     * get the default locale. This is the systems default if contained in the supported locales, english otherwise.
+     *
+     * @return the defaukt local.
+     */
+    public static Locale getDefaultLocale() {
+        Locale sysDefault = Locale.getDefault();
+        return Constant.getSupportedLocales().contains(sysDefault) ? sysDefault : Locale.ENGLISH;
+    }
 
     static {
         log.info("Nb Core: '{}',  Max mem: '{}'", NB_CORE, FileUtils.byteCountToDisplaySize(MAX_MEM));

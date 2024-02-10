@@ -65,6 +65,7 @@ public class UserPreferenceView implements FxView<DialogPane> {
     static ObservableList<PropertySheet.Item> getProperties(UserPreference userPref) {
         List<CustomBeanProperty> items = new ArrayList<>(10);
 
+        addProperties(items, userPref.getGeneral());
         addProperties(items, userPref.getMainWindow());
         addProperties(items, userPref.getCollection());
         addProperties(items, userPref.getSafety());
@@ -110,8 +111,7 @@ public class UserPreferenceView implements FxView<DialogPane> {
         }
     }
 
-    static void addProperties(List<CustomBeanProperty> items,
-                              Object bean) {
+    static void addProperties(List<CustomBeanProperty> items, Object bean) {
         try {
             var fields = ReflectionUtils.getFields(bean.getClass(), ReflectionUtils.withAnnotation(PropertySettings.class))
                                         .stream().collect(Collectors.toMap(Field::getName, Function.identity()));

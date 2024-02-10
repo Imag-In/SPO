@@ -22,6 +22,7 @@ import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.FxView;
+import org.icroco.picture.views.util.I18N;
 import org.icroco.picture.views.util.widget.FxUtil;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2OutlinedMZ;
@@ -37,37 +38,33 @@ public class NavigationView implements FxView<HBox> {
 
     private final SimpleStringProperty currentView;
 
-    private final HBox  root        = new HBox();
-    private final Label importLbl   = new Label();
-    private final Label organizeLbl = new Label();
-    private final Label repairLbl   = new Label();
-    private final Label peopleLbl   = new Label();
-    private final Label exportLbl   = new Label();
+    private final HBox  root = new HBox();
+    private final Label importLbl;
+    private final Label organizeLbl;
+    private final Label repairLbl;
+    private final Label peopleLbl;
+    private final Label exportLbl;
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
 
-    private final UserPreferenceService preferenceService;
-    private final TaskService           taskService;
 
     public NavigationView(@Qualifier(ViewConfiguration.CURRENT_VIEW)
                           SimpleStringProperty currentView,
                           UserPreferenceService preferenceService,
-                          TaskService taskService) {
+                          TaskService taskService,
+                          I18N i18N) {
         this.currentView = currentView;
-        this.preferenceService = preferenceService;
-        this.taskService = taskService;
         root.setId(ViewConfiguration.V_NAVIGATION);
         root.getStyleClass().add(ViewConfiguration.V_NAVIGATION);
         root.getStyleClass().add("tabs");
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(5, 0, 5, 0));
 
-        organizeLbl.setText("Organize");
-        importLbl.setDisable(false);
-        importLbl.setText("Import");
-        repairLbl.setText("Tools");
-        peopleLbl.setText("People");
+        organizeLbl = i18N.labelForKey("navBar.organize");
+        importLbl = i18N.labelForKey("navBar.import");
+        repairLbl = i18N.labelForKey("navBar.tools");
+        peopleLbl = i18N.labelForKey("navBar.people");
         peopleLbl.setDisable(true);
-        exportLbl.setText("Export");
+        exportLbl = i18N.labelForKey("navBar.export");
         exportLbl.setDisable(true);
 
         organizeLbl.pseudoClassStateChanged(SELECTED, false);

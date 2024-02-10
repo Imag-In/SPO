@@ -1,25 +1,53 @@
 package org.icroco.picture.views.pref;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.Dimension;
-import org.icroco.picture.util.PathSerializer;
-import org.icroco.picture.util.PropertySettings;
+import org.icroco.picture.util.*;
 import org.icroco.picture.views.theme.SamplerTheme;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Objects;
 
 @Getter
 @Setter
-@NoArgsConstructor
+@RequiredArgsConstructor
 @Slf4j
 public class UserPreference {
+
+    @Setter
+    @Getter
+    public static class General {
+        @JsonSerialize(converter = LocaleCustomConverter.class)
+        @JsonDeserialize(converter = StringToCustomLocaleConverter.class)
+        @PropertySettings(category = "Appearance", groupOrder = 1, displayName = "Language")
+        private       Locale                       locale         = Constant.getDefaultLocale();
+        @JsonIgnore
+        private final SimpleObjectProperty<Locale> localeProperty = new SimpleObjectProperty<>(locale);
+
+        public void setLocale(Locale locale) {
+            this.locale = locale;
+            localeProperty.set(locale);
+        }
+
+        @JsonIgnore
+        public ObjectProperty<Locale> localeProperty() {
+            return localeProperty;
+        }
+
+        //
+//        public Locale getLocal() {
+//            return Objects.requireNonNullElse(local, Constant.getDefaultLocale());
+//        }
+    }
+
     @Setter
     @Getter
     @NoArgsConstructor
@@ -31,7 +59,7 @@ public class UserPreference {
         private Double       height;
         private int          screenIdx   = -1;
         private boolean      isMaximized = false;
-        @PropertySettings(category = "Appearance", groupOrder = 1, displayName = "Theme")
+        @PropertySettings(category = "Appearance", groupOrder = 2, displayName = "Theme")
         private SamplerTheme theme;
 
         public Double getPosX() {
@@ -98,13 +126,14 @@ public class UserPreference {
         }
     }
 
+    private General general = new General();
     private MainWindow     mainWindow  = new MainWindow(Double.MIN_VALUE, Double.MIN_VALUE, 1024D, 800D, -1, false, null);
     private Collection     collection  = new Collection(-1, null);
     private Gallery        grid        = new Gallery(128, 128, 0, 5, 12);
     private SettingsDialog settings    = new SettingsDialog(new Dimension(600, 400));
     private String         catalogName = "pictures";
-    private Safety safety = new Safety(false, Path.of(System.getProperty("imagin.spo.backup",
-                                                                         STR."\{System.getProperty("user.home")}\{File.separatorChar}SPO_BIN")));
+    private Safety  safety  = new Safety(false, Path.of(System.getProperty("imagin.spo.backup",
+                                                                           STR."\{System.getProperty("user.home")}\{File.separatorChar}SPO_BIN")));
 
     public void setLastViewed(int id, Path path) {
         collection.setLastViewed(id);

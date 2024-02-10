@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.annotation.PreDestroy;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -18,6 +20,7 @@ import org.icroco.picture.util.ThemeDeserializer;
 import org.icroco.picture.util.ThemeSerializer;
 import org.icroco.picture.views.theme.SamplerTheme;
 import org.icroco.picture.views.theme.ThemeRepository;
+import org.springframework.data.geo.GeoModule;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -27,14 +30,14 @@ import java.nio.file.Path;
 @Slf4j
 public class UserPreferenceService {
 
-    private static final Path OLD_FILENAME = Path.of(System.getProperty("imagin.spo.home",
-                                                                        STR."\{System.getProperty("user.home")}\{File.separatorChar}.icroco\{File.separatorChar}configuration.yml"));
-    static final Path PREF_FILENAME = Constant.SPO_HOMEDIR.resolve("configuration.yml");
+    private static final Path OLD_FILENAME  = Path.of(System.getProperty("imagin.spo.home",
+                                                                         STR."\{System.getProperty("user.home")}\{File.separatorChar}.icroco\{File.separatorChar}configuration.yml"));
+    static final         Path PREF_FILENAME = Constant.SPO_HOMEDIR.resolve("configuration.yml");
 
     private final ObjectMapper mapper;
+
     @Getter
     private final BooleanProperty notYetImplemented = new SimpleBooleanProperty(true);
-
     @Getter
     private UserPreference userPreference = new UserPreference();
 
@@ -45,6 +48,9 @@ public class UserPreferenceService {
         SimpleModule simpleModule = new SimpleModule();
         simpleModule.addSerializer(SamplerTheme.class, new ThemeSerializer());
         simpleModule.addDeserializer(SamplerTheme.class, new ThemeDeserializer(themeRepository));
+        mapper.registerModule(new GeoModule());
+        mapper.registerModule(new Jdk8Module());
+        mapper.registerModule(new JavaTimeModule());
         mapper.registerModule(simpleModule);
         migrateConf();
         readConf(PREF_FILENAME);
