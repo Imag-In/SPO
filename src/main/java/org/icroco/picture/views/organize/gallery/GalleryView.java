@@ -78,6 +78,7 @@ import static java.util.Optional.ofNullable;
 public class GalleryView implements FxView<StackPane> {
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(GalleryView.class);
 
+    private final I18N i18N;
     private final MediaLoader           mediaLoader;
     private final UserPreferenceService pref;
     private final TaskService           taskService;
@@ -295,7 +296,7 @@ public class GalleryView implements FxView<StackPane> {
         Label lbFilter = new Label();
         lbFilter.setCursor(Cursor.HAND);
         lbFilter.setGraphic(filterView.filterAdd);
-        lbFilter.setOnMouseClicked(_ -> filterView.showFilter(modalPane, lbFilter, predicates));
+        lbFilter.setOnMouseClicked(_ -> filterView.showFilter(modalPane, lbFilter, predicates)); // TODO: Replace with MpDialog.
 
         filteredImages.setPredicate(predicates);
 
@@ -632,24 +633,10 @@ public class GalleryView implements FxView<StackPane> {
         } else if (dblCickState == EGalleryClickState.GALLERY) {
             gridView.oneRowRight();
         }
-//        keyEvent.consume();
     }
 
     public void upPressed(KeyEvent keyEvent) {
         gridView.oneRowUp();
-//        if (dblCickState.isImage() && photo.getMediaFile() != null) {
-//            gridView.getRight(photo.getMediaFile())
-//                    .ifPresent(mf -> {
-//                        // TODO: Test by adding to selection ?
-//                        taskService.sendEvent(PhotoSelectedEvent.builder()
-//                                                                .mf(mf)
-//                                                                .type(PhotoSelectedEvent.ESelectionType.SELECTED)
-//                                                                .source(this)
-//                                                                .build());
-//                        mediaLoader.getOrLoadImage(mf);
-//                    });
-//        }
-////        keyEvent.consume();
     }
 
     public void downPressed(KeyEvent keyEvent) {
@@ -676,6 +663,10 @@ public class GalleryView implements FxView<StackPane> {
         }
     }
 
+    public void editClick(MouseEvent mouseEvent) {
+        editPressed(null);
+    }
+
     public void keepPressed(KeyEvent keyEvent) {
 //        gridView.getSelectionModel().getSelection().forEach();
         ofNullable(gridView.getSelectionModel().getSelectedItem())
@@ -692,6 +683,28 @@ public class GalleryView implements FxView<StackPane> {
                 .ifPresent(mediaFile -> mediaFile.setKeepOrThrow(EKeepOrThrow.UNKNOW));
     }
 
+    public void deletePressed(KeyEvent keyEvent) {
+        if (dblCickState == EGalleryClickState.GALLERY) {
+            ofNullable(gridView.getSelectionModel().getSelectedItem())
+                    .ifPresent(mf -> {
+                        var dialog = MpDialog.builder()
+                                             .width(400)
+                                             .header(i18N.labelForKey("confirmation.deleteFiles.title"))
+                                             .body(i18N.labelForKey("confirmation.deleteFiles.body", mf.getFullPath()))
+                                             .build();
+
+                        dialog.show(modalPane, exitMode -> {
+                            gridView.requestFocus();
+                            if (exitMode == MpDialog.EXIT_MODE.OK) {
+                                SystemUtil.moveToTrash(mf.getFullPath());
+                                images.remove(mf); // Next disk pooling will do a clean delete (DB, Thumbnail ...)
+                            }
+                        });
+                    });
+        }
+    }
+
+
     public void expandGridCell(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 1) {
             Label l = (Label) mouseEvent.getSource();
@@ -702,10 +715,6 @@ public class GalleryView implements FxView<StackPane> {
             }
             expandCell.set(!expandCell.getValue());
         }
-    }
-
-    public void editClick(MouseEvent mouseEvent) {
-        editPressed(null);
     }
 
     @Override

@@ -42,4 +42,15 @@ public class SystemUtil {
             log.warn("Desktop feature is not supported for this os: {}", System.getProperty("os.name").toLowerCase());
         }
     }
+
+    public static void moveToTrash(Path path) {
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.MOVE_TO_TRASH)) {
+            Unchecked.runnable(() -> {
+                log.info("File moved to trash: '{}'", path);
+                Desktop.getDesktop().moveToTrash(path.toFile());
+            }).run();
+        } else {
+            log.warn("Desktop feature / MOVE_TO_TRASH is not supported for this os: {}", System.getProperty("os.name").toLowerCase());
+        }
+    }
 }

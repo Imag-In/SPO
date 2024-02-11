@@ -6,6 +6,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
+import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,7 @@ import java.util.concurrent.Callable;
  * @author P.J. Meisch (pj.meisch@sothawo.com).
  */
 @Component
+@Slf4j
 public final class I18N {
 
     /**
@@ -29,7 +31,7 @@ public final class I18N {
 
     public I18N(final UserPreferenceService preferenceService) {
         locale = preferenceService.getUserPreference().getGeneral().localeProperty();
-        locale.addListener((_, _, newValue) -> System.out.println("Language: " + newValue));
+        locale.addListener((_, _, newValue) -> log.info("Language: '{}'", newValue));
     }
 
     private Locale getLocale() {

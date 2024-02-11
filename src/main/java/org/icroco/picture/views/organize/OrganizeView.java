@@ -48,6 +48,7 @@ public class OrganizeView implements FxView<BorderPane> {
                 case KeyCode.ESCAPE -> applyAndConsume(event, galleryView::escapePressed);
                 case KeyCode.PAGE_DOWN -> applyAndConsume(event, galleryView::pageDownPressed);
                 case KeyCode.PAGE_UP -> applyAndConsume(event, galleryView::pageUpPressed);
+                case KeyCode.BACK_SPACE, KeyCode.DELETE -> applyAndConsume(event, galleryView::deletePressed);
                 case KeyCode.E -> applyAndConsume(event, galleryView::editPressed);
                 case KeyCode.A -> applyAndConsume(event, galleryView::keepPressed);
                 case KeyCode.D -> applyAndConsume(event, galleryView::throwPressed);
