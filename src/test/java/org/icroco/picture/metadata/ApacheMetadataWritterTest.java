@@ -11,12 +11,14 @@ import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputDirectory;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
 import org.assertj.core.api.Assertions;
-import org.icroco.picture.persistence.KeywordRepository;
-import org.icroco.picture.persistence.mapper.KeywordMapperImpl;
+import org.icroco.picture.model.Keyword;
 import org.icroco.picture.views.task.TaskService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -26,13 +28,29 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Random;
+import java.util.Set;
 
+@ExtendWith(MockitoExtension.class)
 class ApacheMetadataWritterTest {
-    ApacheMetadataWriter writter = new ApacheMetadataWriter();
-    IMetadataExtractor   reader  = new DefaultMetadataExtractor(new KeywordManager(Mockito.mock(KeywordRepository.class),
-                                                                                   new KeywordMapperImpl()),
-                                                                Mockito.mock(TaskService.class));
+    ApacheMetadataWriter writer = new ApacheMetadataWriter();
 
+    //    @Mock
+    IKeywordManager kwmMock = new IKeywordManager() {
+
+        @Override
+        public Keyword findOrCreateTag(String name) {
+            return new Keyword(new Random().nextInt(1000), name);
+        }
+    };
+
+    IMetadataExtractor reader = new DefaultMetadataExtractor(kwmMock,
+                                                             Mockito.mock(TaskService.class));
+
+    @BeforeEach
+    void beforeAll() {
+//        Mockito.reset(kwmMock);
+    }
     @Test
     void should_write_original_date() throws URISyntaxException, ImagingException, IOException {
 //        var image = getClass().getResource("./target/test/images/metadata/test.jpg");
@@ -47,7 +65,7 @@ class ApacheMetadataWritterTest {
         Assertions.assertThat(header.get().orginalDate().toLocalDate()).isEqualTo(LocalDate.of(2023, 1, 15));
 
         System.out.println(header);
-        writter.setOrignialDate(path, LocalDateTime.now());
+        writer.setOrignialDate(path, LocalDateTime.now());
 
         header = reader.header(path);
         Assertions.assertThat(header).isPresent();
@@ -56,14 +74,39 @@ class ApacheMetadataWritterTest {
     }
 
     @Test
+    void addKeywords() {
+        var path = Path.of("src/test/resources/images/metadata/keywords/update_keywords.jpg");
+//        Mockito.doReturn(new Keyword(1, "foo")).when(kwmMock).findOrCreateTag("foo");
+//        Mockito.doReturn(new Keyword(2, "foo")).when(kwmMock).findOrCreateTag("bar");
+        var header = reader.header(path);
+
+
+        Assertions.assertThat(header).isPresent();
+        Assertions.assertThat(header.get().keywords())
+                  .extracting(Keyword::name).containsExactlyInAnyOrder("bar", "foo");
+
+        writer.addKeywords(path, Set.of("42"));
+        Assertions.assertThat(header.get().keywords())
+                  .extracting(Keyword::name).containsExactlyInAnyOrder("bar", "foo");
+        header = reader.header(path);
+
+    }
+
+    @Test
     @Disabled
     void printMetadata() {
         ApacheMetadaExtractor extractor = new ApacheMetadaExtractor();
+//        var path = Path.of("/Users/christophe/Pictures/foo/json/Imag'In-Icon_Only-128x128-FF.png");
+        var path = Path.of("src/test/resources/images/metadata/keywords/update_keywords.jpg");
 
-        extractor.getAllByDirectory(Path.of("/Users/christophe/Pictures/foo/json/Imag'In-Icon_Only-128x128-FF.png"))
+//        reader.getAllByDirectory(path).forEach(d -> {
+//            System.out.println(STR."Directory: \{d.name()}");
+//            d.entries().entrySet().forEach(e -> System.out.println(STR."   \{e.getKey()}: \{e.getValue()}"));
+//        });
+        extractor.getAllByDirectory(path)
                  .forEach(d -> {
-                     System.out.println("Dir: " + d.name());
-                     d.entries().forEach((key, value) -> System.out.printf("   %s: %s", key, value));
+                     System.out.println(STR."Dir: \{d.name()}");
+                     d.entries().forEach((key, value) -> System.out.printf("   %s: %s%n", key, value));
                  });
     }
 
