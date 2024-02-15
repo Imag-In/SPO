@@ -1,0 +1,60 @@
+/* This is dummy file to clear user agent stylesheet. */
+.tags-field > .flow-pane > .tag-view {
+  -color-button-bg: -color-accent-emphasis;
+  -color-button-fg: -color-fg-emphasis;
+  -color-button-shadow: -color-shadow-default;
+  -color-button-border: -color-border-default;
+  -color-button-border: -color-accent-emphasis;
+  -color-button-bg-hover: -color-accent-emphasis;
+  -color-button-fg-hover: -color-fg-emphasis;
+  -color-button-border-hover: -color-accent-emphasis;
+  -color-button-bg-focused: -color-accent-6;
+  -color-button-fg-focused: -color-fg-emphasis;
+  -color-button-border-focused: -color-accent-emphasis;
+  -color-button-bg-pressed: -color-accent-emphasis;
+  -color-button-fg-pressed: -color-fg-emphasis;
+  -color-button-border-pressed: transparent;
+  -fx-background-color: -color-button-border, -color-button-bg;
+  -fx-text-fill: -color-button-fg;
+  -fx-alignment: CENTER;
+  -fx-effect: dropshadow(gaussian, -color-button-shadow, 3px, -2, 0, 1);
+}
+
+.tags-field > .flow-pane > .tag-view:selected {
+  /*-fx-background: -fx-control-inner-background;*/
+  /*-fx-background-color: -fx-accent, -fx-background;*/
+  /*-fx-background-insets: 0em, 0.083333em;*/
+  /*-fx-text-fill: -fx-accent;*/
+  -fx-underline: true;
+}
+
+.tags-field > .flow-pane > .tag-view:hover {
+  -fx-underline: true;
+}
+
+.tags-field {
+  -fx-padding: 0;
+  -fx-border-style: none;
+  -fx-border-width: 0;
+  -fx-border-insets: 0;
+  -fx-background-color: transparent;
+}
+
+.search-field-list-view .search-field-list-cell .text {
+  -fx-fill: -color-fg-default;
+}
+
+.search-field-list-view > .placeholder > .label {
+  -fx-text-fill: derive(-color-fg-default, -30%);
+}
+
+.search-field-list-view {
+  -fx-color: -color-fg-default;
+  -fx-background-color: -color-fg-default;
+  -fx-selection-bar-text: -color-fg-default;
+  -fx-control-inner-background: -color-accent-emphasis;
+  -fx-selection-bar: -color-accent-emphasis;
+  -fx-cell-focus-inner-border: -color-cell-border, -color-cell-bg-selected;
+  -fx-accent: -color-accent-1;
+  -fx-background: -color-fg-default;
+}
