@@ -1,5 +1,6 @@
 package org.icroco.picture;
 
+import fr.brouillard.oss.cssfx.CSSFX;
 import javafx.application.ConditionalFeature;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
@@ -70,20 +71,26 @@ public class StageInitializer {
                            : SceneAntialiasing.DISABLED;
         var scene = new Scene(mainView.getRootContent(), 1200, 800, false, antialiasing);
         primaryStage.setScene(scene);
+        if (Boolean.getBoolean("SCENIC")) {
+            ScenicView.show(scene);
+        }
+        if (env.isDev()) {
+//            CSSFXLogger.setLogLevel(CSSFXLogger.LogLevel.DEBUG);
+            CSSFX.start();
+//            CSSFXLogger.setLoggerFactory((loggerName) -> (level, message, args) -> {
+//                System.out.println(STR."\{loggerName}: original message: \{String.format(message, args)}");
+//            });
+            scene.focusOwnerProperty().addListener((_, _, newValue) -> log.debug("Focus onwer: {}", newValue));
+        }
         themeManager.setScene(scene);
         themeManager.setTheme(Optional.ofNullable(userPref.getUserPreference().getMainWindow().getTheme())
                                       .orElseGet(themeManager::getDefaultTheme));
 
         restoreWindowDimension(scene, primaryStage);
 
-        scene.getStylesheets().addAll(Resources.resolve("/styles/index.css"));
-        if (Boolean.getBoolean("SCENIC")) {
-            ScenicView.show(scene);
-        }
 
-        if (env.isDev()) {
-            scene.focusOwnerProperty().addListener((_, _, newValue) -> log.debug("Focus onwer: {}", newValue));
-        }
+        scene.getStylesheets().addAll(Resources.resolve("/styles/empty.css"), Resources.resolve("/styles/index.css"));
+
         context.publishEvent(new SceneReadyEvent(scene, primaryStage));
 
 //            Platform.runLater(() -> applicationContext.publishEvent(new StageReadyEvent(primaryStage)));

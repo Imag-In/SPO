@@ -25,6 +25,7 @@ import java.net.URISyntaxException;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -74,22 +75,30 @@ class ApacheMetadataWritterTest {
     }
 
     @Test
-    void addKeywords() {
-        var path = Path.of("src/test/resources/images/metadata/keywords/update_keywords.jpg");
+    void addKeywords() throws IOException {
+        var original = Path.of("src/test/resources/images/metadata/keywords/update_keywords.jpg");
 //        Mockito.doReturn(new Keyword(1, "foo")).when(kwmMock).findOrCreateTag("foo");
 //        Mockito.doReturn(new Keyword(2, "foo")).when(kwmMock).findOrCreateTag("bar");
-        var header = reader.header(path);
+        var tmpPath = Paths.get(original.getParent().toString(), STR."kw_\{original.getFileName().toString()}");
+        try {
+            Files.copy(original, tmpPath);
+
+            var header = reader.header(tmpPath);
 
 
-        Assertions.assertThat(header).isPresent();
-        Assertions.assertThat(header.get().keywords())
-                  .extracting(Keyword::name).containsExactlyInAnyOrder("bar", "foo");
+            Assertions.assertThat(header).isPresent();
+            Assertions.assertThat(header.get().keywords())
+                      .extracting(Keyword::name).containsExactlyInAnyOrder("bar", "foo");
 
-        writer.addKeywords(path, Set.of("42"));
-        Assertions.assertThat(header.get().keywords())
-                  .extracting(Keyword::name).containsExactlyInAnyOrder("bar", "foo");
-        header = reader.header(path);
+            writer.addKeywords(tmpPath, Set.of("42"));
 
+            header = reader.header(tmpPath);
+
+            Assertions.assertThat(header.get().keywords())
+                      .extracting(Keyword::name).containsExactlyInAnyOrder("bar", "42", "foo");
+        } finally {
+            Files.deleteIfExists(tmpPath);
+        }
     }
 
     @Test
