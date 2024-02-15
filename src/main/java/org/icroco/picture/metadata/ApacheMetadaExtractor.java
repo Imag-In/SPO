@@ -14,10 +14,7 @@ import org.jooq.lambda.Unchecked;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ApacheMetadaExtractor implements IMetadataExtractor {
@@ -39,11 +36,18 @@ public class ApacheMetadaExtractor implements IMetadataExtractor {
     @Override
     public List<MetadataDirectory> getAllByDirectory(Path path) {
         try {
-            return List.of(new MetadataDirectory("Default", Imaging.getMetadata(path.toFile())
-                                                                   .getItems()
-                                                                   .stream()
-                                                                   .map(this::toEntry)
-                                                                   .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))));
+            List<Map.Entry<String, Object>> entries = Imaging.getMetadata(path.toFile())
+                                                             .getItems()
+                                                             .stream()
+                                                             .map(this::toEntry)
+                                                             .toList();
+            Map<String, ?>
+                    res =
+                    entries.stream()
+                           .collect(Collectors.groupingBy(Map.Entry::getKey,
+                                                          Collectors.mapping(e -> Objects.toString(e.getValue()),
+                                                                             Collectors.joining(","))));
+            return List.of(new MetadataDirectory("Default", (Map<String, Object>) res));
         } catch (ImageReadException | IOException e) {
             log.error("Cannot parse metadata for: '{}'", path.toAbsolutePath(), e);
             return Collections.emptyList();
