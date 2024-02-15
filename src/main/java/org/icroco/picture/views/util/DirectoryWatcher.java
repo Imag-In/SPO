@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
@@ -41,7 +42,7 @@ public class DirectoryWatcher {
     private final Map<Path, WatchKey> keys         = new ConcurrentHashMap<>();
     private       Thread              drainerVThread;
     private final Predicate<Path>     excludeFiles = p -> p.getFileName().equals(Path.of(".DS_Store"));
-
+    private final AtomicBoolean suspend = new AtomicBoolean(false);
 
     @Autowired
     public DirectoryWatcher(TaskService taskService,
@@ -49,7 +50,8 @@ public class DirectoryWatcher {
                             @Qualifier(SpoConfiguration.DIRECTORY_WATCHER) ExecutorService executorService) throws IOException {
         this(taskService, null, true);
         executorService.submit(this::processEvents);
-        drainerVThread = Thread.ofVirtual().name("File-Watcher-drainer")
+        drainerVThread = Thread.ofVirtual()
+                               .name("File-Watcher-drainer")
                                .start(this::drainFiles);
     }
 
@@ -205,6 +207,9 @@ public class DirectoryWatcher {
             //noinspection InfiniteLoopStatement
             for (; ; ) {
                 Thread.sleep(ofSeconds);
+                if (suspend.get()) {
+                    continue;
+                }
                 if (!changes.isEmpty()) {
                     log.info("Drain files changes detected: nb changes: '{}': ten first: {}",
                              changes.size(),
@@ -258,6 +263,14 @@ public class DirectoryWatcher {
         } catch (InterruptedException e) {
             log.warn("Thread interruped");
         }
+    }
+
+    public void setSuspend(boolean value) {
+        suspend.set(value);
+        log.info("Directory Watcher suspended: '{}'", suspend.get());
+//        if (!value) {
+//            drainerVThread.notify();
+//        }
     }
 
     @EventListener

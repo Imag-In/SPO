@@ -29,6 +29,8 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Random;
 import java.util.Set;
 
@@ -42,6 +44,11 @@ class ApacheMetadataWritterTest {
         @Override
         public Keyword findOrCreateTag(String name) {
             return new Keyword(new Random().nextInt(1000), name);
+        }
+
+        @Override
+        public Collection<String> getAll() {
+            return Collections.emptyList();
         }
     };
 

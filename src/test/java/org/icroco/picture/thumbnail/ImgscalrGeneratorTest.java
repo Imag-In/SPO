@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.Collections;
 
 import static org.mockito.Mockito.mock;
 
@@ -23,7 +24,8 @@ class ImgscalrGeneratorTest {
         var
                 generator =
                 new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(new KeywordManager(mock(KeywordRepository.class),
-                                                                                                              new KeywordMapperImpl()),
+                                                                                                              new KeywordMapperImpl(),
+                                                                                                              Collections.emptyMap()),
                                                                                            mock(TaskService.class)));
         var
                 thumbnail  =

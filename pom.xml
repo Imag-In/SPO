@@ -20,6 +20,7 @@
         <commons-io.version>2.15.1</commons-io.version>
         <controlsfx.version>11.2.0</controlsfx.version>
         <cssfx.version>11.5.1</cssfx.version>
+        <cssfx.version>11.5.1</cssfx.version>
         <eclipse-collections-api.version>11.1.0</eclipse-collections-api.version>
         <gemsfx.version>1.93.0</gemsfx.version>
         <ikonli-bom.version>12.3.1</ikonli-bom.version>

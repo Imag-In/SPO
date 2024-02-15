@@ -60,7 +60,7 @@ public class MediaLoader {
 
     public MediaLoader(IThumbnailGenerator thumbnailGenerator,
                        ImageLoader imageLoader,
-                       @Qualifier(SpoConfiguration.CACHE_THUMBNAILS_RAW) Map<MediaFile, Thumbnail> thCache,
+                       @Qualifier(SpoConfiguration.CACHE_THUMBNAILS) Map<MediaFile, Thumbnail> thCache,
                        @Qualifier(SpoConfiguration.CACHE_IMAGE_FULL_SIZE) Cache imagesCache,
                        TaskService taskService,
                        IHashGenerator hashGenerator,
