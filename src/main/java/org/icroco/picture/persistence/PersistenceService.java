@@ -48,7 +48,7 @@ public class PersistenceService {
     private final ThumbnailMapper                thMapper;
     @Qualifier(SpoConfiguration.CACHE_CATALOG)
     private final Cache                          mcCache;
-    @Qualifier(SpoConfiguration.CACHE_THUMBNAILS_RAW)
+    @Qualifier(SpoConfiguration.CACHE_THUMBNAILS)
     private final Map<MediaFile, Thumbnail>      thCache;
     private final TaskService                    taskService;
     private final ReentrantReadWriteLock         mcLock = new ReentrantReadWriteLock();

@@ -11,6 +11,7 @@ import org.icroco.picture.hash.JdkHashGenerator;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.IKeywordManager;
 import org.icroco.picture.metadata.IMetadataExtractor;
+import org.icroco.picture.model.Keyword;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.thumbnail.IThumbnailGenerator;
@@ -44,21 +45,22 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class SpoConfiguration {
 
-    private static final String CACHE_THUMBNAILS = "thumbnails";
-    public static final String CACHE_THUMBNAILS_RAW  = CACHE_THUMBNAILS + "-raw";
-    public static final String CACHE_IMAGE_FULL_SIZE = "imageFullSize";
+    public static final  String CACHE_THUMBNAILS      = "thumbnails";
+    private static final String CACHE_THUMBNAILS_RAW  = CACHE_THUMBNAILS + "-raw";
+    public static final  String CACHE_IMAGE_FULL_SIZE = "imageFullSize";
     public static final String CACHE_IMAGE_HEADER    = "imageHeader";
 
-    public static final String CACHE_CATALOG = "catalog";
+    public static final String CACHE_CATALOG     = "catalog";
     public static final String CACHE_KEYWORD = "keyword";
+    public static final String CACHE_KEYWORD_RAW = CACHE_KEYWORD + "-raw";
     public static final String DIRECTORY_WATCHER = "DirWatch";
     public static final String FX_EXECUTOR       = "FX_EXECUTOR";
     public static final String IMAG_IN_EXECUTOR  = "IMAG_IN_EXEC";
 
 
-    @Bean(name = CACHE_THUMBNAILS)
+    @Bean(name = CACHE_THUMBNAILS_RAW)
     public Cache thumbnails() {
-        return new CaffeineCache(CACHE_THUMBNAILS,
+        return new CaffeineCache(CACHE_THUMBNAILS_RAW,
                                  Caffeine.<Long, Thumbnail>newBuilder()
                                          .recordStats()
 //                                         .softValues()
@@ -72,8 +74,8 @@ public class SpoConfiguration {
                                          .build());
     }
 
-    @Bean(name = CACHE_THUMBNAILS_RAW)
-    public Map<MediaFile, Thumbnail> rawThumbnails(@Qualifier(CACHE_THUMBNAILS) Cache cache) {
+    @Bean(name = CACHE_THUMBNAILS)
+    public Map<MediaFile, Thumbnail> rawThumbnails(@Qualifier(CACHE_THUMBNAILS_RAW) Cache cache) {
         return ((com.github.benmanes.caffeine.cache.Cache<MediaFile, Thumbnail>) cache.getNativeCache()).asMap();
     }
 
@@ -106,11 +108,16 @@ public class SpoConfiguration {
                                          .build());
     }
 
-    @Bean(name = CACHE_KEYWORD)
-    public CaffeineCache tagCache() {
-        return new CaffeineCache(CACHE_KEYWORD,
+    @Bean(name = CACHE_KEYWORD_RAW)
+    public CaffeineCache rawTagCache() {
+        return new CaffeineCache(CACHE_KEYWORD_RAW,
                                  Caffeine.newBuilder()
                                          .build());
+    }
+
+    @Bean(name = CACHE_KEYWORD)
+    public Map<String, Keyword> tagCache(@Qualifier(CACHE_KEYWORD_RAW) Cache cache) {
+        return ((com.github.benmanes.caffeine.cache.Cache<String, Keyword>) cache.getNativeCache()).asMap();
     }
 
     @Bean(IMAG_IN_EXECUTOR)
