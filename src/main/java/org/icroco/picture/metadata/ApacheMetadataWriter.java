@@ -114,6 +114,7 @@ public class ApacheMetadataWriter implements IMetadataWriter {
                     dirConsummer.accept(exifDirectory);
                 }
                 new ExifRewriter().updateExifMetadataLossless(source, os, outputSet);
+                os.flush();
             }
         } catch (IOException | ImageWriteException | ImageReadException e) {
             log.error("File: '{}', Cannot save tag", path, e);
@@ -145,6 +146,7 @@ public class ApacheMetadataWriter implements IMetadataWriter {
                     dirConsummer.accept(newRecords);
                 }
                 new JpegIptcRewriter().writeIPTC(source, os, new PhotoshopApp13Data(newRecords, newBlocks));
+                os.flush();
             }
         } catch (IOException | ImageWriteException | ImageReadException e) {
             log.error("File: '{}', Cannot save tag", path, e);
