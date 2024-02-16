@@ -71,18 +71,19 @@ class ApacheMetadataWritterTest {
         try {
             Files.copy(original, tmpPath);
 
-//        changeExifMetadata(Path.of("./target/test-classes/images/metadata/test-A.jpg").toFile(), Path.of("./target/test-classes/images/metadata/test-A.jpg").toFile());
-
             var header = reader.header(tmpPath);
             Assertions.assertThat(header).isPresent();
             Assertions.assertThat(header.get().orginalDate().toLocalDate()).isEqualTo(LocalDate.of(2023, 1, 15));
 
             System.out.println(header);
-            writer.setOrignialDate(tmpPath, LocalDateTime.now());
+            LocalDateTime now = LocalDateTime.now();
+            writer.setOrignialDate(tmpPath, now);
 
             header = reader.header(tmpPath);
+
+            System.out.println(header);
             Assertions.assertThat(header).isPresent();
-            Assertions.assertThat(header.get().orginalDate().toLocalDate()).isEqualTo(LocalDate.now());
+            Assertions.assertThat(header.get().orginalDate().toLocalDate()).isEqualTo(now.toLocalDate());
         } finally {
             Files.deleteIfExists(tmpPath);
         }
