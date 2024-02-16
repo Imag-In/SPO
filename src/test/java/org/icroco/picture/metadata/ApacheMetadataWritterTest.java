@@ -64,21 +64,28 @@ class ApacheMetadataWritterTest {
 //        var image = getClass().getResource("./target/test/images/metadata/test.jpg");
 //        var path  = Paths.get(image.toURI());
         System.out.println(ByteOrder.nativeOrder());
-        var path = Path.of("./target/test-classes/images/metadata/test.jpg");
+        var original = Path.of("./target/test-classes/images/metadata/test.jpg");
+        var tmpPath  = Paths.get(original.getParent().toString(), STR."kw_\{original.getFileName().toString()}");
+
+//        writer.setOrignialDate(original, LocalDateTime.of(2023, 1, 15, 12, 0, 0));
+        try {
+            Files.copy(original, tmpPath);
 
 //        changeExifMetadata(Path.of("./target/test-classes/images/metadata/test-A.jpg").toFile(), Path.of("./target/test-classes/images/metadata/test-A.jpg").toFile());
 
-        var header = reader.header(path);
-        Assertions.assertThat(header).isPresent();
-        Assertions.assertThat(header.get().orginalDate().toLocalDate()).isEqualTo(LocalDate.of(2023, 1, 15));
+            var header = reader.header(tmpPath);
+            Assertions.assertThat(header).isPresent();
+            Assertions.assertThat(header.get().orginalDate().toLocalDate()).isEqualTo(LocalDate.of(2023, 1, 15));
 
-        System.out.println(header);
-        writer.setOrignialDate(path, LocalDateTime.now());
+            System.out.println(header);
+            writer.setOrignialDate(tmpPath, LocalDateTime.now());
 
-        header = reader.header(path);
-        Assertions.assertThat(header).isPresent();
-        Assertions.assertThat(header.get().orginalDate().toLocalDate()).isEqualTo(LocalDate.now());
-
+            header = reader.header(tmpPath);
+            Assertions.assertThat(header).isPresent();
+            Assertions.assertThat(header.get().orginalDate().toLocalDate()).isEqualTo(LocalDate.now());
+        } finally {
+            Files.deleteIfExists(tmpPath);
+        }
     }
 
     @Test
