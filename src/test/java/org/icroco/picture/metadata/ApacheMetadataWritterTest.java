@@ -76,7 +76,7 @@ class ApacheMetadataWritterTest {
             Assertions.assertThat(header.get().orginalDate().toLocalDate()).isEqualTo(LocalDate.of(2023, 1, 15));
 
             System.out.println(header);
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = header.get().orginalDate().plusYears(1);
             writer.setOrignialDate(tmpPath, now);
 
             header = reader.header(tmpPath);
