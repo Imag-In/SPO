@@ -14,6 +14,7 @@ import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
 import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputDirectory;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
+import org.icroco.picture.model.Keyword;
 import org.icroco.picture.util.LangUtils;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -57,7 +59,7 @@ public class ApacheMetadataWriter implements IMetadataWriter {
 
     @Override
     @SneakyThrows
-    public void setKeywords(Path path, Set<String> keywords) {
+    public void setKeywords(Path path, Set<Keyword> keywords) {
         addIptcTags(Files.readAllBytes(path),
                     path,
                     List.of(recordSet -> updateKeywords(true, recordSet, LangUtils.safeCollection(keywords))));
@@ -66,18 +68,18 @@ public class ApacheMetadataWriter implements IMetadataWriter {
 
     @Override
     @SneakyThrows
-    public void addKeywords(Path path, Set<String> keywords) {
+    public void addKeywords(Path path, Set<Keyword> keywords) {
         addIptcTags(Files.readAllBytes(path),
                     path,
                     List.of(recordSet -> updateKeywords(false, recordSet, LangUtils.safeCollection(keywords))));
     }
 
     @SneakyThrows
-    private void updateKeywords(boolean clearAllBefore, List<IptcRecord> records, Collection<String> keywords) {
+    private void updateKeywords(boolean clearAllBefore, List<IptcRecord> records, Collection<Keyword> keywords) {
         if (clearAllBefore) {
             records.removeIf(iptcRecord -> iptcRecord.iptcType == IptcTypes.KEYWORDS);
         }
-        var text = String.join(";", keywords);
+        var text = keywords.stream().map(Keyword::name).collect(Collectors.joining(";"));
         records.add(new IptcRecord(IptcTypes.KEYWORDS, text));
         records.sort(IptcRecord.COMPARATOR);
     }

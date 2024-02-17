@@ -47,8 +47,13 @@ class ApacheMetadataWritterTest {
         }
 
         @Override
-        public Collection<String> getAll() {
+        public Collection<Keyword> getAll() {
             return Collections.emptyList();
+        }
+
+        @Override
+        public Set<Keyword> addMissingKw(Collection<Keyword> keywords) {
+            return Set.copyOf(keywords);
         }
     };
 
@@ -92,8 +97,6 @@ class ApacheMetadataWritterTest {
     @Test
     void addKeywords() throws IOException {
         var original = Path.of("src/test/resources/images/metadata/keywords/update_keywords.jpg");
-//        Mockito.doReturn(new Keyword(1, "foo")).when(kwmMock).findOrCreateTag("foo");
-//        Mockito.doReturn(new Keyword(2, "foo")).when(kwmMock).findOrCreateTag("bar");
         var tmpPath = Paths.get(original.getParent().toString(), STR."kw_\{original.getFileName().toString()}");
         try {
             Files.copy(original, tmpPath);
@@ -105,7 +108,7 @@ class ApacheMetadataWritterTest {
             Assertions.assertThat(header.get().keywords())
                       .extracting(Keyword::name).containsExactlyInAnyOrder("bar", "foo");
 
-            writer.addKeywords(tmpPath, Set.of("42"));
+            writer.addKeywords(tmpPath, Set.of(Keyword.builder().name("42").build()));
 
             header = reader.header(tmpPath);
 

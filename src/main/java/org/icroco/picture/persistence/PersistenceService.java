@@ -10,6 +10,7 @@ import org.icroco.picture.model.HashDuplicate;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
+import org.icroco.picture.persistence.mapper.KeywordMapper;
 import org.icroco.picture.persistence.mapper.MediaCollectionMapper;
 import org.icroco.picture.persistence.mapper.MediaFileMapper;
 import org.icroco.picture.persistence.mapper.ThumbnailMapper;
@@ -39,19 +40,21 @@ import static java.util.stream.Collectors.toList;
 @RequiredArgsConstructor
 @Slf4j
 public class PersistenceService {
-    private final CollectionRepository           collectionRepo;
-    private final MediaFileRepository            mfRepo;
-    private final ThumbnailRepository            thumbRepo;
-    private final IHashGenerator                 hashGenerator;
-    private final MediaCollectionMapper          colMapper;
-    private final MediaFileMapper                mfMapper;
-    private final ThumbnailMapper                thMapper;
+    private final CollectionRepository      collectionRepo;
+    private final MediaFileRepository       mfRepo;
+    private final ThumbnailRepository       thumbRepo;
+    private final IHashGenerator            hashGenerator;
+    private final KeywordRepository         kwRepo;
+    private final MediaCollectionMapper     colMapper;
+    private final MediaFileMapper           mfMapper;
+    private final ThumbnailMapper           thMapper;
+    private final KeywordMapper             kwMapper;
     @Qualifier(SpoConfiguration.CACHE_CATALOG)
-    private final Cache                          mcCache;
+    private final Cache                     mcCache;
     @Qualifier(SpoConfiguration.CACHE_THUMBNAILS)
-    private final Map<MediaFile, Thumbnail>      thCache;
-    private final TaskService                    taskService;
-    private final ReentrantReadWriteLock         mcLock = new ReentrantReadWriteLock();
+    private final Map<MediaFile, Thumbnail> thCache;
+    private final TaskService               taskService;
+    private final ReentrantReadWriteLock    mcLock = new ReentrantReadWriteLock();
 
     @EventListener(ApplicationStartedEvent.class)
     public void loadAllMediaCollection() {

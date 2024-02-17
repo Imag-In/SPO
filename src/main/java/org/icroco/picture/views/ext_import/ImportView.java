@@ -31,8 +31,10 @@ import org.icroco.picture.event.ShowOrganizeEvent;
 import org.icroco.picture.event.UsbStorageDeviceEvent;
 import org.icroco.picture.metadata.IKeywordManager;
 import org.icroco.picture.metadata.IMetadataWriter;
+import org.icroco.picture.model.Keyword;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.model.converter.KeywordStringConverter;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.views.AbstractView;
@@ -80,17 +82,17 @@ public class ImportView extends AbstractView<StackPane> {
     private final       IKeywordManager  keywordManager;
     private final       IMetadataWriter  metadataWriter;
 
-    private final StackPane         root           = new StackPane();
-    private final CustomTextField   sourceDir      = new CustomTextField();
-    private       TextField         targetCollectionTf;
-    private       TextField         targetSubDirTf;
-    private       TagsField<String> keywords;
-    private final TextArea          exampleTf      = new TextArea();
-    private final CustomTextField   filePrefix     = new CustomTextField("");
-    private final Label             filesCounter   = new Label("");
-    private final Button            importBtn      = new Button("Import");
-    private final ToggleSwitch      genThumbailsCb = new ToggleSwitch("Generate high quality thumbnails");
-    private final ToggleSwitch      deleteFilesCb  = new ToggleSwitch("Delete imported files");
+    private final StackPane          root           = new StackPane();
+    private final CustomTextField    sourceDir      = new CustomTextField();
+    private       TextField          targetCollectionTf;
+    private       TextField          targetSubDirTf;
+    private       TagsField<Keyword> keywords;
+    private final TextArea           exampleTf      = new TextArea();
+    private final CustomTextField    filePrefix     = new CustomTextField("");
+    private final Label              filesCounter   = new Label("");
+    private final Button             importBtn      = new Button("Import");
+    private final ToggleSwitch       genThumbailsCb = new ToggleSwitch("Generate high quality thumbnails");
+    private final ToggleSwitch       deleteFilesCb  = new ToggleSwitch("Delete imported files");
 
     private final MediaFile[] fakeMf = new MediaFile[] { MediaFile.builder()
                                                                   .originalDate(LocalDateTime.now())
@@ -113,7 +115,7 @@ public class ImportView extends AbstractView<StackPane> {
     private final ComboBox<IRenameFilesStrategy>   renamingStrategyCb = new ComboBox<>();
     private       Path                             targetCollection;
     private final SortedList<IRenameFilesStrategy> strategies;
-    private final List<String> allKeywords = new ArrayList<>();
+    private final List<Keyword> allKeywords = new ArrayList<>();
 
     public ImportView(TaskService taskService,
                       PersistenceService persistenceService,
@@ -146,9 +148,15 @@ public class ImportView extends AbstractView<StackPane> {
         renamingStrategyCb.setConverter(new StrategyStringConverter());
         exampleTf.requestFocus();
         keywords.setSuggestionProvider(request -> allKeywords.stream()
-                                                             .filter(name -> name.toLowerCase()
-                                                                                 .contains(request.getUserText().toLowerCase()))
+                                                             .filter(kw -> kw.name()
+                                                                             .toLowerCase()
+                                                                             .contains(request.getUserText().toLowerCase()))
                                                              .collect(Collectors.toList()));
+        keywords.setNewItemProducer(ImportView::keywordProducer);
+        keywords.setConverter(new KeywordStringConverter());
+        keywords.setMatcher((kw, searchText) -> kw.name().toLowerCase().startsWith(searchText.toLowerCase()));
+        keywords.setComparator(Comparator.comparing(Keyword::name));
+
         root.visibleProperty().addListener((observable, oldValue, newValue) -> rooVisible(newValue));
     }
 
@@ -257,10 +265,7 @@ public class ImportView extends AbstractView<StackPane> {
         rowIdx += 1;
         grid.add(createLabel("Add tags", 200, 300), 0, rowIdx); // I18N:
         keywords = new TagsField<>();
-        keywords.setMatcher((name, searchText) -> name.toLowerCase().startsWith(searchText.toLowerCase()));
-        keywords.setComparator(String::compareTo);
         keywords.getEditor().setPromptText("Start typing country name ..."); // I18N:
-        keywords.setNewItemProducer(ImportView::keywordProducer);
 
         grid.add(keywords, 1, rowIdx);
 
@@ -323,8 +328,8 @@ public class ImportView extends AbstractView<StackPane> {
         return titled;
     }
 
-    private static String keywordProducer(String name) {
-        return name;
+    private static Keyword keywordProducer(String name) {
+        return Keyword.builder().id(null).name(name).build();
     }
 
 
@@ -404,7 +409,7 @@ public class ImportView extends AbstractView<StackPane> {
                              self.updateTitle("Copy files"); // I18N:
                              self.updateProgress(0, files.size());
                              var         i  = new AtomicInteger(0);
-                             Set<String> kw = Set.copyOf(keywords.getTags());
+                             Set<Keyword> kw = Set.copyOf(keywords.getTags());
                              return files.stream()
                                          .peek(rf -> {
                                              self.updateMessage(STR."Copy: \{rf.source.getFullPath().getFileName()}"); // I18N:
@@ -420,7 +425,7 @@ public class ImportView extends AbstractView<StackPane> {
                          .build();
     }
 
-    private void addKeywords(RenameFile renameFile, Set<String> kw) {
+    private void addKeywords(RenameFile renameFile, Set<Keyword> kw) {
         if (!kw.isEmpty()) {
             metadataWriter.addKeywords(renameFile.target, Set.copyOf(kw));
         }

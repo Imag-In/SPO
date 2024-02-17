@@ -4,6 +4,7 @@ import org.icroco.picture.model.Keyword;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 
 public class TagManagerTest {
 
@@ -16,8 +17,13 @@ public class TagManagerTest {
         }
 
         @Override
-        public Collection<String> getAll() {
+        public Collection<Keyword> getAll() {
             return Collections.emptyList();
+        }
+
+        @Override
+        public Set<Keyword> addMissingKw(Collection<Keyword> keywords) {
+            return Set.copyOf(keywords);
         }
     };
 

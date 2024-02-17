@@ -5,6 +5,7 @@ import atlantafx.base.controls.Popover;
 import atlantafx.base.controls.Spacer;
 import atlantafx.base.theme.Styles;
 import com.ashampoo.kim.Kim;
+import com.dlsc.gemsfx.TagsField;
 import jakarta.annotation.PostConstruct;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -16,12 +17,14 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.imaging.common.ImageMetadata;
 import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
@@ -32,12 +35,14 @@ import org.icroco.picture.event.ForceGenerateThumbnailEvent;
 import org.icroco.picture.event.NotificationEvent;
 import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
+import org.icroco.picture.metadata.IKeywordManager;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.metadata.IMetadataWriter;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.EThumbnailType;
 import org.icroco.picture.model.Keyword;
 import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.model.converter.KeywordStringConverter;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.persistence.ThumbnailRepository;
 import org.icroco.picture.util.Env;
@@ -49,8 +54,10 @@ import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.organize.OrganizeConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.task.TaskService;
+import org.icroco.picture.views.util.I18N;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
+import org.icroco.picture.views.util.Nodes;
 import org.icroco.picture.views.util.widget.FxUtil;
 import org.jooq.lambda.Unchecked;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
@@ -67,6 +74,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -84,12 +92,13 @@ public class DetailsView extends AbstractView<VBox> {
     private final MediaLoader           mediaLoader;
     private final Env                   env;
     private final PersistenceService    persistenceService;
+    private final IKeywordManager      keywordManager;
+    private final I18N                 i18N;
     @Qualifier(OrganizeConfiguration.ORGANIZE_EDIT_MODE)
     private final SimpleBooleanProperty editMode;
     private       MaskerPane<GridPane> maskerPane          = new MaskerPane<>(true);
     private final VBox                 root                = new VBox();
     private final Label                name                = createLabel();
-    private final Label                txtDbId             = new Label("Id: ");
     private final Label                dbId                = createLabel(0, 100);
     private final Label                creationDate        = createLabel();
     private final Label                creationTime        = createLabel();
@@ -101,7 +110,8 @@ public class DetailsView extends AbstractView<VBox> {
     private final Label                orientation         = createLabel();
     private final Label                cameraMake          = createLabel();
     private final Label                cameraModel         = createLabel();
-    private final Label                keywords            = createLabel();
+    //    private final Label                 keywords            = createLabel();
+    private final TagsField<Keyword>   keywords            = new TagsField<>();
     private final Label                filePathError       = createLabel();
     private       TabPane               tabs;
     private       Path                 path                = null;
@@ -297,7 +307,35 @@ public class DetailsView extends AbstractView<VBox> {
         editTime.setDisable(true);
         editTime.setTooltip(new Tooltip("Not Yet Implemented")); // TODO:
 
+        keywords.setConverter(new KeywordStringConverter());
+        keywords.getEditor().disableProperty().bind(notEditing);
+        keywords.getEditor().visibleProperty().bind(editMode);
+        keywords.getEditor().managedProperty().bind(editMode);
+        keywords.setMatcher((kw, searchText) -> kw.name().toLowerCase().startsWith(searchText.toLowerCase()));
+        keywords.setComparator(Comparator.comparing(Keyword::name));
+        keywords.getEditor().setPromptText("Start typing keywors ..."); // I18N:
+        keywords.setComparator(Comparator.comparing(Keyword::name));
+        keywords.setSuggestionProvider(request -> keywordManager.getAll().stream()
+                                                                .filter(kw -> kw.name().toLowerCase()
+                                                                                .contains(request.getUserText().toLowerCase()))
+                                                                .collect(Collectors.toList()));
+        keywords.setNewItemProducer(name -> new Keyword(null, name));
+        keywords.getEditor().setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                Nodes.applyAndConsume(event, _ -> DetailsView.this.root.requestFocus());
+            }
+        });
 
+
+        editMode.addListener((_, _, newValue) -> {
+            if (!newValue) {
+                if (!CollectionUtils.containsAll(mediaFile.getKeywords(), keywords.getTags())) {
+                    var tags = keywordManager.addMissingKw(keywords.getTags());
+                    mediaFile.setKeywords(tags);
+                    persistenceService.saveMediaFile(mediaFile, mf -> metadataWriter.setKeywords(mf.fullPath(), mf.getKeywords()));
+                }
+            }
+        });
     }
 
     private void dateExtractedAction() {
@@ -447,7 +485,9 @@ public class DetailsView extends AbstractView<VBox> {
         orientation.setText("");
         cameraMake.setText("");
         cameraModel.setText("");
-        keywords.setText("");
+//        keywords.setText("");
+        keywords.clear();
+        keywords.clearTags();
         thumbnailSize.setText("");
         creationTime.textProperty().unbind();
         creationTime.setText("");
@@ -485,7 +525,8 @@ public class DetailsView extends AbstractView<VBox> {
         cameraMake.setText(mediaFile.camera().make());
         cameraModel.setText(mediaFile.camera().model());
         path = mediaFile.getFullPath();
-        keywords.setText(mediaFile.getKeywords().stream().map(Keyword::name).collect(Collectors.joining(",")));
+        keywords.addTags(mediaFile.getKeywords().toArray(new Keyword[0]));
+//        keywords.setText(mediaFile.getKeywords().stream().map(Keyword::name).collect(Collectors.joining(",")));
         if (!Files.exists(mediaFile.fullPath())) {
             filePathErrorIcon.setVisible(true);
             filePathError.setText("File path doesn't exist !");
