@@ -36,17 +36,17 @@ public class ApacheMetadaExtractor implements IMetadataExtractor {
     @Override
     public List<MetadataDirectory> getAllByDirectory(Path path) {
         try {
+
+            var metada = Imaging.getMetadata(path.toFile());
             List<Map.Entry<String, Object>> entries = Imaging.getMetadata(path.toFile())
                                                              .getItems()
                                                              .stream()
                                                              .map(this::toEntry)
                                                              .toList();
-            Map<String, ?>
-                    res =
-                    entries.stream()
-                           .collect(Collectors.groupingBy(Map.Entry::getKey,
-                                                          Collectors.mapping(e -> Objects.toString(e.getValue()),
-                                                                             Collectors.joining(","))));
+            Map<String, ?> res = entries.stream()
+                                        .collect(Collectors.groupingBy(Map.Entry::getKey,
+                                                                       Collectors.mapping(e -> Objects.toString(e.getValue()),
+                                                                                          Collectors.joining(","))));
             return List.of(new MetadataDirectory("Default", (Map<String, Object>) res));
         } catch (ImageReadException | IOException e) {
             log.error("Cannot parse metadata for: '{}'", path.toAbsolutePath(), e);

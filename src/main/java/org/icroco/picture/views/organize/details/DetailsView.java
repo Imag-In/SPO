@@ -326,13 +326,12 @@ public class DetailsView extends AbstractView<VBox> {
             }
         });
 
-
         editMode.addListener((_, _, newValue) -> {
             if (!newValue) {
                 if (!CollectionUtils.containsAll(mediaFile.getKeywords(), keywords.getTags())) {
                     var tags = keywordManager.addMissingKw(keywords.getTags());
                     mediaFile.setKeywords(tags);
-                    persistenceService.saveMediaFile(mediaFile, mf -> metadataWriter.setKeywords(mf.fullPath(), mf.getKeywords()));
+                    persistenceService.saveMediaFile(mediaFile, mf -> metadataWriter.addKeywords(mf.fullPath(), mf.getKeywords()));
                 }
             }
         });

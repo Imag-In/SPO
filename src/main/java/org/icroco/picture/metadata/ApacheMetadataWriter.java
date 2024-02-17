@@ -1,5 +1,6 @@
 package org.icroco.picture.metadata;
 
+import io.jbock.util.Either;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.imaging.ImageReadException;
@@ -12,10 +13,14 @@ import org.apache.commons.imaging.formats.jpeg.exif.ExifRewriter;
 import org.apache.commons.imaging.formats.jpeg.iptc.*;
 import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
 import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
+import org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputDirectory;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
+import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.Keyword;
+import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.util.LangUtils;
+import org.jooq.lambda.function.Consumer3;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedOutputStream;
@@ -36,11 +41,16 @@ public class ApacheMetadataWriter implements IMetadataWriter {
 
     @Override
     @SneakyThrows
-    public void setOrignialDate(Path path, LocalDateTime date) {
-        // WARN: Could use a lot of memory, but mandaroty with Imaging, otherwize we need to copy the file.
-        byte[] source = Files.readAllBytes(path);
+    public Either<Exception, Path> setOrignialDate(Path path, LocalDateTime date) {
+        try {
+            // WARN: Could use a lot of memory, but mandaroty with Imaging, otherwize we need to copy the file.
+            final byte[] source = Files.readAllBytes(path);
+            addExifTags(source, path, List.of((_, exif, _) -> updateOriginalDate(exif, date)));
 
-        addExifTags(source, path, List.of(dir -> updateOriginalDate(dir, date)));
+            return Either.right(path);
+        } catch (Exception e) {
+            return Either.left(e);
+        }
     }
 
     @SneakyThrows
@@ -53,8 +63,22 @@ public class ApacheMetadataWriter implements IMetadataWriter {
     }
 
     @Override
-    public void setOrientation(Path path, int orientation) {
+    public Either<Exception, Path> setOrientation(Path path, ERotation orientation) {
+        try {
+            // WARN: Could use a lot of memory, but mandaroty with Imaging, otherwize we need to copy the file.
+            final byte[] source = Files.readAllBytes(path);
+            addExifTags(source, path, List.of((root, _, _) -> updateOrientation(root, orientation.getOrientation())));
 
+            return Either.right(path);
+        } catch (Exception e) {
+            return Either.left(e);
+        }
+    }
+
+    @SneakyThrows
+    private void updateOrientation(TiffOutputDirectory dir, int orientation) {
+        dir.removeField(TiffTagConstants.TIFF_TAG_ORIENTATION);
+        dir.add(TiffTagConstants.TIFF_TAG_ORIENTATION, (short) orientation);
     }
 
     @Override
@@ -89,7 +113,14 @@ public class ApacheMetadataWriter implements IMetadataWriter {
 
     }
 
-    private void addExifTags(byte[] source, Path path, Collection<Consumer<TiffOutputDirectory>> dirConsummers) {
+    @Override
+    public Either<Exception, Path> setThumbnail(Path path, Thumbnail thumbnail) {
+        return null;
+    }
+
+    private void addExifTags(byte[] source,
+                             Path path,
+                             Collection<Consumer3<TiffOutputDirectory, TiffOutputDirectory, TiffOutputDirectory>> dirConsummers) {
         try {
             final TiffOutputSet outputSet;
             ImageMetadata       metadata = Imaging.getMetadata(source);
@@ -110,6 +141,43 @@ public class ApacheMetadataWriter implements IMetadataWriter {
                 log.warn("Ignoring ImageMetadata {}.", metadata.getClass().getSimpleName());
                 outputSet = new TiffOutputSet();
             }
+            try (BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(path.toFile()))) {
+                var gpsDirectory  = outputSet.getOrCreateGPSDirectory();
+                var exifDirectory = outputSet.getOrCreateExifDirectory();
+                var rootDirectory = outputSet.getOrCreateRootDirectory();
+                for (Consumer3<TiffOutputDirectory, TiffOutputDirectory, TiffOutputDirectory> dirConsummer : dirConsummers) {
+                    dirConsummer.accept(rootDirectory, exifDirectory, gpsDirectory);
+                }
+                new ExifRewriter().updateExifMetadataLossless(source, os, outputSet);
+                os.flush();
+            }
+        } catch (IOException | ImageWriteException | ImageReadException e) {
+            log.error("File: '{}', Cannot save tag", path, e);
+        }
+    }
+
+    private void addExifRootTags(byte[] source, Path path, Collection<Consumer<TiffOutputDirectory>> dirConsummers) {
+        try {
+            final TiffOutputSet outputSet;
+            ImageMetadata       metadata = Imaging.getMetadata(source);
+
+            // if file does not contain any exif metadata, we create an empty
+            // set of exif metadata. Otherwise, we keep all the other
+            // existing tags.
+            if (metadata == null) {
+                outputSet = new TiffOutputSet();
+            } else if (metadata instanceof JpegImageMetadata jpegMetadata) {
+                final TiffImageMetadata exif = jpegMetadata.getExif();
+                if (null != exif) {
+                    outputSet = exif.getOutputSet();
+                } else {
+                    outputSet = new TiffOutputSet();
+                }
+            } else {
+                log.warn("Ignoring ImageMetadata {}.", metadata.getClass().getSimpleName());
+                outputSet = new TiffOutputSet();
+            }
+
             try (BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(path.toFile()))) {
                 final TiffOutputDirectory exifDirectory = outputSet.getOrCreateExifDirectory();
                 for (Consumer<TiffOutputDirectory> dirConsummer : dirConsummers) {

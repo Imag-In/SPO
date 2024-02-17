@@ -1,5 +1,7 @@
 package org.icroco.picture.model;
 
+import lombok.Getter;
+
 import java.util.Map;
 
 /**
@@ -10,25 +12,25 @@ import java.util.Map;
  * @since 3.2
  */
 public enum ERotation {
-    CW_0,
+    CW_0((short) 1),
     /**
      * 90-degree, clockwise rotation (to the right). This is equivalent to a
      * quarter-turn of the image to the right; moving the picture on to its
      * right side.
      */
-    CW_90,
+    CW_90((short) 6),
     /**
      * 180-degree, clockwise rotation (to the right). This is equivalent to
      * 1 half-turn of the image to the right; rotating the picture around
      * until it is upside down from the original position.
      */
-    CW_180,
+    CW_180((short) 3),
     /**
      * 270-degree, clockwise rotation (to the right). This is equivalent to
      * a quarter-turn of the image to the left; moving the picture on to its
      * left side.
      */
-    CW_270,
+    CW_270((short) 8),
     /**
      * Flip the image horizontally by reflecting it around the y axis.
      * <p/>
@@ -40,7 +42,7 @@ public enum ERotation {
      * and left sides flip. This is different than a standard rotation where
      * the top and bottom would also have been flipped.
      */
-    FLIP_HORZ,
+    FLIP_HORZ((short) 5),
     /**
      * Flip the image vertically by reflecting it around the x axis.
      * <p/>
@@ -52,9 +54,11 @@ public enum ERotation {
      * but the top and bottom sides flip. This is different than a standard
      * rotation where the left and right would also have been flipped.
      */
-    FLIP_VERT;
+    FLIP_VERT((short) 4);
 
     private final static ERotation[]               EMPTY = new ERotation[0];
+    @Getter
+    private final short orientation;
     private final static Map<Integer, ERotation[]> CACHE = Map.ofEntries(Map.entry(1, new ERotation[0]),
                                                                          Map.entry(2, new ERotation[]{ERotation.FLIP_VERT}),
                                                                          Map.entry(3, new ERotation[]{ERotation.CW_180}),
@@ -68,6 +72,9 @@ public enum ERotation {
                                                                          Map.entry(8, new ERotation[]{ERotation.CW_270})
     );
 
+    ERotation(short i) {
+        orientation = i;
+    }
 
     public static ERotation[] fromOrientation(int orientation) {
         return CACHE.getOrDefault(orientation, EMPTY);
