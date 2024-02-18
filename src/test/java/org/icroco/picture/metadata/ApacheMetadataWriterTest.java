@@ -1,5 +1,7 @@
 package org.icroco.picture.metadata;
 
+import javafx.scene.image.Image;
+import javafx.scene.image.PixelFormat;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.imaging.ImagingException;
 import org.apache.commons.imaging.common.ImageMetadata;
@@ -13,6 +15,8 @@ import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
 import org.assertj.core.api.Assertions;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.Keyword;
+import org.icroco.picture.thumbnail.IThumbnailGenerator;
+import org.icroco.picture.thumbnail.ImgscalrGenerator;
 import org.icroco.picture.views.task.TaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -30,33 +34,13 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Random;
 import java.util.Set;
 
 @ExtendWith(MockitoExtension.class)
-class ApacheMetadataWritterTest {
+class ApacheMetadataWriterTest {
     ApacheMetadataWriter writer = new ApacheMetadataWriter();
 
-    //    @Mock
-    IKeywordManager kwmMock = new IKeywordManager() {
-
-        @Override
-        public Keyword findOrCreateTag(String name) {
-            return new Keyword(new Random().nextInt(1000), name);
-        }
-
-        @Override
-        public Collection<Keyword> getAll() {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public Set<Keyword> addMissingKw(Collection<Keyword> keywords) {
-            return Set.copyOf(keywords);
-        }
-    };
+    IKeywordManager kwmMock = new InMemoryKeywordManager();
 
     IMetadataExtractor reader = new DefaultMetadataExtractor(kwmMock,
                                                              Mockito.mock(TaskService.class));
@@ -65,6 +49,7 @@ class ApacheMetadataWritterTest {
     void beforeAll() {
 //        Mockito.reset(kwmMock);
     }
+
     @Test
     void should_write_original_date() throws URISyntaxException, ImagingException, IOException {
 //        var image = getClass().getResource("./target/test/images/metadata/test.jpg");
@@ -98,7 +83,7 @@ class ApacheMetadataWritterTest {
     @Test
     void addKeywords() throws IOException {
         var original = Path.of("src/test/resources/images/metadata/keywords/update_keywords.jpg");
-        var tmpPath = Paths.get(original.getParent().toString(), STR."kw_\{original.getFileName().toString()}");
+        var tmpPath = Paths.get(original.getParent().toString(), STR."tmp_\{original.getFileName().toString()}");
         try {
             Files.copy(original, tmpPath);
 
@@ -121,9 +106,54 @@ class ApacheMetadataWritterTest {
     }
 
     @Test
+    void changeThumbnail() throws IOException {
+        var original = Path.of("src/test/resources/images/metadata/thumbnail/update_thumbnail.jpg");
+        var tmpPath  = Paths.get(original.getParent().toString(), STR."tmp_\{original.getFileName().toString()}");
+        try {
+            Files.deleteIfExists(tmpPath);
+            Files.copy(original, tmpPath);
+
+            IThumbnailGenerator
+                    generator =
+                    new ImgscalrGenerator(new DefaultMetadataExtractor(new InMemoryKeywordManager(), Mockito.mock(TaskService.class)));
+            System.out.println(Files.size(tmpPath));
+            var originalThnumbail = generator.extractThumbnail(tmpPath);
+            System.out.println(Files.size(tmpPath));
+
+            Assertions.assertThat(originalThnumbail).isNotNull();
+
+            byte[] bytes = Files.readAllBytes(Path.of("src/test/resources/images/metadata/thumbnail/dummy.jpg"));
+            System.out.println(STR."New thumbnail size: \{bytes.length}");
+            writer.setThumbnail(tmpPath, bytes);
+
+            var modifiedThnumbail = generator.extractThumbnail(tmpPath);
+            System.out.println(getRawImage(modifiedThnumbail.getImage()).length);
+
+//            Assertions.assertThat(getRawImage(modifiedThnumbail.getImage())).isEqualTo(bytes);
+        } finally {
+            Files.deleteIfExists(tmpPath);
+        }
+    }
+
+    public static byte[] getRawImage(Image image) {
+        int w = (int) image.getWidth();
+        int h = (int) image.getHeight();
+
+// Create a new Byte Buffer, but we'll use BGRA (1 byte for each channel) //
+
+        byte[] buf = new byte[w * h * 4];
+
+/* Since you can get the output in whatever format with a WritablePixelFormat,
+  we'll use an already created one for ease-of-use. */
+
+        image.getPixelReader().getPixels(0, 0, w, h, PixelFormat.getByteBgraInstance(), buf, 0, w * 4);
+        return buf;
+    }
+
+    @Test
     void changeOrientation() throws IOException {
-        var original = Path.of("src/test/resources/images/metadata/orientation/update_orientation.jpg");
-        var tmpPath  = Paths.get(original.getParent().toString(), STR."orientation_\{original.getFileName().toString()}");
+        var original = Path.of("src/test/resources/images/metadata/thumbnail/update_thumbnail.jpg");
+        var tmpPath  = Paths.get(original.getParent().toString(), STR."tmp_\{original.getFileName().toString()}");
         try {
             Files.copy(original, tmpPath);
 

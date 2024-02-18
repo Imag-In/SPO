@@ -20,8 +20,8 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(of = { "fullPath" })
 public class MediaFile implements IMediaFile {
-    public static  Comparator<MediaFile> UPDATED_COMP = Comparator.comparing(MediaFile::getHash);
-    private static LocalDateTime         TIMESTAMP    = LocalDateTime.MIN.plusHours(1L);
+    public static  Comparator<MediaFile> HASH_COMPARATOR = Comparator.comparing(MediaFile::getHash);
+    private static LocalDateTime         TIMESTAMP       = LocalDateTime.MIN.plusHours(1L);
 
     private Long           id;
     private Path           fullPath;

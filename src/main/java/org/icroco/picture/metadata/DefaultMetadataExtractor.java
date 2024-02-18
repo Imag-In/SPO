@@ -47,8 +47,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 
     private static final Supplier<Integer> DEFAULT_ORIENTATION = () -> 0;
     private final IKeywordManager tagManager;
-    private final TaskService taskService; // Should remove this.
-
+    private final TaskService     taskService; // Should remove this.
 
     @Override
     @Cacheable(cacheNames = SpoConfiguration.CACHE_IMAGE_HEADER, unless = "#result != null")

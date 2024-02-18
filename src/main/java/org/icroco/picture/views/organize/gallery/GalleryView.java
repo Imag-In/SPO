@@ -471,14 +471,14 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void updateImages(CollectionUpdatedEvent event) {
-        if (event.isEmpty()) {
-            return;
-        }
         log.info("Recieved CollectionUpdatedEvent on collection: '{}', newItems: '{}', deletedItems: '{}', modifiedItems: '{}'",
                  event.getMcId(),
                  event.getNewItems().size(),
                  event.getDeletedItems().size(),
                  event.getModifiedItems());
+        if (event.isEmpty()) {
+            return;
+        }
         var selected = gridView.getSelectionModel().getSelectedItem();
         images.addAll(event.getNewItems());
         images.removeAll(event.getDeletedItems());

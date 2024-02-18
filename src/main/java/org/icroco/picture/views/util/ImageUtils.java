@@ -12,6 +12,7 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.ERotation;
 import org.jooq.lambda.Unchecked;
+import org.springframework.lang.NonNull;
 
 import javax.imageio.*;
 import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
@@ -134,6 +135,7 @@ public class ImageUtils {
         return null;
     }
 
+    @NonNull
     public static byte[] mapAsJpg(Image image) {
         var bi = SwingFXUtils.fromFXImage(image, null);
 

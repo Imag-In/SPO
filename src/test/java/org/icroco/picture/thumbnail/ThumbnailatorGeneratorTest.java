@@ -1,7 +1,6 @@
 package org.icroco.picture.thumbnail;
 
 import javafx.application.Platform;
-import org.icroco.picture.hash.JdkHashGenerator;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.TagManagerTest;
 import org.icroco.picture.model.Dimension;
@@ -80,8 +79,7 @@ class ThumbnailatorGeneratorTest {
     void generate_thumbnails_imgscalr() throws IOException {
         IThumbnailGenerator
                 generator =
-                new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
-                                                                                           Mockito.mock(TaskService.class)));
+                new ImgscalrGenerator(new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER, Mockito.mock(TaskService.class)));
 
         StopWatch watch  = new StopWatch("ImgscalrGenerator generator");
         Path      root   = Paths.get(IMAGE_DIR);
@@ -104,7 +102,7 @@ class ThumbnailatorGeneratorTest {
         if (GraphicsEnvironment.isHeadless()) {
             return;
         }
-        var generator = new ImgscalrGenerator(new JdkHashGenerator(), new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
+        var generator = new ImgscalrGenerator(new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
                                                                                                    Mockito.mock(TaskService.class)));
         Dimension dimension = new Dimension(600, 600);
 

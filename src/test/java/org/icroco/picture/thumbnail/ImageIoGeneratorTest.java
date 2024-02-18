@@ -2,7 +2,6 @@ package org.icroco.picture.thumbnail;
 
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
-import org.icroco.picture.hash.JdkHashGenerator;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.TagManagerTest;
 import org.icroco.picture.model.Dimension;
@@ -16,8 +15,7 @@ import java.nio.file.Paths;
 
 @Slf4j
 class ImageIoGeneratorTest {
-    ImgscalrGenerator generator = new ImgscalrGenerator(new JdkHashGenerator(),
-                                                        new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
+    ImgscalrGenerator generator = new ImgscalrGenerator(new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
                                                                                      Mockito.mock(TaskService.class)));
 
     @Test

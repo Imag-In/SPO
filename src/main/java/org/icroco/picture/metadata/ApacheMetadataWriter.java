@@ -11,19 +11,26 @@ import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
 import org.apache.commons.imaging.formats.jpeg.JpegPhotoshopMetadata;
 import org.apache.commons.imaging.formats.jpeg.exif.ExifRewriter;
 import org.apache.commons.imaging.formats.jpeg.iptc.*;
+import org.apache.commons.imaging.formats.tiff.JpegImageData;
 import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
 import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
 import org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputDirectory;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
+import org.apache.commons.io.FilenameUtils;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.Keyword;
-import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.util.LangUtils;
 import org.jooq.lambda.function.Consumer3;
 import org.springframework.stereotype.Component;
 
+import javax.imageio.*;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.ImageOutputStream;
+import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -113,9 +120,81 @@ public class ApacheMetadataWriter implements IMetadataWriter {
 
     }
 
+//    private static ImageWriterSpi lookupDelegateProvider() {
+//        return IIOUtil.lookupProviderByName(IIORegistry.getDefaultInstance(), "com.sun.imageio.plugins.jpeg.JPEGImageWriterSpi", ImageWriterSpi.class);
+//    }
+//
+//    protected ImageWriterSpi createProvider() {
+//        return new JPEGImageWriterSpi(lookupDelegateProvider());
+//    }
+
+
     @Override
-    public Either<Exception, Path> setThumbnail(Path path, Thumbnail thumbnail) {
+    public Either<Exception, Path> setThumbnail(Path path, byte[] thumbnail) {
+        try {
+            var current = getImageAndMetadata(path);
+
+            // Get the writer
+            String                format  = FilenameUtils.getExtension(path.toString());
+            Iterator<ImageWriter> writers = ImageIO.getImageWritersBySuffix(format);
+            ImageWriter           writer  = null;
+            while (writers.hasNext()) {
+                var next = writers.next();
+                if (next != null) {
+                    writer = next;
+                    break;
+                }
+            }
+            if (writer == null) {
+                throw new IllegalArgumentException(STR."No writer for: \{format}");
+            }
+
+            // Create output stream (in try-with-resource block to avoid leaks)
+            try (ImageOutputStream output = ImageIO.createImageOutputStream(path.toFile())) {
+                writer.setOutput(output);
+                ImageWriteParam param = writer.getDefaultWriteParam();
+
+//                param.setCompressionMode(ImageWriteParam.MODE_DISABLED);
+                writer.write(current.metadata,
+                             new IIOImage(current.image, List.of(ImageIO.read(new ByteArrayInputStream(thumbnail))), null),
+                             param);
+            } finally {
+                writer.dispose();
+            }
+            return Either.right(path);
+        } catch (Exception e) {
+            return Either.left(e);
+        }
+    }
+
+    record ImageAndMetadata(BufferedImage image, IIOMetadata metadata) {
+    }
+
+    ImageAndMetadata getImageAndMetadata(Path path) {
+        try (ImageInputStream input = ImageIO.createImageInputStream(path.toFile())) {
+            // Get the reader
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+
+            while (readers.hasNext()) {
+                ImageReader reader = readers.next();
+                try {
+                    reader.setInput(input);
+                    ImageReadParam param = reader.getDefaultReadParam();
+
+                    return new ImageAndMetadata(reader.read(0, param), reader.getImageMetadata(0));
+                } finally {
+                    reader.dispose();
+                }
+            }
+        } catch (Throwable e) {
+            log.error("Cannot extract thumbnail from: '{}', message: {}", path, e.getLocalizedMessage());
+        }
         return null;
+    }
+
+    @SneakyThrows
+    private void updateThumbnail(TiffOutputDirectory dir, byte[] thumbnail) {
+        dir.setJpegImageData(new JpegImageData(-1, thumbnail.length, thumbnail));
     }
 
     private void addExifTags(byte[] source,
@@ -141,10 +220,11 @@ public class ApacheMetadataWriter implements IMetadataWriter {
                 log.warn("Ignoring ImageMetadata {}.", metadata.getClass().getSimpleName());
                 outputSet = new TiffOutputSet();
             }
+
             try (BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(path.toFile()))) {
-                var gpsDirectory  = outputSet.getOrCreateGPSDirectory();
-                var exifDirectory = outputSet.getOrCreateExifDirectory();
                 var rootDirectory = outputSet.getOrCreateRootDirectory();
+                var exifDirectory = outputSet.getOrCreateExifDirectory();
+                var gpsDirectory  = outputSet.getOrCreateGPSDirectory();
                 for (Consumer3<TiffOutputDirectory, TiffOutputDirectory, TiffOutputDirectory> dirConsummer : dirConsummers) {
                     dirConsummer.accept(rootDirectory, exifDirectory, gpsDirectory);
                 }
@@ -200,9 +280,7 @@ public class ApacheMetadataWriter implements IMetadataWriter {
             // if file does not contain any exif metadata, we create an empty
             // set of exif metadata. Otherwise, we keep all the other
             // existing tags.
-            if (metadata == null) {
-                iptcDate = new PhotoshopApp13Data(newRecords, newBlocks);
-            } else if (metadata instanceof JpegImageMetadata jpegMetadata) {
+            if (metadata instanceof JpegImageMetadata jpegMetadata) {
                 final JpegPhotoshopMetadata iptc = jpegMetadata.getPhotoshop();
                 if (null != iptc) {
                     newBlocks.addAll(iptc.photoshopApp13Data.getRawBlocks());

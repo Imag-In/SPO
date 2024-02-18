@@ -181,7 +181,7 @@ public class SpoConfiguration {
     @Bean
     public IThumbnailGenerator thumbnailGenerator(final IHashGenerator hashGenerator,
                                                   final IMetadataExtractor metadataExtractor) {
-        return new ImgscalrGenerator(hashGenerator, metadataExtractor);
+        return new ImgscalrGenerator(metadataExtractor);
     }
 
     @Bean

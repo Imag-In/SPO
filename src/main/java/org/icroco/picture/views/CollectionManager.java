@@ -109,7 +109,7 @@ public class CollectionManager {
             difference.rightMissing().forEach(path -> log.info("Collections: '{}', file deleted: {}", mediaCollection.path(), path));
             //TODO: Add files updated.
 
-            if (difference.isNotEmpty()) { // TODO: implements update.
+            if (difference.isNotEmpty()) {
                 updateCollection(mediaCollection.id(), difference.leftMissing(), difference.rightMissing(), Collections.emptyList());
             }
             // TODO: Check empty sub dir and clean database / ui.
@@ -193,10 +193,9 @@ public class CollectionManager {
                         .peek(mf -> log.atDebug()
                                        .log(() -> "Hash: '%s', newHash: '%s'".formatted(mf.getHash(),
                                                                                         hashGenerator.compute(mf.fullPath()).orElse(""))))
-//                        .filter(mf -> !Objects.equals(mf.getHash(), hashGenerator.compute(mf.fullPath()).orElse(null)))
                         .map(mf -> create(now, mf.fullPath(), true)
                                 // TODO: do not create a new MedialFile pointer, copy new one into current.
-                                .filter(newMf -> MediaFile.UPDATED_COMP.compare(newMf, mf) != 0)
+                                .filter(newMf -> MediaFile.HASH_COMPARATOR.compare(newMf, mf) != 0)
                                 .map(newMf -> {
                                     mf.initFrom(newMf);
                                     return mf;

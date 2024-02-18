@@ -4,7 +4,6 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.Dimension;
 import org.icroco.picture.model.ERotation;
@@ -32,7 +31,6 @@ import java.util.concurrent.Semaphore;
 @Slf4j
 @RequiredArgsConstructor
 public class ImgscalrGenerator extends AbstractThumbnailGenerator {
-    private final IHashGenerator     hashGenerator;
     private final IMetadataExtractor metadataExtractor;
     private final Semaphore          semaphore = new Semaphore(Constant.NB_CORE);
 

@@ -279,6 +279,18 @@
             <version>${jool.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>testfx-core</artifactId>
+            <version>4.0.18</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>openjfx-monocle</artifactId>
+            <version>21.0.2</version> <!-- 17.0.10 For OpenJFX 17, 11.0.2 For OpenJFX 11, jdk-8.0.372 for Java 8 -->
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-carbonicons-pack</artifactId>
         </dependency>

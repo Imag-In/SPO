@@ -1,6 +1,5 @@
 package org.icroco.picture.thumbnail;
 
-import org.icroco.picture.hash.JdkHashGenerator;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.metadata.TagManagerTest;
@@ -30,7 +29,7 @@ public class ThumbnailGeneratorBenchmark {
 
     IMetadataExtractor metadataExtractor = new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
                                                                         Mockito.mock(TaskService.class));
-    ImgscalrGenerator      imgscalrGenerator      = new ImgscalrGenerator(new JdkHashGenerator(), metadataExtractor);
+    ImgscalrGenerator imgscalrGenerator = new ImgscalrGenerator(metadataExtractor);
     ThumbnailatorGenerator thumbnailatorGenerator = new ThumbnailatorGenerator();
 
     static Dimension dimension = new Dimension(600, 600);
