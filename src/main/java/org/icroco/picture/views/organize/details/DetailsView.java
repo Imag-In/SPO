@@ -326,8 +326,8 @@ public class DetailsView extends AbstractView<VBox> {
             }
         });
 
-        editMode.addListener((_, _, newValue) -> {
-            if (!newValue) {
+        editMode.addListener((_, _, newValue) -> { // Hack.
+            if (!newValue && mediaFile != null) {
                 if (!CollectionUtils.containsAll(mediaFile.getKeywords(), keywords.getTags())) {
                     var tags = keywordManager.addMissingKw(keywords.getTags());
                     mediaFile.setKeywords(tags);

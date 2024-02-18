@@ -146,10 +146,10 @@ public class GalleryView implements FxView<StackPane> {
                     //update item
                 } else {
                     if (!change.getRemoved().isEmpty()) {
-                        log.info("Last: Removed: {}", change.getRemoved().getLast());
+                        log.debug("Last: Removed: {}", change.getRemoved().getLast());
                     }
                     if (!change.getAddedSubList().isEmpty()) {
-                        log.info("Last Added: {}", change.getAddedSubList().getLast());
+                        log.debug("Last Added: {}", change.getAddedSubList().getLast());
                         ofNullable(change.getAddedSubList().getLast())
                                 .ifPresent(idx -> {
                                     taskService.sendEvent(PhotoSelectedEvent.builder()
@@ -710,8 +710,13 @@ public class GalleryView implements FxView<StackPane> {
 
     public void keepPressed(KeyEvent keyEvent) {
 //        gridView.getSelectionModel().getSelection().forEach();
-        ofNullable(gridView.getSelectionModel().getSelectedItem())
-                .ifPresent(mediaFile -> mediaFile.setKeepOrThrow(EKeepOrThrow.KEEP));
+        if (SystemUtil.keyNonContiguousSelection().test(keyEvent)) {
+            gridView.getSelectionModel().clearSelection();
+            gridView.getSelectionModel().selectAll();
+        } else {
+            ofNullable(gridView.getSelectionModel().getSelectedItem())
+                    .ifPresent(mediaFile -> mediaFile.setKeepOrThrow(EKeepOrThrow.KEEP));
+        }
     }
 
     public void throwPressed(KeyEvent keyEvent) {

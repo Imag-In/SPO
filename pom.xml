@@ -22,6 +22,7 @@
         <cssfx.version>11.5.1</cssfx.version>
         <cssfx.version>11.5.1</cssfx.version>
         <eclipse-collections-api.version>11.1.0</eclipse-collections-api.version>
+        <either.version>1.5.2</either.version>
         <gemsfx.version>1.93.0</gemsfx.version>
         <ikonli-bom.version>12.3.1</ikonli-bom.version>
         <imageio-jpeg.version>3.10.1</imageio-jpeg.version>
@@ -77,7 +78,6 @@
         <versions-maven-plugin.version>2.16.2</versions-maven-plugin.version>
         <virtualizedfx.version>21.3.1</virtualizedfx.version>
         <wellbehavedfx.version>0.3.3</wellbehavedfx.version>
-        <either.version>1.5.2</either.version>
     </properties>
 
     <dependencyManagement>
@@ -153,11 +153,6 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>io.github.jbock-java</groupId>
-            <artifactId>either</artifactId>
-            <version>${either.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.twelvemonkeys.imageio</groupId>
             <artifactId>imageio-jpeg</artifactId>
             <version>${imageio-jpeg.version}</version>
@@ -181,6 +176,11 @@
             <groupId>fr.brouillard.oss</groupId>
             <artifactId>cssfx</artifactId>
             <version>${cssfx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.jbock-java</groupId>
+            <artifactId>either</artifactId>
+            <version>${either.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.mkpaz</groupId>
@@ -277,18 +277,6 @@
             <groupId>org.jooq</groupId>
             <artifactId>jool</artifactId>
             <version>${jool.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.testfx</groupId>
-            <artifactId>testfx-core</artifactId>
-            <version>4.0.18</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testfx</groupId>
-            <artifactId>openjfx-monocle</artifactId>
-            <version>21.0.2</version> <!-- 17.0.10 For OpenJFX 17, 11.0.2 For OpenJFX 11, jdk-8.0.372 for Java 8 -->
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
@@ -419,6 +407,19 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>openjfx-monocle</artifactId>
+            <version>21.0.2</version>
+            <!-- 17.0.10 For OpenJFX 17, 11.0.2 For OpenJFX 11, jdk-8.0.372 for Java 8 -->
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>testfx-core</artifactId>
+            <version>4.0.18</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.threeten</groupId>
@@ -848,8 +849,8 @@
             </activation>
             <properties>
                 <!-- Replace this UUID with a custom one for your project. This ID is used by the Windows installer system
-                                                                                                   to know that an installer is intended to replace/upgrade an earlier version. The easiest thing to do is
-                                                                                                   grab a unique UUID via https://www.uuidgenerator.net -->
+                                                                                                           to know that an installer is intended to replace/upgrade an earlier version. The easiest thing to do is
+                                                                                                           grab a unique UUID via https://www.uuidgenerator.net -->
                 <!-- This is used to set many user-visible fields in the Windows Installer. See windows-jpackage.txt -->
                 <windows.vendor>Imag'In</windows.vendor>
             </properties>
@@ -940,8 +941,8 @@
             </activation>
             <properties>
                 <!-- Replace this UUID with a custom one for your project. This ID is used by the Windows installer system
-                                                                                                     to know that an installer is intended to replace/upgrade an earlier version. The easiest thing to do is
-                                                                                                     grab a unique UUID via https://www.uuidgenerator.net -->
+                                                                                                             to know that an installer is intended to replace/upgrade an earlier version. The easiest thing to do is
+                                                                                                             grab a unique UUID via https://www.uuidgenerator.net -->
                 <!-- This is used to set many user-visible fields in the Windows Installer. See windows-jpackage.txt -->
                 <windows.vendor>Imag'In</windows.vendor>
             </properties>
