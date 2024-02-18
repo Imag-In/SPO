@@ -16,6 +16,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
 import javafx.geometry.Orientation;
@@ -72,6 +73,8 @@ import java.util.stream.Collectors;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
+import static org.icroco.picture.views.util.SystemUtil.mouseContiguousSelection;
+import static org.icroco.picture.views.util.SystemUtil.mouseNonContiguousSelection;
 
 @Component
 @RequiredArgsConstructor
@@ -133,14 +136,41 @@ public class GalleryView implements FxView<StackPane> {
         root.setEventDispatcher(new DoubleClickEventDispatcher());
 
         gridView = new CustomGridView<>(FXCollections.emptyObservableList(), this::gridScrollEvent);
-        gridView.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null && newValue.intValue() >= 0) {
-                taskService.sendEvent(PhotoSelectedEvent.builder()
-                                                        .mf(gridView.getItems().get(newValue.intValue()))
-                                                        .type(PhotoSelectedEvent.ESelectionType.SELECTED)
-                                                        .source(this)
-                                                        .build());
+        gridView.getSelectionModel().getSelectedIndices().addListener((ListChangeListener<? super Integer>) change -> {
+            while (change.next()) {
+                if (change.wasPermutated()) {
+                    for (int i = change.getFrom(); i < change.getTo(); ++i) {
+                        //permutate
+                    }
+                } else if (change.wasUpdated()) {
+                    //update item
+                } else {
+                    if (!change.getRemoved().isEmpty()) {
+                        log.info("Last: Removed: {}", change.getRemoved().getLast());
+                    }
+                    if (!change.getAddedSubList().isEmpty()) {
+                        log.info("Last Added: {}", change.getAddedSubList().getLast());
+                        ofNullable(change.getAddedSubList().getLast())
+                                .ifPresent(idx -> {
+                                    taskService.sendEvent(PhotoSelectedEvent.builder()
+                                                                            .mf(gridView.getItems().get(idx))
+                                                                            .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+                                                                            .source(this)
+                                                                            .build());
+                                });
+                    }
+
+
+                }
             }
+
+//            if (newValue != null && newValue.intValue() >= 0) {
+//                taskService.sendEvent(PhotoSelectedEvent.builder()
+//                                                        .mf(gridView.getItems().get(newValue.intValue()))
+//                                                        .type(PhotoSelectedEvent.ESelectionType.SELECTED)
+//                                                        .source(this)
+//                                                        .build());
+//            }
         });
         gridView.addScrollAndKeyhandler();
         sortedImages.setComparator(Comparator.comparing(MediaFile::getOriginalDate));
@@ -225,8 +255,19 @@ public class GalleryView implements FxView<StackPane> {
                                                      optMf.map(MediaFile::getFullPath).orElse(null)));
         optMf.ifPresent(mf -> {
             if (event.getClickCount() == 1) {
-                gridView.getSelectionModel().clearSelection();
-                gridView.getSelectionModel().select(cell.getItem());
+                if (mouseNonContiguousSelection().test(event)) {
+                    gridView.getSelectionModel().select(cell.getItem());
+                } else if (mouseContiguousSelection().test(event)) {
+                    ofNullable(gridView.getSelectionModel().getSelectedIndices().getFirst())
+                            .ifPresent(fromIdx -> {
+                                var toIdx = gridView.getIndex(cell.getItem());
+                                gridView.getSelectionModel().selectRange(fromIdx, toIdx + 1);
+//                                log.info("fromIds: {}, toIds: {}", fromIdx, toIdx);
+                            });
+                } else {
+                    gridView.getSelectionModel().clearSelection();
+                    gridView.getSelectionModel().select(cell.getItem());
+                }
                 cell.requestLayout();
             } else if (event.getClickCount() == 2) {
                 gridView.getSelectionModel().clearSelection();
@@ -685,22 +726,22 @@ public class GalleryView implements FxView<StackPane> {
 
     public void deletePressed(KeyEvent keyEvent) {
         if (dblCickState == EGalleryClickState.GALLERY) {
-            ofNullable(gridView.getSelectionModel().getSelectedItem())
-                    .ifPresent(mf -> {
-                        var dialog = MpDialog.builder()
-                                             .width(400)
-                                             .header(i18N.labelForKey("confirmation.deleteFiles.title"))
-                                             .body(i18N.labelForKey("confirmation.deleteFiles.body", mf.getFullPath()))
-                                             .build();
+            var filesToBeDeleted = List.copyOf(gridView.getSelectionModel().getSelectedItems());
+            if (!filesToBeDeleted.isEmpty()) {
+                var dialog = MpDialog.builder()
+                                     .width(400)
+                                     .header(i18N.labelForKey("confirmation.deleteFiles.title"))
+                                     .body(i18N.labelForKey("confirmation.deleteFiles.body", filesToBeDeleted.size()))
+                                     .build();
 
-                        dialog.show(modalPane, exitMode -> {
-                            gridView.requestFocus();
-                            if (exitMode == MpDialog.EXIT_MODE.OK) {
-                                SystemUtil.moveToTrash(mf.getFullPath());
-                                images.remove(mf); // Next disk pooling will do a clean delete (DB, Thumbnail ...)
-                            }
-                        });
-                    });
+                dialog.show(modalPane, exitMode -> {
+                    gridView.requestFocus();
+                    if (exitMode == MpDialog.EXIT_MODE.OK) {
+                        images.removeAll(filesToBeDeleted); // Next disk pooling will do a clean delete (DB, Thumbnail ...)
+                        SystemUtil.moveToTrash(filesToBeDeleted.stream().map(MediaFile::getFullPath).toList());
+                    }
+                });
+            }
         }
     }
 

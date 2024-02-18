@@ -1,5 +1,7 @@
 package org.icroco.picture.views.util;
 
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.SystemUtils;
@@ -7,6 +9,9 @@ import org.jooq.lambda.Unchecked;
 
 import java.awt.*;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.Predicate;
 
 @Slf4j
 @UtilityClass
@@ -19,6 +24,19 @@ public class SystemUtil {
 
     public static boolean isMac() {
         return SystemUtils.IS_OS_MAC;
+    }
+
+    public static Predicate<MouseEvent> mouseNonContiguousSelection() {
+        return isMac() ? MouseEvent::isMetaDown : MouseEvent::isControlDown;
+    }
+
+    public static Predicate<MouseEvent> mouseContiguousSelection() {
+        return MouseEvent::isShiftDown;
+    }
+
+
+    public static Predicate<KeyEvent> keyNonContiguousSelection() {
+        return isMac() ? KeyEvent::isMetaDown : KeyEvent::isControlDown;
     }
 
     public static void browseFile(Path path) {
@@ -44,10 +62,15 @@ public class SystemUtil {
     }
 
     public static void moveToTrash(Path path) {
+        moveToTrash(List.of(path));
+    }
+
+    public static void moveToTrash(Collection<Path> paths) {
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.MOVE_TO_TRASH)) {
             Unchecked.runnable(() -> {
-                log.info("File moved to trash: '{}'", path);
-                Desktop.getDesktop().moveToTrash(path.toFile());
+                paths.stream()
+                     .peek(path -> log.info("File moved to trash: '{}'", path))
+                     .forEach(path -> Desktop.getDesktop().moveToTrash(path.toFile()));
             }).run();
         } else {
             log.warn("Desktop feature / MOVE_TO_TRASH is not supported for this os: {}", System.getProperty("os.name").toLowerCase());

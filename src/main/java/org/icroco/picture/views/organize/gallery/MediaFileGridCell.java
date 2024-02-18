@@ -121,7 +121,7 @@ public class MediaFileGridCell extends GridCell<MediaFile> {
             pathNotFound.setTooltip(null);
             keepOrThrow.graphicProperty().unbind();
         } else {
-            boolean contains = grid.getSelectionModel().getSelectedItem() == item;
+            boolean contains = grid.getSelectionModel().getSelectedItems().contains(item);
             pathNotFound.setTooltip(new Tooltip("File path not not found (or not mounted): %s".formatted(item.getFullPath())));
             pathNotFound.setVisible(Files.notExists(item.fullPath()));
             if (contains) {

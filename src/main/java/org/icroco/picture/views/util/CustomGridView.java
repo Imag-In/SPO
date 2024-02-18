@@ -2,18 +2,19 @@ package org.icroco.picture.views.util;
 
 import impl.org.controlsfx.skin.GridViewSkin;
 import javafx.application.Platform;
+import javafx.beans.Observable;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.WeakListChangeListener;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.Cell;
-import javafx.scene.control.IndexedCell;
-import javafx.scene.control.SingleSelectionModel;
+import javafx.scene.control.SelectionModel;
+import javafx.scene.control.*;
 import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.input.ScrollEvent;
 import lombok.RequiredArgsConstructor;
@@ -25,25 +26,23 @@ import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.views.task.TaskService;
 import org.jooq.lambda.Seq;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Optional.ofNullable;
 
 @Slf4j
 public class CustomGridView<T> extends GridView<T> {
     int selectedRow = 0; // current "selected" GridView row.
-//    @Getter
-//    private final GridCellSelectionModel selectionModel;
 
     public CustomGridView(ObservableList<T> items, Consumer<T> scrollEvenConsummer) {
         super(items);
-//        selectionModel = new GridCellSelectionModel(taskService);
         setCenterShape(true);
-        setSelectionModel(new GridViewSelectionModel<>(this));
+//        setSelectionModel(new GridViewSelectionModel<>(this));
+        setSelectionModel(new GridViewMultipleSelectionModel<>(this));
+
         getSelectionModel().selectedIndexProperty().addListener((_, _, newValue) -> {
             if (newValue != null && newValue.intValue() >= 0) {
                 updateSelectedRow(newValue.intValue());
@@ -86,25 +85,25 @@ public class CustomGridView<T> extends GridView<T> {
 //                .map()
 //    }
 
-    public boolean isCellVisible(Node input) {
-        VirtualFlow<?> vf = getVirtualFlow();
-        boolean        ret = false;
-        if (vf.getFirstVisibleCell() == null) {
-            return false;
-        }
-        int start = vf.getFirstVisibleCell().getIndex();
-        int end   = vf.getLastVisibleCell().getIndex();
-//        log.info("Visible start-end: {}:{}", start, end);
-        if (start == end) {
-            return true;
-        }
-        for (int i = start; i <= end; i++) {
-            if (vf.getCell(i).getChildrenUnmodifiable().contains(input)) {
-                return true;
-            }
-        }
-        return ret;
-    }
+//    public boolean isCellVisible(Node input) {
+//        VirtualFlow<?> vf  = getVirtualFlow();
+//        boolean        ret = false;
+//        if (vf.getFirstVisibleCell() == null) {
+//            return false;
+//        }
+//        int start = vf.getFirstVisibleCell().getIndex();
+//        int end   = vf.getLastVisibleCell().getIndex();
+////        log.info("Visible start-end: {}:{}", start, end);
+//        if (start == end) {
+//            return true;
+//        }
+//        for (int i = start; i <= end; i++) {
+//            if (vf.getCell(i).getChildrenUnmodifiable().contains(input)) {
+//                return true;
+//            }
+//        }
+//        return ret;
+//    }
 
     Optional<Cell<T>> findItem(VirtualFlow<? extends IndexedCell<T>> vf, T mf) {
 
@@ -165,7 +164,7 @@ public class CustomGridView<T> extends GridView<T> {
         return Optional.empty();
     }
 
-    private int getIndex(T mediaFile) {
+    public int getIndex(T mediaFile) {
         return getItems().indexOf(mediaFile);
     }
 
@@ -343,15 +342,15 @@ public class CustomGridView<T> extends GridView<T> {
         ((GridViewSkin<?>) getSkin()).updateGridViewItems();
     }
 
-    private final ObjectProperty<SingleSelectionModel<T>> selectionModel = new SimpleObjectProperty<>(this, "selectionModel") {
-        private SingleSelectionModel<T> oldSM = null;
+    private final ObjectProperty<GridViewMultipleSelectionModel<T>> selectionModel = new SimpleObjectProperty<>(this, "selectionModel") {
+        private SelectionModel<T> oldSM = null;
 
         @Override
         protected void invalidated() {
             if (oldSM != null) {
                 oldSM.selectedItemProperty().removeListener(selectedItemListener);
             }
-            SingleSelectionModel<T> sm = get();
+            SelectionModel<T> sm = get();
             oldSM = sm;
             if (sm != null) {
                 sm.selectedItemProperty().addListener(selectedItemListener);
@@ -359,15 +358,15 @@ public class CustomGridView<T> extends GridView<T> {
         }
     };
 
-    public final void setSelectionModel(SingleSelectionModel<T> value) {
+    public final void setSelectionModel(GridViewMultipleSelectionModel<T> value) {
         selectionModel.set(value);
     }
 
-    public final SingleSelectionModel<T> getSelectionModel() {
+    public final GridViewMultipleSelectionModel<T> getSelectionModel() {
         return selectionModel.get();
     }
 
-    public final ObjectProperty<SingleSelectionModel<T>> selectionModelProperty() {
+    public final ObjectProperty<GridViewMultipleSelectionModel<T>> selectionModelProperty() {
         return selectionModel;
     }
 
@@ -442,6 +441,145 @@ public class CustomGridView<T> extends GridView<T> {
             }
         }
     }
+
+    public static class GridViewMultipleSelectionModel<T> extends MultipleSelectionModel<T> {
+        //        private final WeakListChangeListener<T> weakItemsContentObserver = new WeakListChangeListener<>(this);
+        private final ObservableList<Integer> selectedIndices = FXCollections.observableArrayList();
+        private final ObservableList<T>       selectedItems   = FXCollections.observableArrayList();
+        private final CustomGridView<T>       grid;
+
+        public GridViewMultipleSelectionModel(CustomGridView<T> grid) {
+            this.grid = grid;
+            selectedIndices.addListener((Observable _) -> selectedItems.setAll(selectedIndices.stream()
+                                                                                              .map(index -> grid.getItems().get(index))
+                                                                                              .collect(Collectors.toList())));
+            setSelectionMode(SelectionMode.MULTIPLE);
+            grid.getItems().addListener((javafx.beans.Observable it) -> clearSelection());
+            selectionModeProperty().addListener(it -> clearSelection());
+        }
+
+        @Override
+        public void clearAndSelect(int index) {
+            selectedIndices.clear();
+            select(index);
+        }
+
+        @Override
+        public void select(int index) {
+            if (getSelectionMode().equals(SelectionMode.SINGLE)) {
+                clearSelection();
+            }
+            if (!selectedIndices.contains(index)) {
+                selectedIndices.add(index);
+                setSelectedIndex(index);
+                setSelectedItem(grid.getItems().get(index));
+            }
+        }
+
+        @Override
+        public void select(T tag) {
+            select(grid.getItems().indexOf(tag));
+        }
+
+        @Override
+        public void clearSelection(int index) {
+            selectedIndices.remove((Integer) index);
+            if (getSelectedIndex() == index) {
+                setSelectedIndex(-1);
+                setSelectedItem(null);
+            }
+        }
+
+        @Override
+        public void clearSelection() {
+            selectedIndices.clear();
+            setSelectedIndex(-1);
+            setSelectedItem(null);
+        }
+
+        @Override
+        public boolean isSelected(int index) {
+            return selectedIndices.contains(index);
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return selectedIndices.isEmpty();
+        }
+
+        @Override
+        public void selectPrevious() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void selectNext() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public ObservableList<Integer> getSelectedIndices() {
+            return selectedIndices;
+        }
+
+        @Override
+        public ObservableList<T> getSelectedItems() {
+            return selectedItems;
+        }
+
+
+        public void selectRange(int start, int end) {
+            if (getSelectionMode().equals(SelectionMode.SINGLE)) {
+                clearSelection();
+                select(end - 1);
+            } else {
+                super.selectRange(start, end);
+            }
+        }
+
+        @Override
+        public void selectIndices(int index, int... indices) {
+//            log.info("idx: {}, array: {}", index, indices);
+            var newSelection = IntStream.concat(IntStream.of(index), Arrays.stream(indices))
+                                        .distinct()
+                                        .boxed()
+                                        .toList();
+            var deselect = selectedIndices.stream()
+                                          .filter(idx -> !newSelection.contains(idx))
+                                          .toList();
+//            log.info("selected idx: {}, deselect: {}", newSelection, deselect);
+            selectedIndices.removeAll(deselect);
+            if (!newSelection.isEmpty()) {
+                selectedIndices.addAll(newSelection.stream().filter(idx -> !selectedIndices.contains(idx)).toList());
+            }
+            setSelectedItem(grid.getItems().get(index));
+
+//            select(index);
+//            for (int i : indices) {
+//                select(i);
+//            }
+        }
+
+        @Override
+        public void selectAll() {
+            selectRange(0, grid.getItems().size());
+        }
+
+        @Override
+        public void selectFirst() {
+            selectIndices(0);
+        }
+
+        @Override
+        public void selectLast() {
+            selectIndices(grid.getItems().size() - 1);
+        }
+
+//        public void select(Integer fromIdx, int toIdx) {
+//
+//        }
+    }
+
 
     @RequiredArgsConstructor
     public class GridCellSelectionModel {
