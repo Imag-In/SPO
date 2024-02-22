@@ -509,6 +509,24 @@ public class MediaLoader {
                                                    myself.updateProgress(-1, -1);
                                                    myself.updateTitle("Generate thumbnail");
                                                    myself.updateMessage(mf.fileName());
+                                                   var shouldGenerate = Optional.ofNullable(thCache.get(mf))
+                                                                                .map(Thumbnail::getDimension)
+                                                                                .map(d -> {
+                                                                                    if (d.isLesserThan(IThumbnailGenerator.DEFAULT_THUMB_SIZE)) {
+                                                                                        return true;
+                                                                                    } else {
+                                                                                        log.warn(
+                                                                                                "'{}': Embedded thumbail size is already wider: '{}' than wanted resize size: '{}'",
+                                                                                                mf.getFullPath(),
+                                                                                                d,
+                                                                                                IThumbnailGenerator.DEFAULT_THUMB_SIZE);
+                                                                                        return false;
+                                                                                    }
+                                                                                })
+                                                                                .orElse(true);
+                                                   if (!shouldGenerate) {
+                                                       return mf;
+                                                   }
                                                    var thumbnail = thumbnailGenerator.generate(mf.getFullPath());
 //                                                   var dataBuffer = ImageUtils.getRawImage(thumbnail.getImage());
 //// Each bank element in the data buffer is a 32-bit integer
