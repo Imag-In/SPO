@@ -9,6 +9,7 @@ fi
 
 ./java-runtime/bin/java \
   -XX:+UseZGC \
+  -Xms2g \
   --enable-preview \
   -Xverify:none \
   -XX:TieredStopAtLevel=1 \
