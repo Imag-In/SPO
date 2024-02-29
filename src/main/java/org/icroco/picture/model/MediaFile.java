@@ -8,6 +8,7 @@ import javafx.util.Callback;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.icroco.picture.views.util.FxPlatformExecutor;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -190,9 +191,11 @@ public class MediaFile implements IMediaFile {
         this.collectionId = source.collectionId;
         this.selected = source.selected;
         this.thumbnailType = source.thumbnailType;
-        this.setLoadedInCache(false);
-        this.setKeepOrThrow(source.getKeepOrThrow());
-        this.setOriginalDate(source.getOriginalDate());
+        FxPlatformExecutor.fxRun(() -> {
+            this.setLoadedInCache(false);
+            this.setKeepOrThrow(source.getKeepOrThrow());
+            this.setOriginalDate(source.getOriginalDate());
+        });
     }
 
     public void setNextKeepOrThrow() {

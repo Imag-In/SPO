@@ -2,6 +2,7 @@ package org.icroco.picture.metadata;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelFormat;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.imaging.ImagingException;
 import org.apache.commons.imaging.common.ImageMetadata;
@@ -37,6 +38,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Set;
 
 @ExtendWith(MockitoExtension.class)
+@Slf4j
 class ApacheMetadataWriterTest {
     ApacheMetadataWriter writer = new ApacheMetadataWriter();
 
@@ -112,13 +114,13 @@ class ApacheMetadataWriterTest {
         try {
             Files.deleteIfExists(tmpPath);
             Files.copy(original, tmpPath);
+            var headerOriginal = reader.header(tmpPath);
 
             IThumbnailGenerator
                     generator =
                     new ImgscalrGenerator(new DefaultMetadataExtractor(new InMemoryKeywordManager(), Mockito.mock(TaskService.class)));
-            System.out.println(Files.size(tmpPath));
+            System.out.println(STR."Image size      : \{Files.size(tmpPath)}");
             var originalThnumbail = generator.extractThumbnail(tmpPath);
-            System.out.println(Files.size(tmpPath));
 
             Assertions.assertThat(originalThnumbail).isNotNull();
 
@@ -127,7 +129,11 @@ class ApacheMetadataWriterTest {
             writer.setThumbnail(tmpPath, bytes);
 
             var modifiedThnumbail = generator.extractThumbnail(tmpPath);
-            System.out.println(getRawImage(modifiedThnumbail.getImage()).length);
+
+            var header = reader.header(tmpPath);
+            Assertions.assertThat(header).isEqualTo(headerOriginal);
+
+            System.out.println(STR."Recorded thumbnail size: \{getRawImage(modifiedThnumbail.getImage()).length}");
 
 //            Assertions.assertThat(getRawImage(modifiedThnumbail.getImage())).isEqualTo(bytes);
         } finally {

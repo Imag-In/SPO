@@ -2,6 +2,7 @@ package org.icroco.picture.views.task;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -20,6 +21,7 @@ public class FxRunAllScope<T> extends StructuredTaskScope<TaskResult<T>> {
 
     @SneakyThrows
     public FxRunAllScope(TaskService taskService, final String title) {
+        super("FxRunAllScope", new CustomizableThreadFactory("FxScope-"));
         log.debug("Starting Virtuale Thread: {}", title);
         monitor = taskService.vSupply("FxRunAllScope", true, new AbstractTask<Void>() {
             @Override

@@ -153,10 +153,11 @@ public class ApacheMetadataWriter implements IMetadataWriter {
             try (ImageOutputStream output = ImageIO.createImageOutputStream(path.toFile())) {
                 writer.setOutput(output);
                 ImageWriteParam param = writer.getDefaultWriteParam();
-
 //                param.setCompressionMode(ImageWriteParam.MODE_DISABLED);
-                writer.write(current.metadata,
-                             new IIOImage(current.image, List.of(ImageIO.read(new ByteArrayInputStream(thumbnail))), null),
+//                param.setTilingMode(ImageWriteParam.MODE_DISABLED);
+//                param.setCompressionMode(ImageWriteParam.MODE_DISABLED);
+                writer.write(null,
+                             new IIOImage(current.image, List.of(ImageIO.read(new ByteArrayInputStream(thumbnail))), current.metadata),
                              param);
             } finally {
                 writer.dispose();
@@ -180,7 +181,6 @@ public class ApacheMetadataWriter implements IMetadataWriter {
                 try {
                     reader.setInput(input);
                     ImageReadParam param = reader.getDefaultReadParam();
-
                     return new ImageAndMetadata(reader.read(0, param), reader.getImageMetadata(0));
                 } finally {
                     reader.dispose();
@@ -194,6 +194,7 @@ public class ApacheMetadataWriter implements IMetadataWriter {
 
     @SneakyThrows
     private void updateThumbnail(TiffOutputDirectory dir, byte[] thumbnail) {
+//        dir.setJpegImageData();
         dir.setJpegImageData(new JpegImageData(-1, thumbnail.length, thumbnail));
     }
 

@@ -4,7 +4,6 @@ import atlantafx.base.controls.Calendar;
 import atlantafx.base.controls.Popover;
 import atlantafx.base.controls.Spacer;
 import atlantafx.base.theme.Styles;
-import com.ashampoo.kim.Kim;
 import com.dlsc.gemsfx.TagsField;
 import jakarta.annotation.PostConstruct;
 import javafx.beans.binding.Bindings;
@@ -25,12 +24,6 @@ import javafx.scene.layout.VBox;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.imaging.Imaging;
-import org.apache.commons.imaging.common.ImageMetadata;
-import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
-import org.apache.commons.imaging.formats.jpeg.exif.ExifRewriter;
-import org.apache.commons.imaging.formats.tiff.JpegImageData;
-import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
 import org.icroco.picture.event.ForceGenerateThumbnailEvent;
 import org.icroco.picture.event.NotificationEvent;
 import org.icroco.picture.event.PhotoSelectedEvent;
@@ -53,13 +46,13 @@ import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.organize.OrganizeConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
+import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.I18N;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.MediaLoader;
 import org.icroco.picture.views.util.Nodes;
 import org.icroco.picture.views.util.widget.FxUtil;
-import org.jooq.lambda.Unchecked;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2OutlinedAL;
@@ -69,13 +62,13 @@ import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -276,10 +269,10 @@ public class DetailsView extends AbstractView<VBox> {
         FxUtil.styleCircleButton(saveThumbnail);
         FxUtil.styleCircleButton(editDate);
         FxUtil.styleCircleButton(editTime);
-        refreshThumbnail.setTooltip(new Tooltip("Re-generate thumbnail from image"));
-        saveThumbnail.setTooltip(new Tooltip("Save thumbnail into image"));
+        refreshThumbnail.setTooltip(new Tooltip("Re-generate thumbnail from image")); // I18N:
+        saveThumbnail.setTooltip(new Tooltip("Save thumbnail into image")); // I18N:
         saveThumbnail.setDisable(true);
-        printImageDetails.setTooltip(new Tooltip("Print metadata (log file)"));
+        printImageDetails.setTooltip(new Tooltip("Print metadata (log file)")); // I18N:
         rowIdx += 1;
         grid.add(thumbnailSize, 1, rowIdx);
         rowIdx++;
@@ -419,44 +412,21 @@ public class DetailsView extends AbstractView<VBox> {
         if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
             mediaFile.getLastUpdated().addListener(reloadNeeded);
             printImageDetails.setOnMouseClicked(_ -> DefaultMetadataExtractor.printInformation(mediaFile.getFullPath()));
-            saveThumbnail.setTooltip(new Tooltip("Not Yet Implemented")); // TODO
+            saveThumbnail.setTooltip(new Tooltip("Not Yet Implemented")); // I18N:
             saveThumbnail.setOnMouseClicked(_ -> {
-                thumbnailRepository.findImageByMfId(mediaFile.getId())
-                                   .map(ThumbnailRepository.IdAndBytes::getImage)
-                                   .ifPresent(bytes -> {
-                                       Unchecked.runnable(() -> {
-                                           log.info("Thumbnail old size: {}",
-                                                    Kim.readMetadata(Files.readAllBytes(mediaFile.getFullPath()))
-                                                       .getExifThumbnailBytes().length);
-                                           final ImageMetadata metadata = Imaging.getMetadata(mediaFile.getFullPath().toFile());
-                                           if (metadata instanceof JpegImageMetadata jpegMetadata) {
-                                               TiffOutputSet outputSet = jpegMetadata.getExif().getOutputSet();
-                                               outputSet.getExifDirectory().setJpegImageData(new JpegImageData(0, bytes.length, bytes));
-                                               new ExifRewriter().updateExifMetadataLossy(Files.readAllBytes(mediaFile.getFullPath()),
-                                                                                          Files.newOutputStream(mediaFile.getFullPath(),
-                                                                                                                StandardOpenOption.WRITE,
-                                                                                                                StandardOpenOption.TRUNCATE_EXISTING),
-                                                                                          outputSet);
-                                               log.info("Thumbnail new size: {}",
-                                                        Kim.readMetadata(Files.readAllBytes(mediaFile.getFullPath()))
-                                                           .getExifThumbnailBytes().length);
-
-                                           }
-                                       }).run();
-                                   });
-//                thumbnailRepository.findImageByMfId(mediaFile.getId())
-//                                   .map(ThumbnailRepository.IdAndBytes::getImage)
-//                                   .map(bytes -> {
-//                                       if (bytes.length >= JpegConstants.MAX_SEGMENT_SIZE) {
-//                                           log.warn("Thumbnail too large: {}, max is: {}", bytes.length, JpegConstants.MAX_SEGMENT_SIZE);
-//                                       }
-//                                       return bytes;
-//                                   })
-//                                   .ifPresent(bytes -> {
-//                                       Unchecked.runnable(() -> Kim.updateThumbnail(Files.readAllBytes(mediaFile.getFullPath()),
-//                                                                                    bytes)).run();
-//                                   });
-
+                saveThumbnail.setDisable(true);
+                var task = ModernTask.builder()
+                                     .execute(self -> {
+                                         Optional.ofNullable(mediaFile)
+                                                 .map(MediaFile::getId)
+                                                 .flatMap(thumbnailRepository::findImageByMfId)// TODO: Look at cache level.
+                                                 .map(ThumbnailRepository.IdAndBytes::getImage)
+                                                 .ifPresent(bytes -> metadataWriter.setThumbnail(mediaFile.fullPath(), bytes));
+                                         return null;
+                                     })
+                                     .onFinished(() -> saveThumbnail.setDisable(false))
+                                     .build();
+                taskService.supply(task);
             });
             refreshThumbnail.setOnMouseClicked(_ -> taskService.sendEvent(ForceGenerateThumbnailEvent.builder()
                                                                                                      .mediaFile(mediaFile)

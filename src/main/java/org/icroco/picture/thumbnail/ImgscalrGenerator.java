@@ -42,7 +42,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
 //        return new Image(path.toUri().toString(), 600D, 0, true, true);
             return Unchecked.supplier(() -> {
                 var orientation = metadataExtractor.orientation(path).orElse(1);
-                var img         = ImageIO.read(path.toFile()); // load image
+                var img       = ImageIO.read(path.toFile()); // load image
                 var thumbnail = SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null);
                 return Thumbnail.builder()
                                 .fullPath(path)

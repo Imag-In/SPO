@@ -68,7 +68,7 @@ jobs:
           SPO_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "SPO_VERSION=${SPO_VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Generte build env
+      - name: Generate build env
         id: gen-build-env
         run: |
           mkdir -p target
