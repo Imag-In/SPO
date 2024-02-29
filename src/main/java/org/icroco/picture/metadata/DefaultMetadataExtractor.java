@@ -26,6 +26,8 @@ import org.jooq.lambda.Unchecked;
 import org.slf4j.Logger;
 import org.springframework.cache.annotation.Cacheable;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -163,16 +165,14 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             var      edb                    = ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
             var      firstExifIFD0Directory = ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class));
             var gps = gps(path, metadata)
-                    .map(gl -> new org.icroco.picture.model.GeoLocation(gl.getLatitude(),
-                                                                        gl.getLongitude()))
+                    .map(gl -> new org.icroco.picture.model.GeoLocation(roundGeoLocation(gl.getLatitude()),
+                                                                        roundGeoLocation(gl.getLongitude())))
+                    .filter(org.icroco.picture.model.GeoLocation::isSomewhere)
                     .orElse(NO_WHERE);
             return Optional.of(MetadataHeader.builder()
                                              .orginalDate(originalDateTime(path, metadata).orElse(EPOCH_0))
                                              .orientation(extractOrientation(path, firstExifIFD0Directory))
-                                             .geoLocation(gps(path, metadata)
-                                                                  .map(gl -> new org.icroco.picture.model.GeoLocation(gl.getLatitude(),
-                                                                                                                      gl.getLongitude()))
-                                                                  .orElse(NO_WHERE))
+                                             .geoLocation(gps)
                                              .size(extractSize(metadata, path, edb, firstExifIFD0Directory))
                                              .camera(extractCamera(path, firstExifIFD0Directory))
                                              .keywords(extractKeywords(path,
@@ -182,6 +182,12 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             log.warn("Cannot read header for file: '{}', message: {}", path, ex.getLocalizedMessage());
             return Optional.empty();
         }
+    }
+
+    static double roundGeoLocation(double value) {
+        return BigDecimal.valueOf(value)
+                         .setScale(7, RoundingMode.HALF_EVEN)
+                         .doubleValue();
     }
 
     private Camera extractCamera(Path path, Optional<ExifIFD0Directory> firstExifIFD0Directory) {
@@ -248,10 +254,10 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     Optional<Dimension> extractSizeDD(Path path, Optional<ExifSubIFDDirectory> directory) {
         Optional<Integer> width = getTagAsInt(directory,
                                               ExifSubIFDDirectory.TAG_IMAGE_WIDTH,
-                                              t -> log.warn("'{}' Cannot read width into ExifSubIFDDirectory", path));
+                                              _ -> log.warn("'{}' Cannot read width into ExifSubIFDDirectory", path));
         Optional<Integer> height = getTagAsInt(directory,
                                                ExifSubIFDDirectory.TAG_IMAGE_WIDTH,
-                                               t -> log.warn("'{}' Cannot read height into ExifSubIFDDirectory", path));
+                                               _ -> log.warn("'{}' Cannot read height into ExifSubIFDDirectory", path));
         if (height.isPresent() && width.isPresent()) {
             return Optional.of(new Dimension(width.get(), height.get()));
         }

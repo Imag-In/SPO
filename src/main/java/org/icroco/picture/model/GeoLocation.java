@@ -8,10 +8,10 @@ public record GeoLocation(double latitude, double longitude) {
     public static GeoLocation EMPTY_GEO_LOC = new GeoLocation(190, 190);
 
     public GeoLocation {
-        if (Math.abs(latitude) > 180D) {
+        if (latitude < -90D || latitude > 90) {
             latitude = 190D;
         }
-        if (Math.abs(longitude) > 180D) {
+        if (longitude < -180D || longitude > 190D) {
             longitude = 190D;
         }
     }
@@ -21,18 +21,12 @@ public record GeoLocation(double latitude, double longitude) {
 
         char lonLetter = (longitude > 0) ? 'E' : 'W';
         char latLetter = (latitude > 0) ? 'N' : 'S';
-        return com.drew.lang.GeoLocation.decimalToDegreesMinutesSecondsString(Math.abs(longitude))
-               + " "
-               + lonLetter
-               + System.lineSeparator()
-               +
-               com.drew.lang.GeoLocation.decimalToDegreesMinutesSecondsString(Math.abs(latitude))
-               + " "
-               + latLetter;
+        return STR."\{com.drew.lang.GeoLocation.decimalToDegreesMinutesSecondsString(Math.abs(longitude))} \{lonLetter}\{System.lineSeparator()}\{com.drew.lang.GeoLocation.decimalToDegreesMinutesSecondsString(
+                Math.abs(latitude))} \{latLetter}";
     }
 
     public boolean isNowhere() {
-        return Math.abs(latitude) > 180D || Math.abs(longitude) > 180D;
+        return Math.abs(latitude) > 90D || Math.abs(longitude) > 180D;
     }
 
     public boolean isSomewhere() {
