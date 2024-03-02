@@ -43,11 +43,11 @@ public class ApacheMetadaExtractor implements IMetadataExtractor {
                                                              .stream()
                                                              .map(this::toEntry)
                                                              .toList();
-            Map<String, ?> res = entries.stream()
-                                        .collect(Collectors.groupingBy(Map.Entry::getKey,
-                                                                       Collectors.mapping(e -> Objects.toString(e.getValue()),
-                                                                                          Collectors.joining(","))));
-            return List.of(new MetadataDirectory("Default", (Map<String, Object>) res));
+            Map<DirectorEntryKey, DirectorEntryValue> res = entries.stream()
+                                                                   .collect(Collectors.toMap(e -> DirectorEntryKey.ofPath(e.getKey()),
+                                                                                             e -> new DirectorEntryValue(Objects.toString(e.getValue()),
+                                                                                                                         e.getValue())));
+            return List.of(new MetadataDirectory(this.getClass(), res));
         } catch (ImageReadException | IOException e) {
             log.error("Cannot parse metadata for: '{}'", path.toAbsolutePath(), e);
             return Collections.emptyList();

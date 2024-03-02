@@ -4,7 +4,6 @@ import com.drew.imaging.ImageMetadataReader;
 import com.drew.lang.GeoLocation;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
-import com.drew.metadata.Tag;
 import com.drew.metadata.exif.ExifDirectoryBase;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
@@ -13,6 +12,7 @@ import com.drew.metadata.icc.IccDirectory;
 import com.drew.metadata.iptc.IptcDirectory;
 import com.drew.metadata.jpeg.JpegDirectory;
 import com.drew.metadata.png.PngDirectory;
+import com.drew.metadata.xmp.XmpDirectory;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.imaging.Imaging;
 import org.icroco.picture.config.SpoConfiguration;
@@ -43,7 +43,6 @@ import static java.util.Optional.ofNullable;
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 @RequiredArgsConstructor
 public class DefaultMetadataExtractor implements IMetadataExtractor {
-
     public static final  LocalDateTime EPOCH_0 = LocalDateTime.of(0, 1, 1, 0, 0);
     private static final Logger        log     = org.slf4j.LoggerFactory.getLogger(DefaultMetadataExtractor.class);
 
@@ -54,28 +53,32 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     @Override
     @Cacheable(cacheNames = SpoConfiguration.CACHE_IMAGE_HEADER, unless = "#result != null")
     public Map<String, Object> getAllInformation(Path path) {
-        try {
-            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
-
-            return Collections.toStream(metadata.getDirectories())
-                              .flatMap(d -> d.getTags().stream())
-                              .filter(Objects::nonNull)
-                              .filter(tag -> tag.getDescription() != null)
-                              .filter(tag -> tag.getTagName() != null)
-                              .collect(Collectors.toMap(Tag::getTagName, Tag::getDescription, (o, o2) -> {
-                                  log.warn("File: '{}', Duplicate metadata values: {} <-> {}", path, o, o2);
-                                  return o2;
-                              }));
-        } catch (Exception e) {
-            log.error("Cannot read metadata for: {}", path, e);
-            taskService.sendEvent(NotificationEvent.builder()
-                                                   .message("Cannot read metadate for file: '%s'".formatted(path.toAbsolutePath()))
-                                                   .type(NotificationEvent.NotificationType.ERROR)
-                                                   .source(this)
-                                                   .build());
-        }
-
-        return java.util.Collections.emptyMap();
+        return getAllByDirectory(path)
+                .stream()
+                .flatMap(md -> md.entries().entrySet().stream())
+                .collect(Collectors.toMap(e -> e.getKey().toString(), e -> e.getValue().value(), (e, e2) -> e));
+//        try {
+//            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+//
+//            return Collections.toStream(metadata.getDirectories())
+//                              .flatMap(d -> d.getTags().stream())
+//                              .filter(Objects::nonNull)
+//                              .filter(tag -> tag.getDescription() != null)
+//                              .filter(tag -> tag.getTagName() != null)
+//                              .collect(Collectors.toMap(Tag::getTagName, Tag::getDescription, (o, o2) -> {
+//                                  log.warn("File: '{}', Duplicate metadata values: {} <-> {}", path, o, o2);
+//                                  return o2;
+//                              }));
+//        } catch (Exception e) {
+//            log.error("Cannot read metadata for: {}", path, e);
+//            taskService.sendEvent(NotificationEvent.builder()
+//                                                   .message("Cannot read metadata for file: '%s'".formatted(path.toAbsolutePath()))
+//                                                   .type(NotificationEvent.NotificationType.ERROR)
+//                                                   .source(this)
+//                                                   .build());
+//        }
+//
+//        return java.util.Collections.emptyMap();
     }
 
     @Override
@@ -84,23 +87,41 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
 
             return Collections.toStream(metadata.getDirectories())
-                              .map(d -> new MetadataDirectory(d.getClass().getName().substring(d.getClass().getName().lastIndexOf('.') + 1),
-                                                              d.getTags().stream()
-                                                               .filter(Objects::nonNull)
-                                                               .filter(tag -> tag.getDescription() != null)
-                                                               .filter(tag -> tag.getTagName() != null)
-                                                               .collect(Collectors.toMap(Tag::getTagName, Tag::getDescription, (o, o2) -> {
-                                                                   log.warn("File: '{}', Duplicate metadata values: {} <-> {}",
-                                                                            path,
-                                                                            o,
-                                                                            o2);
-                                                                   return o2;
-                                                               }))))
+                              .map(d -> switch (d) {
+                                  case XmpDirectory xmpD -> new MetadataDirectory(d.getClass(),
+                                                                                  xmpD.getXmpProperties().entrySet()
+                                                                                      .stream()
+                                                                                      .collect(Collectors.toMap(e -> DirectorEntryKey.ofPath(
+                                                                                                                        e.getKey()),
+                                                                                                                e -> new DirectorEntryValue(
+                                                                                                                        Arrays.stream(e.getKey()
+                                                                                                                                       .split(":"))
+                                                                                                                              .toList()
+                                                                                                                              .getLast(),
+                                                                                                                        e.getValue()))));
+                                  default -> new MetadataDirectory(d.getClass(),
+                                                                   d.getTags().stream()
+                                                                    .filter(Objects::nonNull)
+                                                                    .filter(tag -> tag.getDescription() != null)
+                                                                    .filter(tag -> tag.getTagName() != null)
+                                                                    .collect(Collectors.toMap(t -> DirectorEntryKey.ofId(t.getTagType()),
+                                                                                              t -> new DirectorEntryValue(t.getTagName(),
+                                                                                                                          t.getDescription()),
+                                                                                              (o, o2) -> {
+                                                                                                  log.warn(
+                                                                                                          "File: '{}', Duplicate metadata values: {} <-> {}",
+                                                                                                          path,
+                                                                                                          o,
+                                                                                                          o2);
+                                                                                                  return o2;
+                                                                                              },
+                                                                                              TreeMap::new)));
+                              })
                               .toList();
         } catch (Exception e) {
             log.error("Cannot read metadata for: {}", path, e);
             taskService.sendEvent(NotificationEvent.builder()
-                                                   .message("Cannot read metadate for file: '%s'".formatted(path.toAbsolutePath()))
+                                                   .message("Cannot read metadata for file: '%s'".formatted(path.toAbsolutePath()))
                                                    .type(NotificationEvent.NotificationType.ERROR)
                                                    .source(this)
                                                    .build());
@@ -125,6 +146,8 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
         return Optional.empty();
     }
 
+    // TODO: remove and use getAllByDirectory
+    @Deprecated
     public static void printInformation(Path path) {
         Unchecked.runnable(() -> {
             Imaging.getImageInfo(path.toFile());
@@ -161,9 +184,10 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
     public Optional<MetadataHeader> header(final Path path) {
         try {
 
-            Metadata metadata = ImageMetadataReader.readMetadata(path.toFile());
+            Metadata metadata    = ImageMetadataReader.readMetadata(path.toFile());
             var      edb                    = ofNullable(metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class));
             var      firstExifIFD0Directory = ofNullable(metadata.getFirstDirectoryOfType(ExifIFD0Directory.class));
+            var      firstXmpDir = ofNullable(metadata.getFirstDirectoryOfType(XmpDirectory.class));
             var gps = gps(path, metadata)
                     .map(gl -> new org.icroco.picture.model.GeoLocation(roundGeoLocation(gl.getLatitude()),
                                                                         roundGeoLocation(gl.getLongitude())))

@@ -65,10 +65,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -162,16 +159,17 @@ public class DetailsView extends AbstractView<VBox> {
             int rowIdx = 0;
 
             for (var dir : directories) {
-                var dirLbl = createLabel(dir.name(), 50, 300);
+                var dirLbl = createLabel(dir.simpleName(), 50, 300);
                 dirLbl.getStyleClass().add(Styles.TITLE_4);
                 dirLbl.setPadding(new Insets(0, 0, 5, 0));
                 gp.add(dirLbl, 0, rowIdx, 2, 1);
                 rowIdx += 2;
-                for (var d : dir.entries().entrySet().stream().sorted((o1, o2) -> o1.getKey().compareToIgnoreCase(o2.getKey())).toList()) {
-                    Label label = createLabel(d.getKey(), 50, 150);
+                for (var d : dir.entries().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+                    Label label = createLabel(d.getValue().description(), 50, 150);
+                    label.setTooltip(new Tooltip(STR."id: \{d.getKey().toString()}"));
                     label.getStyleClass().add(Styles.SMALL);
                     gp.add(label, 0, rowIdx);
-                    gp.add(createTextField(Objects.toString(d.getValue()), 100, 150), 1, rowIdx);
+                    gp.add(createTextField(Objects.toString(d.getValue().value()), 100, 150), 1, rowIdx);
                     rowIdx++;
                 }
                 gp.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);

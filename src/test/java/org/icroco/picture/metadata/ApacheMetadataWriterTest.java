@@ -193,7 +193,7 @@ class ApacheMetadataWriterTest {
 //        });
         extractor.getAllByDirectory(path)
                  .forEach(d -> {
-                     System.out.println(STR."Dir: \{d.name()}");
+                     System.out.println(STR."Dir: \{d.simpleName()}");
                      d.entries().forEach((key, value) -> System.out.printf("   %s: %s%n", key, value));
                  });
     }
