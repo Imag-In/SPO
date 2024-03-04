@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -93,4 +94,7 @@ public class MediaFileEntity {
     @Column(name = "RATING", columnDefinition = "TINYINT", nullable = false)
     @Convert(converter = RatingTypeConverter.class)
     private ERating rating = ERating.ABSENT;
+
+    @Column(name = "REF", nullable = false, updatable = false)
+    private UUID reference;
 }

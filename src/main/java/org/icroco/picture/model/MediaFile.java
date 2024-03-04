@@ -35,7 +35,7 @@ public class MediaFile implements IMediaFile {
     private boolean        selected;
     private EThumbnailType thumbnailType;
     private ERating rating;
-    private UUID    uuid;
+    private UUID    reference;
 
     private final SimpleObjectProperty<LocalDateTime> lastUpdated          = new SimpleObjectProperty<>(LocalDateTime.MIN);
     private final SimpleBooleanProperty              loadedInCache       = new SimpleBooleanProperty(false);
@@ -58,7 +58,8 @@ public class MediaFile implements IMediaFile {
                      boolean selected,
                      EKeepOrThrow keepOrThrow,
                      EThumbnailType thumbnailType,
-                     ERating rating) {
+                     ERating rating,
+                     UUID reference) {
         this.id = id;
         this.fullPath = fullPath;
         this.fileName = fileName;
@@ -72,6 +73,7 @@ public class MediaFile implements IMediaFile {
         this.collectionId = collectionId;
         this.selected = selected;
         this.rating = rating;
+        this.reference = reference;
 
         this.thumbnailType = Objects.requireNonNullElse(thumbnailType, EThumbnailType.ABSENT);
         this.originalDateProperty.setValue(originalDate);
@@ -192,6 +194,8 @@ public class MediaFile implements IMediaFile {
         this.collectionId = source.collectionId;
         this.selected = source.selected;
         this.thumbnailType = source.thumbnailType;
+        this.rating = source.rating;
+        this.reference = source.reference;
         FxPlatformExecutor.fxRun(() -> {
             this.setLoadedInCache(false);
             this.setKeepOrThrow(source.getKeepOrThrow());

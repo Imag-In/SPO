@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
 import java.util.Locale;
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
 
@@ -24,6 +25,7 @@ import java.util.concurrent.Callable;
 @Slf4j
 public final class I18N {
 
+    public static final String SPO_ASSETS_LANGUAGES_MESSAGES = "spo/assets/languages/messages";
     /**
      * the current selected Locale.
      */
@@ -56,8 +58,14 @@ public final class I18N {
      * @return localized formatted string
      */
     public String get(final String key, final Object... args) {
-        ResourceBundle bundle = ResourceBundle.getBundle("spo/assets/languages/messages", getLocale());
-        return MessageFormat.format(bundle.getString(key), args);
+        try {
+            ResourceBundle bundle = ResourceBundle.getBundle(SPO_ASSETS_LANGUAGES_MESSAGES, getLocale());
+            var            text   = bundle.getString(key);
+            return MessageFormat.format(text, args);
+        } catch (MissingResourceException exception) {
+            ResourceBundle bundle = ResourceBundle.getBundle(SPO_ASSETS_LANGUAGES_MESSAGES, Locale.US);
+            return MessageFormat.format(bundle.getString(key), args);
+        }
     }
 
     /**

@@ -46,6 +46,7 @@ import org.icroco.picture.views.task.IFxCallable;
 import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.DirectoryWatcher;
+import org.icroco.picture.views.util.I18N;
 import org.icroco.picture.views.util.Nodes;
 import org.jooq.lambda.Unchecked;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -81,6 +82,7 @@ public class ImportView extends AbstractView<StackPane> {
     private final       DirectoryWatcher directoryWatcher;
     private final       IKeywordManager  keywordManager;
     private final       IMetadataWriter  metadataWriter;
+    private final       I18N             i18N;
 
     private final StackPane          root           = new StackPane();
     private final CustomTextField    sourceDir      = new CustomTextField();
@@ -122,7 +124,7 @@ public class ImportView extends AbstractView<StackPane> {
                       CollectionManager collectionManager,
                       DirectoryWatcher directoryWatcher,
                       IKeywordManager keywordManager,
-                      IMetadataWriter metadataWriter,
+                      IMetadataWriter metadataWriter, I18N i18N,
                       Collection<IRenameFilesStrategy> strategies) {
         this.taskService = taskService;
         this.persistenceService = persistenceService;
@@ -130,6 +132,7 @@ public class ImportView extends AbstractView<StackPane> {
         this.directoryWatcher = directoryWatcher;
         this.keywordManager = keywordManager;
         this.metadataWriter = metadataWriter;
+        this.i18N = i18N;
         this.strategies = new SortedList<>(FXCollections.observableArrayList(strategies),
                                            Comparator.comparing(IRenameFilesStrategy::displayName));
     }
@@ -263,9 +266,9 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
 
         rowIdx += 1;
-        grid.add(createLabel("Add tags", 200, 300), 0, rowIdx); // I18N:
+        grid.add(createLabel(i18N.get("import.keyword.label"), 200, 300), 0, rowIdx);
         keywords = new TagsField<>();
-        keywords.getEditor().setPromptText("Start typing country name ..."); // I18N:
+        keywords.getEditor().setPromptText(i18N.get("import.keyword.editor.prompt"));
 
         grid.add(keywords, 1, rowIdx);
 
@@ -408,7 +411,7 @@ public class ImportView extends AbstractView<StackPane> {
                          .execute(self -> {
                              self.updateTitle("Copy files"); // I18N:
                              self.updateProgress(0, files.size());
-                             var         i  = new AtomicInteger(0);
+                             var i = new AtomicInteger(0);
                              Set<Keyword> kw = Set.copyOf(keywords.getTags());
                              return files.stream()
                                          .peek(rf -> {
