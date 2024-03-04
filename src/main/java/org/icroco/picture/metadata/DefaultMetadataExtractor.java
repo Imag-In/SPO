@@ -19,6 +19,7 @@ import org.icroco.picture.config.SpoConfiguration;
 import org.icroco.picture.event.NotificationEvent;
 import org.icroco.picture.model.Camera;
 import org.icroco.picture.model.Dimension;
+import org.icroco.picture.model.ERating;
 import org.icroco.picture.model.Keyword;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.Collections;
@@ -199,6 +200,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
                                              .geoLocation(gps)
                                              .size(extractSize(metadata, path, edb, firstExifIFD0Directory))
                                              .camera(extractCamera(path, firstExifIFD0Directory))
+                                             .rating(extractRating(firstXmpDir))
                                              .keywords(extractKeywords(path,
                                                                        ofNullable(metadata.getFirstDirectoryOfType(IptcDirectory.class))))
                                              .build());
@@ -206,6 +208,13 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
             log.warn("Cannot read header for file: '{}', message: {}", path, ex.getLocalizedMessage());
             return Optional.empty();
         }
+    }
+
+    private ERating extractRating(Optional<XmpDirectory> firstXmpDir) {
+        return firstXmpDir.map(xmp -> xmp.getXmpProperties().get("xmp:Rating"))
+                          .map(Short::parseShort)
+                          .map(ERating::fromCode)
+                          .orElse(ERating.ABSENT);
     }
 
     static double roundGeoLocation(double value) {

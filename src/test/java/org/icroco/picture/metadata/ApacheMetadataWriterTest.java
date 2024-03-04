@@ -14,6 +14,7 @@ import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputDirectory;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
 import org.assertj.core.api.Assertions;
+import org.icroco.picture.model.ERating;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.Keyword;
 import org.icroco.picture.thumbnail.IThumbnailGenerator;
@@ -102,6 +103,30 @@ class ApacheMetadataWriterTest {
 
             Assertions.assertThat(header.get().keywords())
                       .extracting(Keyword::name).containsExactlyInAnyOrder("bar", "42", "foo");
+        } finally {
+            Files.deleteIfExists(tmpPath);
+        }
+    }
+
+    @Test
+    void addRating() throws IOException {
+        var original = Path.of("src/test/resources/images/metadata/rating/update_rating.jpg");
+        var tmpPath  = Paths.get(original.getParent().toString(), STR."tmp_\{original.getFileName().toString()}");
+        try {
+            Files.deleteIfExists(tmpPath);
+            Files.copy(original, tmpPath);
+
+            var header = reader.header(tmpPath);
+
+            Assertions.assertThat(header).isPresent();
+            Assertions.assertThat(header.get().rating())
+                      .isEqualTo(ERating.ABSENT);
+
+            writer.setRating(tmpPath, ERating.THREE);
+
+            header = reader.header(tmpPath);
+            Assertions.assertThat(header.get().rating())
+                      .isEqualTo(ERating.THREE);
         } finally {
             Files.deleteIfExists(tmpPath);
         }

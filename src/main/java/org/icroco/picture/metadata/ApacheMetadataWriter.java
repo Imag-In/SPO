@@ -11,6 +11,7 @@ import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
 import org.apache.commons.imaging.formats.jpeg.JpegPhotoshopMetadata;
 import org.apache.commons.imaging.formats.jpeg.exif.ExifRewriter;
 import org.apache.commons.imaging.formats.jpeg.iptc.*;
+import org.apache.commons.imaging.formats.jpeg.xmp.JpegXmpRewriter;
 import org.apache.commons.imaging.formats.tiff.JpegImageData;
 import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
 import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
@@ -18,21 +19,28 @@ import org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputDirectory;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.xmlgraphics.xmp.Metadata;
+import org.apache.xmlgraphics.xmp.XMPParser;
+import org.apache.xmlgraphics.xmp.XMPSerializer;
+import org.icroco.picture.metadata.xmp.XMPBasicSchema;
+import org.icroco.picture.model.ERating;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.Keyword;
 import org.icroco.picture.util.LangUtils;
+import org.icroco.picture.util.SpoException;
 import org.jooq.lambda.function.Consumer3;
 import org.springframework.stereotype.Component;
+import org.xml.sax.SAXException;
 
 import javax.imageio.*;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.stream.StreamSource;
 import java.awt.image.BufferedImage;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -117,17 +125,27 @@ public class ApacheMetadataWriter implements IMetadataWriter {
 
     @Override
     public void removeKeywords(Path path, Set<String> keywords) {
-
+        // TODO:
+        log.error("Not Yet Implemented");
     }
 
-//    private static ImageWriterSpi lookupDelegateProvider() {
-//        return IIOUtil.lookupProviderByName(IIORegistry.getDefaultInstance(), "com.sun.imageio.plugins.jpeg.JPEGImageWriterSpi", ImageWriterSpi.class);
-//    }
-//
-//    protected ImageWriterSpi createProvider() {
-//        return new JPEGImageWriterSpi(lookupDelegateProvider());
-//    }
+    @Override
+    public Either<Exception, Path> setRating(Path path, ERating rating) {
+        try {
+            addXmpTags(Files.readAllBytes(path),
+                       path,
+                       List.of(xmpMetaData -> updateRating(false, xmpMetaData, rating)));
+            return Either.right(path);
+        } catch (Exception e) {
+            return Either.left(e);
+        }
+    }
 
+    @SneakyThrows
+    private void updateRating(boolean clearAllBefore, Metadata xmpMetaData, ERating rating) {
+        final XMPBasicSchema.XMPBasicAdapter xmp = XMPBasicSchema.getAdapter(xmpMetaData);
+        xmp.setRating(rating.getCode());
+    }
 
     @Override
     public Either<Exception, Path> setThumbnail(Path path, byte[] thumbnail) {
@@ -235,6 +253,54 @@ public class ApacheMetadataWriter implements IMetadataWriter {
         } catch (IOException | ImageWriteException | ImageReadException e) {
             log.error("File: '{}', Cannot save tag", path, e);
         }
+    }
+
+    private void addXmpTags(byte[] source,
+                            Path path,
+                            Collection<Consumer<Metadata>> dirConsummers) {
+        try {
+
+            final String   xmpXml = getXmpXml(source);
+            final Metadata xmpMetaData;
+
+            if (xmpXml == null) {
+                xmpMetaData = new Metadata();
+            } else {
+                final ByteArrayInputStream input = new ByteArrayInputStream(xmpXml.getBytes(StandardCharsets.UTF_8));
+                xmpMetaData = XMPParser.parseXMP(new StreamSource(input));
+            }
+
+            for (Consumer<Metadata> dirConsummer : dirConsummers) {
+                dirConsummer.accept(xmpMetaData);
+            }
+
+            final String xmpAsString;
+            try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+                XMPSerializer.writeXMPPacket(xmpMetaData, bos, false);
+                xmpAsString = bos.toString(StandardCharsets.UTF_8);
+            }
+
+            try (BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(path.toFile()))) {
+                new JpegXmpRewriter().updateXmpXml(source, os, xmpAsString);
+                os.flush();
+            }
+        } catch (IOException | ImageWriteException | ImageReadException | TransformerException | SAXException e) {
+            log.error("File: '{}', Cannot save tag", path, e);
+        }
+    }
+
+    private String getXmpXml(byte[] imageBytes) {
+        final String xmpString;
+        try {
+            xmpString = Imaging.getXmpXml(imageBytes);
+        } catch (ImageReadException ex) {
+            throw new SpoException("Unable to parse the image.", ex);
+        } catch (IOException ex) {
+            throw new SpoException("Unable to read the image data.", ex);
+        }
+
+//        return CommonUtils.formatXml(xmpString, false);
+        return xmpString;
     }
 
     private void addExifRootTags(byte[] source, Path path, Collection<Consumer<TiffOutputDirectory>> dirConsummers) {

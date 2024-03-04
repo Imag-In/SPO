@@ -13,10 +13,7 @@ import org.icroco.picture.views.util.FxPlatformExecutor;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @Data
 @EqualsAndHashCode(of = { "fullPath" })
@@ -37,6 +34,8 @@ public class MediaFile implements IMediaFile {
     private Integer        collectionId;
     private boolean        selected;
     private EThumbnailType thumbnailType;
+    private ERating rating;
+    private UUID    uuid;
 
     private final SimpleObjectProperty<LocalDateTime> lastUpdated          = new SimpleObjectProperty<>(LocalDateTime.MIN);
     private final SimpleBooleanProperty              loadedInCache       = new SimpleBooleanProperty(false);
@@ -58,7 +57,8 @@ public class MediaFile implements IMediaFile {
                      Integer collectionId,
                      boolean selected,
                      EKeepOrThrow keepOrThrow,
-                     EThumbnailType thumbnailType) {
+                     EThumbnailType thumbnailType,
+                     ERating rating) {
         this.id = id;
         this.fullPath = fullPath;
         this.fileName = fileName;
@@ -71,6 +71,7 @@ public class MediaFile implements IMediaFile {
         this.camera = camera;
         this.collectionId = collectionId;
         this.selected = selected;
+        this.rating = rating;
 
         this.thumbnailType = Objects.requireNonNullElse(thumbnailType, EThumbnailType.ABSENT);
         this.originalDateProperty.setValue(originalDate);

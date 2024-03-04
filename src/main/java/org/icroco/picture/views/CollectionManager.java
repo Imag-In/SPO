@@ -223,6 +223,7 @@ public class CollectionManager {
                                                       .camera(header.camera())
                                                       .originalDate(header.orginalDate())
                                                       .keywords(header.keywords())
+                                                      .rating(header.rating())
                                                       .build()
                                 )
                                 .or(() -> {

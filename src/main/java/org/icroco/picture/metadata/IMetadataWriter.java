@@ -1,6 +1,7 @@
 package org.icroco.picture.metadata;
 
 import io.jbock.util.Either;
+import org.icroco.picture.model.ERating;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.Keyword;
 
@@ -19,6 +20,8 @@ public interface IMetadataWriter {
     void addKeywords(Path path, Set<Keyword> keywords);
 
     void removeKeywords(Path path, Set<String> keywords);
+
+    Either<Exception, Path> setRating(Path path, ERating rating);
 
     Either<Exception, Path> setThumbnail(Path path, byte[] thumbnail);
 

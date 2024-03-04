@@ -631,6 +631,7 @@ public class GalleryView implements FxView<StackPane> {
         if (dblCickState == EGalleryClickState.ZOOM) {
             displayNext(photo.getMediaFile());
         } else if (dblCickState.isImage()) {
+            editMode.set(false); // We ensure there is something to save.
             displayGallery(photo.getMediaFile());
         }
         keyEvent.consume();

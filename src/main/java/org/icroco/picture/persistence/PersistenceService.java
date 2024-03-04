@@ -15,6 +15,7 @@ import org.icroco.picture.persistence.mapper.MediaCollectionMapper;
 import org.icroco.picture.persistence.mapper.MediaFileMapper;
 import org.icroco.picture.persistence.mapper.ThumbnailMapper;
 import org.icroco.picture.persistence.model.MfDuplicate;
+import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.views.task.TaskService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
@@ -183,8 +184,14 @@ public class PersistenceService {
 
     @Transactional
     public void saveMediaFile(MediaFile file, Consumer<MediaFile> preAction) {
-        if (preAction != null) {
-            preAction.accept(file);
+        saveMediaFile(file, List.of(preAction));
+    }
+
+
+    @Transactional
+    public void saveMediaFile(MediaFile file, List<Consumer<MediaFile>> preActions) {
+        if (!LangUtils.safeCollection(preActions).isEmpty()) {
+            preActions.forEach(a -> a.accept(file));
             hashGenerator.compute(file.fullPath()).ifPresent(h -> {
                 file.setHash(h);
                 file.setHashDate(LocalDate.now());
@@ -196,7 +203,7 @@ public class PersistenceService {
 
     @Transactional
     public void saveMediaFile(MediaFile file) {
-        saveMediaFile(file, null);
+        saveMediaFile(file, List.of());
     }
 
     @Transactional

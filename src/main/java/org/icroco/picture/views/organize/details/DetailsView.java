@@ -31,10 +31,7 @@ import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.IKeywordManager;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.metadata.IMetadataWriter;
-import org.icroco.picture.model.ERotation;
-import org.icroco.picture.model.EThumbnailType;
-import org.icroco.picture.model.Keyword;
-import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.model.*;
 import org.icroco.picture.model.converter.KeywordStringConverter;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.persistence.ThumbnailRepository;
@@ -48,10 +45,7 @@ import org.icroco.picture.views.organize.OrganizeConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
 import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;
-import org.icroco.picture.views.util.I18N;
-import org.icroco.picture.views.util.MaskerPane;
-import org.icroco.picture.views.util.MediaLoader;
-import org.icroco.picture.views.util.Nodes;
+import org.icroco.picture.views.util.*;
 import org.icroco.picture.views.util.widget.FxUtil;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -66,6 +60,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -99,9 +94,10 @@ public class DetailsView extends AbstractView<VBox> {
     private final Label                thumbnailSize       = createLabel();
     private final Label                orientation         = createLabel();
     private final Label                cameraMake          = createLabel();
-    private final Label                cameraModel         = createLabel();
+    private final Label              cameraModel = createLabel();
+    private final Rating             rating      = new Rating();
     //    private final Label                 keywords            = createLabel();
-    private final TagsField<Keyword>   keywords            = new TagsField<>();
+    private final TagsField<Keyword> keywords    = new TagsField<>();
     private final Label                filePathError       = createLabel();
     private       TabPane               tabs;
     private       Path                 path                = null;
@@ -213,6 +209,10 @@ public class DetailsView extends AbstractView<VBox> {
         grid.add(extractDateFromFile, 2, rowIdx);
         rowIdx += 1;
 
+        rating.setIconSize(24);
+        grid.add(rating, 1, rowIdx);
+        rowIdx += 1;
+
         grid.add(size, 1, rowIdx);
         rowIdx += 2;
 
@@ -291,6 +291,7 @@ public class DetailsView extends AbstractView<VBox> {
         extractDateFromFile.disableProperty().bind(notEditing);
         extractDateFromFile.setOnAction(_ -> dateExtractedAction());
 
+        rating.disableProperty().bind(notEditing);
         editDate.disableProperty().bind(notEditing);
         editDate.setOnAction(_ -> dateEditedAction());
 
@@ -319,10 +320,20 @@ public class DetailsView extends AbstractView<VBox> {
 
         editMode.addListener((_, _, newValue) -> { // Hack.
             if (!newValue && mediaFile != null) {
+                var actions = new ArrayList<Consumer<MediaFile>>(5);
                 if (!CollectionUtils.containsAll(mediaFile.getKeywords(), keywords.getTags())) {
                     var tags = keywordManager.addMissingKw(keywords.getTags());
                     mediaFile.setKeywords(tags);
-                    persistenceService.saveMediaFile(mediaFile, mf -> metadataWriter.addKeywords(mf.fullPath(), mf.getKeywords()));
+                    actions.add(mf -> metadataWriter.addKeywords(mf.fullPath(),
+                                                                 mf.getKeywords())); // TODO: Improve perf: do no save file each time and use Bytes.
+                }
+                var currentRating = rating.getValue();
+                if (mediaFile.getRating() != currentRating) {
+                    mediaFile.setRating(currentRating);
+                    actions.add(mf -> metadataWriter.setRating(mf.fullPath(), currentRating));
+                }
+                if (!actions.isEmpty()) {
+                    persistenceService.saveMediaFile(mediaFile, actions);
                 }
             }
         });
@@ -441,6 +452,7 @@ public class DetailsView extends AbstractView<VBox> {
         if (mediaFile != null) {
             mediaFile.getLastUpdated().removeListener(reloadNeeded);
         }
+        rating.setValue(ERating.ABSENT);
         printImageDetails.setOnMouseClicked(null);
         refreshThumbnail.setOnMouseClicked(null);
         saveThumbnail.setOnMouseClicked(null);
@@ -471,6 +483,7 @@ public class DetailsView extends AbstractView<VBox> {
                                            .toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
             thumbnailSize.setText(Objects.toString(t.getDimension()));
         });
+        rating.setValue(mediaFile.getRating());
 //        log.info("Header: {}", metadataExtractor.header(mediaFile.getFullPath()));
         dbId.setText(Long.toString(mediaFile.getId()));
         name.setText(mediaFile.getFileName());

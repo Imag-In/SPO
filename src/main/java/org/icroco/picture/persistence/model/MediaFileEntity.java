@@ -5,8 +5,10 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.Type;
 import org.icroco.picture.model.EKeepOrThrow;
+import org.icroco.picture.model.ERating;
 import org.icroco.picture.model.EThumbnailType;
 import org.icroco.picture.persistence.converter.KeepOrThrowConverter;
+import org.icroco.picture.persistence.converter.RatingTypeConverter;
 import org.icroco.picture.persistence.converter.ThumbnailTypeConverter;
 
 import java.nio.file.Path;
@@ -86,4 +88,9 @@ public class MediaFileEntity {
     @Column(name = "KEEP_OR_THROW", columnDefinition = "TINYINT")
     @Convert(converter = KeepOrThrowConverter.class)
     private EKeepOrThrow keepOrThrow = EKeepOrThrow.UNKNOW;
+
+    @Builder.Default
+    @Column(name = "RATING", columnDefinition = "TINYINT", nullable = false)
+    @Convert(converter = RatingTypeConverter.class)
+    private ERating rating = ERating.ABSENT;
 }
