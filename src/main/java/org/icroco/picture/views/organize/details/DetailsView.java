@@ -419,7 +419,7 @@ public class DetailsView extends AbstractView<VBox> {
         }
         log.debug("Print details for item: {}", event);
         if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
-            mediaFile.getLastUpdated().addListener(reloadNeeded);
+            mediaFile.getLastUpdatedProperty().addListener(reloadNeeded);
             printImageDetails.setOnMouseClicked(_ -> DefaultMetadataExtractor.printInformation(mediaFile.getFullPath()));
             saveThumbnail.setTooltip(new Tooltip("Not Yet Implemented")); // I18N:
             saveThumbnail.setOnMouseClicked(_ -> {
@@ -450,7 +450,7 @@ public class DetailsView extends AbstractView<VBox> {
 
     private void clearForm() {
         if (mediaFile != null) {
-            mediaFile.getLastUpdated().removeListener(reloadNeeded);
+            mediaFile.getLastUpdatedProperty().removeListener(reloadNeeded);
         }
         rating.setValue(ERating.ABSENT);
         printImageDetails.setOnMouseClicked(null);

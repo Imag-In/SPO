@@ -525,8 +525,9 @@ public class GalleryView implements FxView<StackPane> {
         images.removeAll(event.getDeletedItems());
         images.removeIf(mf -> event.getSubDirsDeleted().contains(mf.fullPath().getParent()));
         // TODO: find a smoother way to update.
-        images.removeAll(event.getModifiedItems());
-        images.addAll(event.getModifiedItems());
+//        images.removeAll(event.getModifiedItems());
+//        images.addAll(event.getModifiedItems());
+        event.getModifiedItems().forEach(MediaFile::resetProperties);
         if (selected != null) {
             gridView.getSelectionModel().select(selected);
         }

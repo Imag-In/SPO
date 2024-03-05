@@ -208,6 +208,7 @@ public class CollectionManager {
     public Optional<MediaFile> create(LocalDate now, Path p, boolean generateHash) {
         var builder = MediaFile.builder()
                                .fullPath(p)
+                               .reference(UUID.randomUUID())
                                .fileName(p.getFileName().toString());
 
         if (generateHash) {

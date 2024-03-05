@@ -1,13 +1,16 @@
 package org.icroco.picture.model;
 
 import javafx.beans.Observable;
-import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.adapter.JavaBeanObjectPropertyBuilder;
 import javafx.util.Callback;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.icroco.picture.util.SpoException;
 import org.icroco.picture.views.util.FxPlatformExecutor;
 
 import java.nio.file.Path;
@@ -16,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Data
+@ToString(exclude = { "originalDateProperty", "keepOrThrowProperty" })
 @EqualsAndHashCode(of = { "fullPath" })
 public class MediaFile implements IMediaFile {
     public static  Comparator<MediaFile> HASH_COMPARATOR = Comparator.comparing(MediaFile::getHash);
@@ -24,6 +28,7 @@ public class MediaFile implements IMediaFile {
     private Long           id;
     private Path           fullPath;
     private String         fileName;
+    private LocalDateTime originalDate;
     private Set<Keyword>   keywords;
     private GeoLocation    geoLocation;
     private String         hash;
@@ -33,15 +38,17 @@ public class MediaFile implements IMediaFile {
     private Camera         camera;
     private Integer        collectionId;
     private boolean        selected;
+    private EKeepOrThrow  keepOrThrow;
     private EThumbnailType thumbnailType;
-    private ERating rating;
-    private UUID    reference;
+    private ERating       rating;
+    private UUID          reference;
 
-    private final SimpleObjectProperty<LocalDateTime> lastUpdated          = new SimpleObjectProperty<>(LocalDateTime.MIN);
-    private final SimpleBooleanProperty              loadedInCache       = new SimpleBooleanProperty(false);
-    private final SimpleObjectProperty<LocalDateTime> originalDateProperty = new SimpleObjectProperty<>();
-    private final SimpleObjectProperty<EKeepOrThrow> keepOrThrowProperty = new SimpleObjectProperty<>();
+    private final SimpleObjectProperty<LocalDateTime> lastUpdatedProperty   = new SimpleObjectProperty<>(LocalDateTime.MIN);
+    private final SimpleBooleanProperty               loadedInCacheProperty = new SimpleBooleanProperty(false);
+    private final ObjectProperty<LocalDateTime>       originalDateProperty;
+    private final ObjectProperty<EKeepOrThrow>        keepOrThrowProperty;
 
+    @SuppressWarnings("unchecked")
     @Builder
     public MediaFile(Long id,
                      Path fullPath,
@@ -63,6 +70,7 @@ public class MediaFile implements IMediaFile {
         this.id = id;
         this.fullPath = fullPath;
         this.fileName = fileName;
+        this.originalDate = originalDate;
         this.keywords = keywords;
         this.geoLocation = geoLocation;
         this.hash = hash;
@@ -74,19 +82,26 @@ public class MediaFile implements IMediaFile {
         this.selected = selected;
         this.rating = rating;
         this.reference = reference;
-
         this.thumbnailType = Objects.requireNonNullElse(thumbnailType, EThumbnailType.ABSENT);
-        this.originalDateProperty.setValue(originalDate);
-        this.keepOrThrowProperty.setValue(Objects.requireNonNullElse(keepOrThrow, EKeepOrThrow.UNKNOW));
+        this.keepOrThrow = Objects.requireNonNullElse(keepOrThrow, EKeepOrThrow.UNKNOW);
+
+        // TODO: use JavaBeanObjectPropertyBuilder.create() ?
+        try {
+            this.originalDateProperty = (ObjectProperty<LocalDateTime>) JavaBeanObjectPropertyBuilder.create()
+                                                                                                     .bean(this)
+                                                                                                     .name("originalDate")
+                                                                                                     .build();
+            this.keepOrThrowProperty = (ObjectProperty<EKeepOrThrow>) JavaBeanObjectPropertyBuilder.create()
+                                                                                                   .bean(this)
+                                                                                                   .name("keepOrThrow")
+                                                                                                   .build();
+        } catch (NoSuchMethodException e) {
+            throw new SpoException("Technical Error", e);
+        }
     }
 
     public static Callback<MediaFile, Observable[]> extractor() {
-        return mf -> new Observable[] { mf.loadedInCache, mf.lastUpdated, mf.originalDateProperty };
-    }
-
-
-    public SimpleBooleanProperty loadedInCacheProperty() {
-        return loadedInCache;
+        return mf -> new Observable[] { mf.loadedInCacheProperty, mf.lastUpdatedProperty, mf.originalDateProperty };
     }
 
     @Override
@@ -106,31 +121,7 @@ public class MediaFile implements IMediaFile {
 
     @Override
     public LocalDateTime originalDate() {
-        return originalDateProperty.getValue();
-    }
-
-    public LocalDateTime getOriginalDate() {
-        return originalDateProperty.getValue();
-    }
-
-    public ReadOnlyObjectProperty<LocalDateTime> getOriginalDateProperty() {
-        return originalDateProperty;
-    }
-
-    public void setOriginalDate(LocalDateTime originalDate) {
-        originalDateProperty.setValue(originalDate);
-    }
-
-    public ReadOnlyObjectProperty<EKeepOrThrow> getKeepOrThrowProperty() {
-        return keepOrThrowProperty;
-    }
-
-    public void setKeepOrThrow(EKeepOrThrow keepOrThrow) {
-        keepOrThrowProperty.setValue(keepOrThrow);
-    }
-
-    public EKeepOrThrow getKeepOrThrow() {
-        return keepOrThrowProperty.get();
+        return getOriginalDate();
     }
 
     @Override
@@ -166,16 +157,16 @@ public class MediaFile implements IMediaFile {
         selected = !selected;
     }
 
-    public void setLoadedInCache(boolean value) {
-        loadedInCache.set(value);
+    public void setLoadedInCacheProperty(boolean value) {
+        loadedInCacheProperty.set(value);
     }
 
     public boolean isLoadedInCache() {
-        return loadedInCache.get();
+        return loadedInCacheProperty.get();
     }
 
     public void setLastUpdated(LocalDateTime time) {
-        lastUpdated.set(time);
+        lastUpdatedProperty.set(time);
     }
 
     public void initFrom(MediaFile source) {
@@ -185,6 +176,8 @@ public class MediaFile implements IMediaFile {
         this.fullPath = source.fullPath;
         this.fileName = source.fileName;
         this.keywords = source.keywords;
+        this.originalDate = source.originalDate;
+        this.keepOrThrow = source.keepOrThrow;
         this.geoLocation = source.geoLocation;
         this.hash = source.hash;
         this.hashDate = source.hashDate;
@@ -196,10 +189,14 @@ public class MediaFile implements IMediaFile {
         this.thumbnailType = source.thumbnailType;
         this.rating = source.rating;
         this.reference = source.reference;
+    }
+
+    public void resetProperties() {
         FxPlatformExecutor.fxRun(() -> {
-            this.setLoadedInCache(false);
-            this.setKeepOrThrow(source.getKeepOrThrow());
-            this.setOriginalDate(source.getOriginalDate());
+            loadedInCacheProperty.setValue(false);
+            keepOrThrowProperty.setValue(keepOrThrow);
+            originalDateProperty.setValue(originalDate);
+            lastUpdatedProperty.setValue(LocalDateTime.now());
         });
     }
 

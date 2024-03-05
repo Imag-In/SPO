@@ -67,7 +67,7 @@ public class SpoConfiguration {
                                          .maximumSize(1000) // TODO: Compute this at runtime, based on RAM and -Xmx.
                                          .removalListener((key, _, _) -> Platform.runLater(() -> {
                                              if (key != null) {
-                                                 ((MediaFile) key).setLoadedInCache(false);
+                                                 ((MediaFile) key).setLoadedInCacheProperty(false);
                                              }
                                          }))
 //                                         .expireAfterAccess(1, TimeUnit.DAYS)

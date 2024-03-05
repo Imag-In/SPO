@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.UUID;
 
 public class MediaFileTest extends AbstractDataTest<MediaFile> {
     public static MediaFile DUMMY = new MediaFileTest().buildInstance();
@@ -95,6 +96,8 @@ public class MediaFileTest extends AbstractDataTest<MediaFile> {
                         .selected(selected)
                         .keepOrThrow(keepOrThrow)
                         .thumbnailType(thumbnailType)
+                        .rating(ERating.FIVE)
+                        .reference(UUID.randomUUID())
                         .build();
     }
 }

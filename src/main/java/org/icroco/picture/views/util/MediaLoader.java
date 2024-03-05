@@ -89,9 +89,9 @@ public class MediaLoader {
 
     public void loadAndCachedValue(final MediaFile mf) {
         taskService.supply(cacheOrLoad, mf)
-                   .thenAcceptAsync(_ -> Platform.runLater(() -> mf.setLoadedInCache(true)))
+                   .thenAcceptAsync(_ -> Platform.runLater(() -> mf.setLoadedInCacheProperty(true)))
                    .exceptionally(_ -> {
-                       Platform.runLater(() -> mf.setLoadedInCache(false));
+                       Platform.runLater(() -> mf.setLoadedInCacheProperty(false));
                        return null;
                    });
     }
@@ -102,7 +102,7 @@ public class MediaLoader {
                             .limit(200)
                             .toList();
             head.forEach(cacheOrLoad::apply);
-            Platform.runLater(() -> head.forEach(mf -> mf.setLoadedInCache(false)));
+            Platform.runLater(() -> head.forEach(mf -> mf.setLoadedInCacheProperty(false)));
         });
     }
 
@@ -264,7 +264,7 @@ public class MediaLoader {
 
             @Override
             protected void succeeded() {
-                getValue().forEach(thumbnailRes -> thumbnailRes.mf.getLastUpdated().set(thumbnailRes.thumbnail.getLastUpdate()));
+                getValue().forEach(thumbnailRes -> thumbnailRes.mf.getLastUpdatedProperty().set(thumbnailRes.thumbnail.getLastUpdate()));
             }
         };
     }
