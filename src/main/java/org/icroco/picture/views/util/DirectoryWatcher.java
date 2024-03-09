@@ -6,8 +6,8 @@ import org.icroco.picture.config.SpoConfiguration;
 import org.icroco.picture.event.CollectionEvent;
 import org.icroco.picture.event.FilesChangesDetectedEvent;
 import org.icroco.picture.event.FilesChangesDetectedEvent.PathItem;
+import org.icroco.picture.model.EFileType;
 import org.icroco.picture.persistence.CollectionRepository;
-import org.icroco.picture.util.Constant;
 import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.views.task.TaskService;
 import org.jooq.lambda.Unchecked;
@@ -227,18 +227,18 @@ public class DirectoryWatcher {
                                                          .created(changes.stream()
                                                                          .filter(fc -> fc.type == FileChangeType.CREATED)
                                                                          .filter(fc -> Files.isDirectory(fc.path) ||
-                                                                                       Constant.isSupportedExtension(fc.path))
+                                                                                       EFileType.isSupportedExtension(fc.path))
                                                                          .map(FileChange::toPathItem)
                                                                          .toList())
                                                          .modified(changes.stream()
                                                                           .filter(fc -> fc.type == FileChangeType.MODIFIED)
-                                                                          .filter(fc -> Constant.isSupportedExtension(fc.path))
+                                                                          .filter(fc -> EFileType.isSupportedExtension(fc.path))
                                                                           .map(FileChange::toPathItem)
                                                                           .toList())
                                                          .deleted(changes.stream()
                                                                          .filter(fc -> fc.type == FileChangeType.DELETED)
                                                                          .filter(fc -> fc.isDirectory ||
-                                                                                       Constant.isSupportedExtension(fc.path))
+                                                                                       EFileType.isSupportedExtension(fc.path))
                                                                          .map(FileChange::toPathItem)
                                                                          .toList())
                                                          .source(this)

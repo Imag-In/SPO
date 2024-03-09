@@ -3,6 +3,7 @@ package org.icroco.picture.util;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.model.EFileType;
 import org.springframework.lang.Nullable;
 import org.threeten.extra.AmountFormats;
 
@@ -58,7 +59,7 @@ public class LangUtils {
         try (var images = Files.walk(rootPath)) {
             return images.filter(p -> !Files.isDirectory(p))   // not a directory
                          .map(Path::normalize)
-                         .filter(Constant::isSupportedExtension)
+                         .filter(EFileType::isSupportedExtension)
                          .toList();
         } catch (IOException e) {
             log.error("Cannot walk through directory: '{}'", rootPath);

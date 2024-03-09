@@ -95,7 +95,7 @@ public class Constant {
     private final Consumer<?> EMPTY_CONSUMER = s -> {
     };
 
-    public static boolean isSupportedExtension(Path path) {
+    private static boolean isSupportedExtension(Path path) {
         return SUPPORTED_EXT.matcher(path.getFileName().toString()).matches();
     }
 

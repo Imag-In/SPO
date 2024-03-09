@@ -4,7 +4,7 @@ import javafx.application.Platform;
 import org.icroco.picture.metadata.DefaultMetadataExtractor;
 import org.icroco.picture.metadata.TagManagerTest;
 import org.icroco.picture.model.Dimension;
-import org.icroco.picture.util.Constant;
+import org.icroco.picture.model.EFileType;
 import org.icroco.picture.util.FileUtil;
 import org.icroco.picture.views.task.TaskService;
 import org.junit.jupiter.api.AfterAll;
@@ -49,7 +49,7 @@ class ThumbnailatorGeneratorTest {
         Path root = Paths.get(IMAGE_DIR);
         try (var images = Files.walk(root)) {
             return images.filter(p -> !Files.isDirectory(p))   // not a directory
-                         .filter(Constant::isSupportedExtension)
+                         .filter(EFileType::isSupportedExtension)
                          .toList();
         }
     }
@@ -131,7 +131,7 @@ class ThumbnailatorGeneratorTest {
 
         try (var images = Files.walk(root)) {
             images.filter(p -> !Files.isDirectory(p))   // not a directory
-                  .filter(Constant::isSupportedExtension)
+                  .filter(EFileType::isSupportedExtension)
                   .forEach(i -> {
                                watch.start(i.getFileName().toString());
                                generator.generate(i,

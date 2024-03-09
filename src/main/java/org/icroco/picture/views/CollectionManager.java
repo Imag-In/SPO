@@ -9,12 +9,12 @@ import org.icroco.picture.event.*;
 import org.icroco.picture.event.FilesChangesDetectedEvent.PathItem;
 import org.icroco.picture.hash.IHashGenerator;
 import org.icroco.picture.metadata.IMetadataExtractor;
+import org.icroco.picture.model.EFileType;
 import org.icroco.picture.model.HashDuplicate;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.CollectionRepository;
 import org.icroco.picture.persistence.PersistenceService;
-import org.icroco.picture.util.Constant;
 import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.util.UserAbortedException;
 import org.icroco.picture.views.task.AbstractTask;
@@ -337,7 +337,7 @@ public class CollectionManager {
     public Set<Path> scanDir(Path rootPath, boolean resursiveScan) {
         try (var images = Files.walk(rootPath, resursiveScan ? Integer.MAX_VALUE : 1)) {
             return images.filter(p -> !Files.isDirectory(p))
-                         .filter(Constant::isSupportedExtension)
+                         .filter(EFileType::isSupportedExtension)
                          .filter(metadataExtractor::isFileTypeSupported)
                          .map(Path::normalize)
                          .collect(Collectors.toSet());
