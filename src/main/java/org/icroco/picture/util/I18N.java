@@ -1,10 +1,14 @@
-package org.icroco.picture.views.util;
+package org.icroco.picture.util;
 
+import atlantafx.base.controls.ToggleSwitch;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.StringProperty;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.views.pref.UserPreferenceService;
@@ -45,7 +49,7 @@ public final class I18N {
 //        Locale.setDefault(locale);
 //    }
 
-    public ObjectProperty<Locale> localeProperty() {
+    public ReadOnlyObjectProperty<Locale> localeProperty() {
         return locale;
     }
 
@@ -59,11 +63,12 @@ public final class I18N {
      */
     public String get(final String key, final Object... args) {
         try {
-            ResourceBundle bundle = ResourceBundle.getBundle(SPO_ASSETS_LANGUAGES_MESSAGES, getLocale());
+            var bundle = ResourceBundle.getBundle(SPO_ASSETS_LANGUAGES_MESSAGES, getLocale());
             var            text   = bundle.getString(key);
             return MessageFormat.format(text, args);
         } catch (MissingResourceException exception) {
-            ResourceBundle bundle = ResourceBundle.getBundle(SPO_ASSETS_LANGUAGES_MESSAGES, Locale.US);
+            var bundle = ResourceBundle.getBundle(SPO_ASSETS_LANGUAGES_MESSAGES, Locale.ENGLISH);
+            log.error("Bundle key:{}, salue: {}", key, bundle.containsKey(key));
             return MessageFormat.format(bundle.getString(key), args);
         }
     }
@@ -106,6 +111,12 @@ public final class I18N {
         return label;
     }
 
+    public ToggleSwitch toggleSwitchForKey(final String key, final Object... args) {
+        var node = new ToggleSwitch();
+        node.textProperty().bind(createStringBinding(key, args));
+        return node;
+    }
+
     /**
      * creates a bound Button for the given resourcebundle key
      *
@@ -130,6 +141,14 @@ public final class I18N {
         Tooltip tooltip = new Tooltip();
         tooltip.textProperty().bind(createStringBinding(key, args));
         return tooltip;
+    }
+
+    public void bindPrompt(final TextField textField, final String key, final Object... args) {
+        textField.promptTextProperty().bind(createStringBinding(key, args));
+    }
+
+    public void bindText(final StringProperty stringProperty, final String key, final Object... args) {
+        stringProperty.bind(createStringBinding(key, args));
     }
 
 }

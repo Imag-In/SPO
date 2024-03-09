@@ -15,5 +15,8 @@ public final class DateTimeStrategy extends AbstractDateStrategy {
         super(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
     }
 
-
+    @Override
+    public String getI18NId() {
+        return "rename.file.strategy.datetime";
+    }
 }

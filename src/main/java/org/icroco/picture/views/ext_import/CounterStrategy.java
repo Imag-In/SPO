@@ -22,4 +22,9 @@ public final class CounterStrategy implements IRenameFilesStrategy {
     public String computeNewFileName(MediaFile mediaFile) {
         return STR."\{++index}.\{FilenameUtils.getExtension(mediaFile.fullPath().toString())}";
     }
+
+    @Override
+    public String getI18NId() {
+        return "rename.file.strategy.counter";
+    }
 }

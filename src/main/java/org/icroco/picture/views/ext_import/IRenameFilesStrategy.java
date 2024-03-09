@@ -10,4 +10,8 @@ public interface IRenameFilesStrategy {
 
     default void reset() {
     }
+
+    default String getI18NId() {
+        return getClass().getSimpleName();
+    }
 }

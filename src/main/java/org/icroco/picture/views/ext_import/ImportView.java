@@ -17,6 +17,7 @@ import javafx.geometry.*;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.ComboBoxListCell;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -36,6 +37,8 @@ import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.converter.KeywordStringConverter;
 import org.icroco.picture.persistence.PersistenceService;
+import org.icroco.picture.util.I18N;
+import org.icroco.picture.util.I18NConstant;
 import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.views.AbstractView;
 import org.icroco.picture.views.CollectionManager;
@@ -46,7 +49,6 @@ import org.icroco.picture.views.task.IFxCallable;
 import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.DirectoryWatcher;
-import org.icroco.picture.views.util.I18N;
 import org.icroco.picture.views.util.Nodes;
 import org.jooq.lambda.Unchecked;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -84,17 +86,17 @@ public class ImportView extends AbstractView<StackPane> {
     private final       IMetadataWriter  metadataWriter;
     private final       I18N             i18N;
 
-    private final StackPane          root           = new StackPane();
-    private final CustomTextField    sourceDir      = new CustomTextField();
+    private final StackPane       root         = new StackPane();
+    private final CustomTextField sourceDir    = new CustomTextField();
     private       TextField          targetCollectionTf;
     private       TextField          targetSubDirTf;
     private       TagsField<Keyword> keywords;
-    private final TextArea           exampleTf      = new TextArea();
-    private final CustomTextField    filePrefix     = new CustomTextField("");
-    private final Label              filesCounter   = new Label("");
-    private final Button             importBtn      = new Button("Import");
-    private final ToggleSwitch       genThumbailsCb = new ToggleSwitch("Generate high quality thumbnails");
-    private final ToggleSwitch       deleteFilesCb  = new ToggleSwitch("Delete imported files");
+    private final TextArea        exampleTf    = new TextArea();
+    private final CustomTextField filePrefix   = new CustomTextField("");
+    private final Label           filesCounter = new Label("");
+    private final Button          importBtn    = new Button("Import");
+    private final ToggleSwitch    genThumbailsCb;
+    private final ToggleSwitch    deleteFilesCb;
 
     private final MediaFile[] fakeMf = new MediaFile[] { MediaFile.builder()
                                                                   .originalDate(LocalDateTime.now())
@@ -133,8 +135,19 @@ public class ImportView extends AbstractView<StackPane> {
         this.keywordManager = keywordManager;
         this.metadataWriter = metadataWriter;
         this.i18N = i18N;
-        this.strategies = new SortedList<>(FXCollections.observableArrayList(strategies),
+        var obsStrategies = FXCollections.observableArrayList(strategies);
+        this.strategies = new SortedList<>(obsStrategies,
                                            Comparator.comparing(IRenameFilesStrategy::displayName));
+        genThumbailsCb = i18N.toggleSwitchForKey(I18NConstant.IMPORT_ASK_HIGH_QUALITY);
+        deleteFilesCb = i18N.toggleSwitchForKey(I18NConstant.IMPORT_ASK_DELETE_FILES);
+        i18N.localeProperty().addListener((_, _, _) -> {
+            var idx = renamingStrategyCb.getSelectionModel().getSelectedIndex();
+            obsStrategies.clear();
+            obsStrategies.addAll(strategies);
+            if (idx >= 0) {
+                renamingStrategyCb.getSelectionModel().select(idx);
+            }
+        });
     }
 
     @PostConstruct
@@ -148,7 +161,8 @@ public class ImportView extends AbstractView<StackPane> {
         importBtn.disableProperty().bind(or(isRunning, or(Bindings.isNull(sourcePath),
                                                           or(Bindings.isEmpty(targetCollectionTf.textProperty()),
                                                              Bindings.isEmpty(filePrefix.textProperty())))));
-        renamingStrategyCb.setConverter(new StrategyStringConverter());
+        renamingStrategyCb.setConverter(new StrategyStringConverter(i18N));
+        renamingStrategyCb.setEditable(false);
         exampleTf.requestFocus();
         keywords.setSuggestionProvider(request -> allKeywords.stream()
                                                              .filter(kw -> kw.name()
@@ -176,7 +190,7 @@ public class ImportView extends AbstractView<StackPane> {
         if (newValue != null && Files.exists(newValue)) {
             final var task = collectionManager.scanDirectory(newValue, false);
             task.setOnSucceeded(_ -> {
-                filesCounter.setText(STR."'\{task.getValue().size()}' files found."); // I18N:
+                filesCounter.setText(i18N.get(I18NConstant.IMPORT_FILES_COUNTER_LABEL, task.getValue().size()));
                 updateExample();
             });
             task.setOnFailed(_ -> updateExample());
@@ -191,9 +205,9 @@ public class ImportView extends AbstractView<StackPane> {
         grid.setVgap(10); //vertical gap in pixels
         int rowIdx = 0;
 
-        grid.add(createLabel("Scan directory:", 200, 300), 0, rowIdx); // I18N:
+        grid.add(createLabel(200, 300, i18N, I18NConstant.IMPORT_SELECT_DIR_LABEL), 0, rowIdx);
         sourceDir.setEditable(false);
-        sourceDir.setPromptText("Select a directory to import"); // I18N:
+        i18N.bindPrompt(sourceDir, I18NConstant.IMPORT_SELECT_DIR_PROMPT);
         FontIcon selectInputDirIco = new FontIcon(MaterialDesignF.FOLDER_OPEN_OUTLINE);
         selectInputDirIco.setOnMouseClicked(this::chooseDirectory);
         selectInputDirIco.setCursor(Cursor.HAND);
@@ -217,17 +231,17 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(filesCounter, 1, rowIdx, 2, 1);
 
         rowIdx += 1;
-        grid.add(createLabel("Target collection:", 200, 300), 0, rowIdx); // I18N:
+        grid.add(createLabel(200, 300, i18N, I18NConstant.IMPORT_TGT_COL_LABEL), 0, rowIdx);
         targetCollectionTf = createCustomText(false, new FontIcon(MaterialDesignF.FOLDER_OPEN_OUTLINE), this::chooseCollectionPath);
-        targetCollectionTf.setPromptText("Select a collection and/or a subpath"); // I18N:
+        i18N.bindPrompt(targetCollectionTf, I18NConstant.IMPORT_TGT_COL_PROMPT);
 
         targetCollectionTf.setEditable(false);
         grid.add(targetCollectionTf, 1, rowIdx);
 
         rowIdx += 1;
-        grid.add(createLabel("Sub-directory", 200, 300), 0, rowIdx); // I18N:
+        grid.add(createLabel(200, 300, i18N, I18NConstant.IMPORT_SUB_DIR_LABEL), 0, rowIdx);
         targetSubDirTf = new TextField();
-        targetSubDirTf.setPromptText("Create a new sub-directory into collection."); // I18N:
+        i18N.bindPrompt(targetSubDirTf, I18NConstant.IMPORT_TGT_SUB_DIR_PROMPT);
         targetSubDirTf.textProperty().addListener((_, _, _) -> updateExample());
         // TODO check if directory already exits into collections.
         grid.add(targetSubDirTf, 1, rowIdx);
@@ -242,7 +256,7 @@ public class ImportView extends AbstractView<StackPane> {
         var infoThumb = new Label("", new FontIcon(MaterialDesignI.INFORMATION_OUTLINE));
         infoThumb.setPadding(new Insets(0, 10, 0, 0));
         infoThumb.getStyleClass().addAll(Styles.SMALL, Styles.ACCENT);
-        infoThumb.setTooltip(new Tooltip("Generate thumbnail even if image already contains one.")); // I18N:
+        infoThumb.setTooltip(i18N.tooltipForKey(I18NConstant.IMPORT_GEN_THUMB_TOOLTIP));
         GridPane.setHalignment(infoThumb, HPos.RIGHT);
         grid.add(infoThumb, 0, rowIdx);
 
@@ -254,11 +268,7 @@ public class ImportView extends AbstractView<StackPane> {
         var infoDelete = new Label("", new FontIcon(MaterialDesignI.INFORMATION_OUTLINE));
         infoDelete.setPadding(new Insets(0, 10, 0, 0));
         infoDelete.getStyleClass().addAll(Styles.SMALL, Styles.ACCENT);
-        Tooltip tt = new Tooltip("""
-                                         !! After being imported,
-                                            Files will be deleted from source drive !!
-                                         """); // I18N:
-        infoDelete.setTooltip(tt);
+        infoDelete.setTooltip(i18N.tooltipForKey(I18NConstant.IMPORT_DEL_FILES_TOOLTIP));
         GridPane.setHalignment(infoDelete, HPos.RIGHT);
         grid.add(infoDelete, 0, rowIdx);
 
@@ -266,15 +276,15 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
 
         rowIdx += 1;
-        grid.add(createLabel(i18N.get("import.keyword.label"), 200, 300), 0, rowIdx);
+        grid.add(createLabel(200, 300, i18N, I18NConstant.IMPORT_KEYWORD_LABEL), 0, rowIdx);
         keywords = new TagsField<>();
-        keywords.getEditor().setPromptText(i18N.get("import.keyword.editor.prompt"));
+        i18N.bindPrompt(keywords.getEditor(), I18NConstant.IMPORT_KEYWRD_EDITOR_PROMPT);
 
         grid.add(keywords, 1, rowIdx);
 
         rowIdx += 1;
-        grid.add(createLabel("Filename prefix", 200, 300), 0, rowIdx); // I18N:
-        filePrefix.setPromptText("Add a filename prefix like: Ibiza-"); // I18N:
+        grid.add(createLabel(200, 300, i18N, I18NConstant.IMPORT_FILENAME_PREFIX_LABEL), 0, rowIdx);
+        i18N.bindPrompt(filePrefix, I18NConstant.IMPORT_FILENAME_PREFIX_PROMPT);
         filePrefix.setPrefWidth(SECOND_COL_PREF_WIDTH);
         filePrefix.textProperty().addListener((_, _, newV) -> {
             updateExample();
@@ -287,8 +297,10 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(filePrefix, 1, rowIdx);
 
         rowIdx += 1;
-        grid.add(createLabel("File pattern", 200, 350), 0, rowIdx); // I18N:
+        grid.add(createLabel(200, 350, i18N, I18NConstant.IMPORT_FILE_PATTERN_LABEL), 0, rowIdx);
         renamingStrategyCb.setItems(strategies);
+        renamingStrategyCb.setCellFactory(ComboBoxListCell.forListView(new StrategyStringConverter(i18N), strategies));
+
         grid.add(renamingStrategyCb, 1, rowIdx);
         renamingStrategyCb.getSelectionModel().selectedItemProperty().addListener((_, _, _) -> updateExample());
 
@@ -296,7 +308,7 @@ public class ImportView extends AbstractView<StackPane> {
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
 
         rowIdx += 1;
-        grid.add(createLabel("Example", 200, 300), 0, rowIdx); // I18N:
+        grid.add(createLabel(200, 300, i18N, I18NConstant.IMPORT_EXAMPLE_LABEL), 0, rowIdx);
         exampleTf.setEditable(false);
         exampleTf.setFocusTraversable(false);
         exampleTf.setWrapText(true);
@@ -320,7 +332,8 @@ public class ImportView extends AbstractView<StackPane> {
 
         renamingStrategyCb.getSelectionModel().selectFirst();
 
-        TitledPane titled = new TitledPane("Copy and Import photos from removable drive", grid); // I18N:
+        TitledPane titled = new TitledPane("", grid);
+        i18N.bindText(titled.textProperty(), I18NConstant.IMPORT_TITLE);
         titled.getStyleClass().add(Styles.ELEVATED_4);
         titled.setCollapsible(false);
         titled.setCenterShape(true);
@@ -409,13 +422,14 @@ public class ImportView extends AbstractView<StackPane> {
 
         return ModernTask.<List<MediaFile>>builder()
                          .execute(self -> {
-                             self.updateTitle("Copy files"); // I18N:
+                             self.updateTitle(i18N.get(I18NConstant.IMPORT_COPY_FILES_TASK));
                              self.updateProgress(0, files.size());
                              var i = new AtomicInteger(0);
                              Set<Keyword> kw = Set.copyOf(keywords.getTags());
                              return files.stream()
                                          .peek(rf -> {
-                                             self.updateMessage(STR."Copy: \{rf.source.getFullPath().getFileName()}"); // I18N:
+                                             self.updateMessage(i18N.get(I18NConstant.IMPORT_COPY_TASK_MESSAGE,
+                                                                         rf.source.getFullPath().getFileName()));
                                              self.updateProgress(i.incrementAndGet(), files.size());
                                          })
                                          .map(ImportView::copyAndRename)
@@ -437,12 +451,9 @@ public class ImportView extends AbstractView<StackPane> {
     private List<MediaFile> askForDeletion(List<MediaFile> files, boolean deleteFiles, Path path) {
         if (deleteFiles) {
             log.info("Delete '{}' files.", files.size());
-            final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, """
-                    Do you really want to deleted all source files ?
-                      '%d' files living into: '%s'.
-                    """.formatted(files.size(), path)); // I18N:
+            final Alert dlg = new Alert(Alert.AlertType.CONFIRMATION, i18N.get(I18NConstant.IMPORT_DEL_CONF, files.size(), path));
             dlg.initOwner(getRootContent().getScene().getWindow());
-            dlg.setTitle("Delete files"); // I18N:
+            dlg.setTitle(i18N.get(I18NConstant.IMPORT_DEL_FILES_DIALOG_TITLE));
 
             return Nodes.show(dlg, getRootContent().getScene())
                         .map(buttonType -> buttonType == ButtonType.OK)
@@ -465,7 +476,7 @@ public class ImportView extends AbstractView<StackPane> {
                                       .toList();
                 scope.join();
                 taskService.sendEvent(NotificationEvent.builder()
-                                                       .message("'%s' file(s) deleted !".formatted(tasks.size()))
+                                                       .message(i18N.get(I18NConstant.IMPORT_NORIF_DELFILE_NB, tasks.size()))
                                                        .type(NotificationEvent.NotificationType.SUCCESS)
                                                        .source(this)
                                                        .build());
@@ -493,7 +504,7 @@ public class ImportView extends AbstractView<StackPane> {
 
     private void chooseCollectionPath(MouseEvent e) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "", ButtonType.OK, ButtonType.CANCEL);
-        alert.setTitle("Choose a collection path");
+        alert.setTitle(i18N.get(I18NConstant.IMPORT_CHOOSE_TGT_TITLE));
         alert.setHeaderText(null);
         TreeItem<Path> rootTreeItem = new TreeItem<>(Path.of("root"));
         TreeView<Path> treeView     = new TreeView<>(rootTreeItem);
@@ -622,14 +633,16 @@ public class ImportView extends AbstractView<StackPane> {
     private void updateExample() {
         exampleTf.setText("");
         var strategy = renamingStrategyCb.getSelectionModel().getSelectedItem();
-        var stringBuilder = new StringBuilder();
 
-        strategy.reset();
-        for (var mf : fakeMf) {
-            stringBuilder.append(createDestinationPath(mf, strategy));
-            stringBuilder.append(System.lineSeparator());
+        if (strategy != null) {
+            var stringBuilder = new StringBuilder();
+            strategy.reset();
+            for (var mf : fakeMf) {
+                stringBuilder.append(createDestinationPath(mf, strategy));
+                stringBuilder.append(System.lineSeparator());
+            }
+            exampleTf.setText(stringBuilder.toString());
         }
-        exampleTf.setText(stringBuilder.toString());
     }
 
     private void reset() {
@@ -652,7 +665,7 @@ public class ImportView extends AbstractView<StackPane> {
         if (targetCollection != null) {
             return targetCollection.resolve(target + strategy.computeNewFileName(mediaFile));
         }
-        return Path.of(target + strategy.computeNewFileName(mediaFile));
+        return Path.of(target, strategy.computeNewFileName(mediaFile));
     }
 
     private void chooseDirectory(MouseEvent event) {

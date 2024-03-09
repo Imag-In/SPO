@@ -24,9 +24,9 @@ abstract class AbstractDateStrategy implements IRenameFilesStrategy {
 
         int idx = 0;
         while (cache.contains(value)) {
-            value = valueOriginal + "-" + (++idx);
+            value = STR."\{valueOriginal}-\{++idx}";
         }
         cache.add(value);
-        return value + "." + FilenameUtils.getExtension(mediaFile.fullPath().toString());
+        return STR."\{value}.\{FilenameUtils.getExtension(mediaFile.fullPath().toString())}";
     }
 }

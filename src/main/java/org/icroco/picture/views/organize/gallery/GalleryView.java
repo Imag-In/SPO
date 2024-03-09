@@ -42,6 +42,7 @@ import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.Constant;
+import org.icroco.picture.util.I18N;
 import org.icroco.picture.util.SceneReadyEvent;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
@@ -81,8 +82,8 @@ import static org.icroco.picture.views.util.SystemUtil.mouseNonContiguousSelecti
 public class GalleryView implements FxView<StackPane> {
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(GalleryView.class);
 
-    private final I18N i18N;
-    private final MediaLoader           mediaLoader;
+    private final I18N        i18N;
+    private final MediaLoader mediaLoader;
     private final UserPreferenceService pref;
     private final TaskService           taskService;
     //    @Qualifier(OrganizeConfiguration.GALLERY_ZOOM)
