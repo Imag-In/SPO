@@ -4,12 +4,14 @@ import atlantafx.base.theme.Styles;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.EventHandler;
 import javafx.scene.Cursor;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
+import lombok.Getter;
 import org.icroco.picture.model.ERating;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2OutlinedMZ;
@@ -17,6 +19,9 @@ import org.kordamp.ikonli.material2.Material2OutlinedMZ;
 public class Rating extends HBox {
     private final SimpleIntegerProperty value    = new SimpleIntegerProperty(0);
     private final SimpleIntegerProperty iconSize = new SimpleIntegerProperty(32);
+
+    @Getter
+    private final SimpleObjectProperty<ERating> ratingProperty;
 
     record Star(FontIcon selected, FontIcon unselected) {
         public Star() {
@@ -34,6 +39,9 @@ public class Rating extends HBox {
             throw new IllegalArgumentException(STR."Stasrt count must bin in range: [1-10], valie id: '\{count}'");
         }
 
+        ratingProperty = new SimpleObjectProperty<>();
+        ratingProperty.bind(value.map(number -> ERating.fromCode(number.intValue())));
+
         getStyleClass().add("rating");
 
         for (int i = 0; i < count; i++) {
@@ -44,7 +52,7 @@ public class Rating extends HBox {
             star.selected.getStyleClass().add(Styles.DANGER);
             var label = new Label(null, star.unselected);
             label.setCursor(Cursor.HAND);
-            label.setOnMouseClicked(createEventHnadler(i + 1, value));
+            label.setOnMouseClicked(createEventHandler(i + 1, value));
             label.graphicProperty().bind(Bindings.when(Bindings.greaterThanOrEqual(value, i + 1))
                                                  .then(star.selected)
                                                  .otherwise(star.unselected));
@@ -52,7 +60,7 @@ public class Rating extends HBox {
         }
     }
 
-    static private EventHandler<? super MouseEvent> createEventHnadler(int startIdx, SimpleIntegerProperty property) {
+    static private EventHandler<? super MouseEvent> createEventHandler(int startIdx, SimpleIntegerProperty property) {
         return (_) -> property.setValue(property.getValue() == startIdx ? startIdx - 1 : startIdx);
     }
 
@@ -71,4 +79,5 @@ public class Rating extends HBox {
     public void setIconSize(int size) {
         iconSize.setValue(24);
     }
+
 }

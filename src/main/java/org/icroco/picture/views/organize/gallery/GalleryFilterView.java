@@ -14,9 +14,11 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.EKeepOrThrow;
+import org.icroco.picture.model.ERating;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.MultiplePredicates;
+import org.icroco.picture.views.util.Rating;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2OutlinedMZ;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
@@ -31,10 +33,8 @@ public class GalleryFilterView implements FxView<VBox> {
 
     private final VBox root = new VBox();
 
-    private final ToggleButton toggleKeep      = new ToggleButton("", new FontIcon(Material2OutlinedMZ.THUMB_UP));
-    private final ToggleButton toggleThrow     = new ToggleButton("", new FontIcon(Material2OutlinedMZ.THUMB_DOWN));
-    private final ToggleButton toggleUndecided = new ToggleButton("", new FontIcon(MaterialDesignH.HEAD_QUESTION_OUTLINE));
-    private final ToggleGroup  toggleGroup     = new ToggleGroup();
+    private final ToggleGroup toggleGroup = new ToggleGroup();
+    private final Rating      rating      = new Rating();
 
     final FontIcon filterRemove = new FontIcon(MaterialDesignF.FILTER_VARIANT_REMOVE);
     final FontIcon filterAdd    = new FontIcon(MaterialDesignF.FILTER_VARIANT_PLUS);
@@ -46,19 +46,9 @@ public class GalleryFilterView implements FxView<VBox> {
         root.setSpacing(10);
         root.setPadding(new Insets(16));
 
-        var tileKoT = new Tile("Keep or Throw", "Filter base on Keep or Throw status");
+        var tileKoT    = createKeepOrThrowFilter();
+        var tileRating = createRatingilter();
 
-        toggleKeep.getStyleClass().add(Styles.LEFT_PILL);
-        toggleThrow.getStyleClass().add(Styles.RIGHT_PILL);
-        toggleUndecided.getStyleClass().add(Styles.CENTER_PILL);
-        toggleKeep.setUserData(EKeepOrThrow.KEEP);
-        toggleThrow.setUserData(EKeepOrThrow.THROW);
-        toggleUndecided.setUserData(EKeepOrThrow.UNKNOW);
-        var hBox = new HBox(toggleKeep, toggleUndecided, toggleThrow);
-        toggleGroup.getToggles().addAll(toggleKeep, toggleThrow, toggleUndecided);
-        tileKoT.setAction(hBox);
-        tileKoT.setActionHandler(() -> log.info("Click KoT"));
-        tileKoT.setPrefWidth(400);
         root.setSpacing(10);
         root.setAlignment(Pos.CENTER);
         root.setStyle("-fx-background-color: -color-bg-default;");
@@ -70,15 +60,51 @@ public class GalleryFilterView implements FxView<VBox> {
         hb.setAlignment(Pos.CENTER_RIGHT);
         hb.setSpacing(10);
         HBox.setHgrow(hb, Priority.ALWAYS);
+
         reset.setOnMouseClicked(_ -> toggleGroup.selectToggle(null));
         reset.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.DANGER);
         ok.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.SUCCESS);
 
-        root.getChildren().addAll(tileKoT, hb);
+        root.getChildren().addAll(tileKoT, tileRating, hb);
+    }
+
+    private Tile createKeepOrThrowFilter() {
+        var tileKoT = new Tile("Keep or Throw", "Filter base on Keep or Throw status"); // I18N:
+
+        var toggleKeep      = new ToggleButton("", new FontIcon(Material2OutlinedMZ.THUMB_UP));
+        var toggleThrow     = new ToggleButton("", new FontIcon(Material2OutlinedMZ.THUMB_DOWN));
+        var toggleUndecided = new ToggleButton("", new FontIcon(MaterialDesignH.HEAD_QUESTION_OUTLINE));
+
+        toggleKeep.getStyleClass().add(Styles.LEFT_PILL);
+        toggleThrow.getStyleClass().add(Styles.RIGHT_PILL);
+        toggleUndecided.getStyleClass().add(Styles.CENTER_PILL);
+        toggleKeep.setUserData(EKeepOrThrow.KEEP);
+        toggleThrow.setUserData(EKeepOrThrow.THROW);
+        toggleUndecided.setUserData(EKeepOrThrow.UNKNOW);
+        var hBox = new HBox(toggleKeep, toggleUndecided, toggleThrow);
+        toggleGroup.getToggles().addAll(toggleKeep, toggleThrow, toggleUndecided);
+
+        tileKoT.setAction(hBox);
+        tileKoT.setActionHandler(() -> log.info("Click KoT"));
+        tileKoT.setPrefWidth(400);
+
+        return tileKoT;
+    }
+
+    private Tile createRatingilter() {
+        var tileRating = new Tile("Rating", "Filter base on rating"); // I18N:
+
+        rating.setIconSize(24);
+
+        tileRating.setAction(rating);
+        tileRating.setActionHandler(() -> log.info("Click KoT"));
+        tileRating.setPrefWidth(400);
+
+        return tileRating;
     }
 
     public void showFilter(ModalPane modalPane, Label lbFilter, MultiplePredicates<MediaFile> predicates) {
-        final var subscription = toggleGroup.selectedToggleProperty().subscribe((oldValue, newValue) -> {
+        final var kotSubscription = toggleGroup.selectedToggleProperty().subscribe((oldValue, newValue) -> {
             if (oldValue != null) {
                 predicates.remove(KoTPredicate.class);
             }
@@ -86,11 +112,21 @@ public class GalleryFilterView implements FxView<VBox> {
                 predicates.add(new KoTPredicate((EKeepOrThrow) newValue.getUserData()));
             }
         });
+        final var ratingSubscription = rating.getRatingProperty().subscribe((oldValue, newValue) -> {
+            if (oldValue != null) {
+                predicates.remove(RatingPredicate.class);
+            }
+            if (newValue != null && newValue != ERating.ABSENT) {
+                predicates.add(new RatingPredicate(newValue));
+            }
+        });
+
         ok.setOnAction(_ -> modalPane.hide());
         modalPane.displayProperty().subscribe((_, newValue) -> {
             log.info("Display visible: {}", newValue);
             if (Boolean.FALSE.equals(newValue)) {
-                subscription.unsubscribe();
+                kotSubscription.unsubscribe();
+                ratingSubscription.unsubscribe();
                 ok.setOnAction(null);
                 if (predicates.size() > 1) {
                     lbFilter.setGraphic(filterRemove);
