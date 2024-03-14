@@ -1,4 +1,4 @@
-package org.icroco.picture.views.organize.gallery;
+package org.icroco.picture.views.organize.gallery.predicate;
 
 import lombok.AllArgsConstructor;
 import org.icroco.picture.model.ERating;

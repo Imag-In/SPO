@@ -3,6 +3,7 @@ package org.icroco.picture.views.organize.gallery;
 import atlantafx.base.controls.ModalPane;
 import atlantafx.base.controls.Tile;
 import atlantafx.base.theme.Styles;
+import com.dlsc.gemsfx.TagsField;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -13,9 +14,15 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.metadata.IKeywordManager;
 import org.icroco.picture.model.EKeepOrThrow;
 import org.icroco.picture.model.ERating;
+import org.icroco.picture.model.Keyword;
 import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.model.converter.KeywordStringConverter;
+import org.icroco.picture.views.organize.gallery.predicate.KeywordsPredicate;
+import org.icroco.picture.views.organize.gallery.predicate.KoTPredicate;
+import org.icroco.picture.views.organize.gallery.predicate.RatingPredicate;
 import org.icroco.picture.views.util.FxView;
 import org.icroco.picture.views.util.MultiplePredicates;
 import org.icroco.picture.views.util.Rating;
@@ -27,27 +34,48 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignH;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Component
 public class GalleryFilterView implements FxView<VBox> {
+    private final IKeywordManager keywordManager;
 
     private final VBox root = new VBox();
 
-    private final ToggleGroup toggleGroup = new ToggleGroup();
-    private final Rating      rating      = new Rating();
+    private final ToggleGroup        toggleGroup  = new ToggleGroup();
+    private final Rating             rating       = new Rating();
+    private final TagsField<Keyword> keywords     = new TagsField<>();
+    final         FontIcon           filterRemove = new FontIcon(MaterialDesignF.FILTER_VARIANT_REMOVE);
+    final         FontIcon           filterAdd    = new FontIcon(MaterialDesignF.FILTER_VARIANT_PLUS);
 
-    final FontIcon filterRemove = new FontIcon(MaterialDesignF.FILTER_VARIANT_REMOVE);
-    final FontIcon filterAdd    = new FontIcon(MaterialDesignF.FILTER_VARIANT_PLUS);
+    private final Button        reset       = new Button(null, new FontIcon(MaterialDesignD.DELETE_OUTLINE));
+    private final Button        ok          = new Button(null, new FontIcon(MaterialDesignC.CHECK));
+    private final List<Keyword> allKeywords = new ArrayList<>();
 
-    private final Button reset = new Button(null, new FontIcon(MaterialDesignD.DELETE_OUTLINE));
-    private final Button ok    = new Button(null, new FontIcon(MaterialDesignC.CHECK));
 
-    public GalleryFilterView() {
+    public GalleryFilterView(IKeywordManager keywordManager) {
+        this.keywordManager = keywordManager;
+
+        keywords.setSuggestionProvider(request -> allKeywords.stream()
+                                                             .filter(kw -> kw.name()
+                                                                             .toLowerCase()
+                                                                             .contains(request.getUserText().toLowerCase()))
+                                                             .collect(Collectors.toList()));
+        keywords.setNewItemProducer(GalleryFilterView::keywordProducer);
+        keywords.setConverter(new KeywordStringConverter());
+        keywords.setMatcher((kw, searchText) -> kw.name().toLowerCase().startsWith(searchText.toLowerCase()));
+        keywords.setComparator(Comparator.comparing(Keyword::name));
+
         root.setSpacing(10);
         root.setPadding(new Insets(16));
 
-        var tileKoT    = createKeepOrThrowFilter();
-        var tileRating = createRatingilter();
+        var tileKoT     = createKeepOrThrowFilter();
+        var tileRating  = createRatingFilter();
+        var tileKeyword = createKeywordFilter();
 
         root.setSpacing(10);
         root.setAlignment(Pos.CENTER);
@@ -65,9 +93,13 @@ public class GalleryFilterView implements FxView<VBox> {
         reset.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.DANGER);
         ok.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.SUCCESS);
 
-        root.getChildren().addAll(tileKoT, tileRating, hb);
+        root.getChildren().addAll(tileKoT, tileRating, tileKeyword, hb);
     }
 
+
+    private static Keyword keywordProducer(String name) {
+        return Keyword.builder().id(null).name(name).build();
+    }
     private Tile createKeepOrThrowFilter() {
         var tileKoT = new Tile("Keep or Throw", "Filter base on Keep or Throw status"); // I18N:
 
@@ -91,11 +123,10 @@ public class GalleryFilterView implements FxView<VBox> {
         return tileKoT;
     }
 
-    private Tile createRatingilter() {
-        var tileRating = new Tile("Rating", "Filter base on rating"); // I18N:
+    private Tile createRatingFilter() {
+        var tileRating = new Tile("Rating", "Filter based on rating"); // I18N:
 
         rating.setIconSize(24);
-
         tileRating.setAction(rating);
         tileRating.setActionHandler(() -> log.info("Click KoT"));
         tileRating.setPrefWidth(400);
@@ -103,7 +134,18 @@ public class GalleryFilterView implements FxView<VBox> {
         return tileRating;
     }
 
+    private Tile createKeywordFilter() {
+        var tileRating = new Tile("Keyword", "Filter based on keyword (tags)"); // I18N:
+
+        tileRating.setAction(keywords);
+        tileRating.setActionHandler(() -> log.info("Click KoT"));
+        tileRating.setPrefWidth(400);
+
+        return tileRating;
+    }
+
     public void showFilter(ModalPane modalPane, Label lbFilter, MultiplePredicates<MediaFile> predicates) {
+        allKeywords.addAll(keywordManager.getAll());
         final var kotSubscription = toggleGroup.selectedToggleProperty().subscribe((oldValue, newValue) -> {
             if (oldValue != null) {
                 predicates.remove(KoTPredicate.class);
@@ -120,6 +162,14 @@ public class GalleryFilterView implements FxView<VBox> {
                 predicates.add(new RatingPredicate(newValue));
             }
         });
+        final var kwSubscription = keywords.tagsProperty().subscribe((oldValue, newValue) -> {
+            if (oldValue != null) {
+                predicates.remove(KeywordsPredicate.class);
+            }
+            if (newValue != null && !newValue.isEmpty()) {
+                predicates.add(new KeywordsPredicate(newValue));
+            }
+        });
 
         ok.setOnAction(_ -> modalPane.hide());
         modalPane.displayProperty().subscribe((_, newValue) -> {
@@ -127,6 +177,8 @@ public class GalleryFilterView implements FxView<VBox> {
             if (Boolean.FALSE.equals(newValue)) {
                 kotSubscription.unsubscribe();
                 ratingSubscription.unsubscribe();
+                kwSubscription.unsubscribe();
+                allKeywords.clear();
                 ok.setOnAction(null);
                 if (predicates.size() > 1) {
                     lbFilter.setGraphic(filterRemove);

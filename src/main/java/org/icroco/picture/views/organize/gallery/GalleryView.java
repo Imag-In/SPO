@@ -49,6 +49,7 @@ import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.organize.OrganizeConfiguration;
 import org.icroco.picture.views.organize.PathSelection;
+import org.icroco.picture.views.organize.gallery.predicate.PathPredicate;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.*;
