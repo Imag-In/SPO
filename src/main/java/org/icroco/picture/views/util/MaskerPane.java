@@ -53,7 +53,8 @@ public class MaskerPane<T extends Node> {
 
     public void start() {
         progressPane.setVisible(true);
-        content.setOpacity(0);
+//        progressPane.setOpacity(.5);
+        content.setOpacity(0.5);
         if (!ring.progressProperty().isBound()) {
             ring.setProgress(-1D);
         }

@@ -44,6 +44,7 @@ import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.util.Constant;
 import org.icroco.picture.util.I18N;
 import org.icroco.picture.util.SceneReadyEvent;
+import org.icroco.picture.util.SystemUtil;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
 import org.icroco.picture.views.organize.OrganizeConfiguration;
@@ -74,8 +75,8 @@ import java.util.stream.Collectors;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static org.icroco.picture.views.util.SystemUtil.mouseContiguousSelection;
-import static org.icroco.picture.views.util.SystemUtil.mouseNonContiguousSelection;
+import static org.icroco.picture.util.SystemUtil.mouseContiguousSelection;
+import static org.icroco.picture.util.SystemUtil.mouseNonContiguousSelection;
 
 @Component
 @RequiredArgsConstructor

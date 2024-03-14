@@ -8,6 +8,7 @@ import org.icroco.picture.event.FilesChangesDetectedEvent;
 import org.icroco.picture.event.FilesChangesDetectedEvent.PathItem;
 import org.icroco.picture.model.EFileType;
 import org.icroco.picture.persistence.CollectionRepository;
+import org.icroco.picture.util.FileUtil;
 import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.views.task.TaskService;
 import org.jooq.lambda.Unchecked;
@@ -219,7 +220,7 @@ public class DirectoryWatcher {
 
                     // Add files when dire is created (sometime when you copy a dir, there is missing event for existing files)
                     changes.stream().filter(fc -> fc.type == FileChangeType.CREATED)
-                           .flatMap(fc -> LangUtils.getAllFiles(fc.path).stream())
+                           .flatMap(fc -> FileUtil.getAllFiles(fc.path).stream())
                            .map(p -> new FileChange(p, FileChangeType.CREATED, false))
                            .forEach(changes::add);
 

@@ -1,4 +1,4 @@
-package org.icroco.picture.views.util;
+package org.icroco.picture.util;
 
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -43,6 +43,8 @@ public class SystemUtil {
         if (Desktop.isDesktopSupported()) {
             if (Desktop.getDesktop().isSupported(Desktop.Action.BROWSE_FILE_DIR)) {
                 Unchecked.runnable(() -> Desktop.getDesktop().browseFileDirectory(path.toFile())).run();
+            } else if (Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+                Unchecked.runnable(() -> Desktop.getDesktop().open(path.toFile())).run();
             } else if (SystemUtil.isWindoww()) {
                 log.warn("Windows is not supporting: {}", "Desktop.Action.BROWSE_FILE_DIR");
                 final var EXPLORER_EXE = "explorer.exe";
@@ -66,6 +68,7 @@ public class SystemUtil {
     }
 
     public static void moveToTrash(Collection<Path> paths) {
+        // TODO: Use Task Service (parameter)
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.MOVE_TO_TRASH)) {
             Unchecked.runnable(() -> {
                 paths.stream()

@@ -2,6 +2,7 @@ package org.icroco.picture.util;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.model.EFileType;
 import org.springframework.util.StopWatch;
 import org.threeten.extra.AmountFormats;
 
@@ -11,6 +12,8 @@ import java.nio.file.Path;
 import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -59,7 +62,8 @@ public class FileUtil {
     }
 
     public static Optional<LocalDateTime> extractDateTime(Path path) {
-        return extractDateTime(path, DATE_TINE_PATTERN_1).or(() -> extractDateTime(path, DATE_TINE_PATTERN_2));
+        return extractDateTime(path, DATE_TINE_PATTERN_1)
+                .or(() -> extractDateTime(path, DATE_TINE_PATTERN_2));
     }
 
     public static Optional<LocalDateTime> extractDateTime(Path path, Pattern pattern) {
@@ -89,4 +93,15 @@ public class FileUtil {
         return Optional.empty();
     }
 
+    public static List<Path> getAllFiles(Path rootPath) {
+        try (var images = Files.walk(rootPath)) {
+            return images.filter(p -> !Files.isDirectory(p))   // not a directory
+                         .map(Path::normalize)
+                         .filter(EFileType::isSupportedExtension)
+                         .toList();
+        } catch (IOException e) {
+            log.error("Cannot walk through directory: '{}'", rootPath);
+            return Collections.emptyList();
+        }
+    }
 }

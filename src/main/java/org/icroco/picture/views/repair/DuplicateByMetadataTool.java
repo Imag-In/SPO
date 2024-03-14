@@ -7,14 +7,12 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTreeTableCell;
-import javafx.scene.control.cell.TreeItemPropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -50,14 +48,14 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Slf4j
 public class DuplicateByMetadataTool implements RepairTool {
-    private final TaskService       taskService;
+    private final TaskService taskService;
     private final CollectionManager  collectionManager;
     private final PersistenceService persistenceService;
-    private final VBox               vb = new VBox();
-    private final Label             lbNbDup = new Label("");
+    private final VBox        vb      = new VBox();
+    private final Label       lbNbDup = new Label("");
 
-    private TreeTableView<TableRow> treeTableHash;
-    private final MaskerPane<VBox> maskerPane = new MaskerPane<>();
+    private       TreeTableView<TableRow> treeTableHash;
+    private final MaskerPane<VBox>        maskerPane = new MaskerPane<>();
 
     public enum EViewMode {
         DUPLICATE,
@@ -68,9 +66,9 @@ public class DuplicateByMetadataTool implements RepairTool {
     @Setter
     @ToString
     public static class TableRow {
-        private       String          hash;
-        private       MediaFile       mediaFile;
-        private       Boolean         state;
+        private String    hash;
+        private MediaFile mediaFile;
+        private Boolean   state;
         private final BooleanProperty            stateProperty;
         private final SimpleObjectProperty<Path> pathProperty;
 
@@ -82,8 +80,23 @@ public class DuplicateByMetadataTool implements RepairTool {
             this.hash = hash;
             this.mediaFile = mediaFile;
             this.state = state != null && state;
-            this.stateProperty = new SimpleBooleanProperty(this.state);
+            if (mediaFile != null) {
+                this.stateProperty = new SimpleBooleanProperty(this, "state");
+            } else {
+                this.stateProperty = null;
+            }
             this.pathProperty = new SimpleObjectProperty<>(mediaFile == null ? null : mediaFile.fullPath());
+
+        }
+
+        public Boolean getState() {
+            return stateProperty == null ? null : stateProperty.get();
+        }
+
+        public void setState(Boolean state) {
+            if (stateProperty != null) {
+                this.stateProperty.setValue(state);
+            }
         }
 
         public boolean isParent() {
@@ -159,21 +172,18 @@ public class DuplicateByMetadataTool implements RepairTool {
         stateCol.setMaxWidth(80);
         idCol.setMaxWidth(60);
 
-        stateCol.setCellValueFactory(new TreeItemPropertyValueFactory<>("state") {
-            @Override
-            public ObservableValue<Boolean> call(TreeTableColumn.CellDataFeatures<TableRow, Boolean> param) {
-                if (param.getValue().getValue().isParent()) {
-                    return null;
-                }
-
-                return super.call(param);
-            }
+        stateCol.setCellValueFactory(param -> param.getValue().getValue().stateProperty);
+        stateCol.setOnEditCommit((TreeTableColumn.CellEditEvent<TableRow, Boolean> t) -> {
+            t.getTreeTableView().getTreeItem(t.getTreeTablePosition().getRow()).getValue().stateProperty.set(t.getNewValue());
         });
-        stateCol.setCellFactory(_ -> new CheckBoxTreeTableCell<>(null, null) {
+//        stateCol.setCellFactory(CheckBoxTreeTableCell.forTreeTableColumn(stateCol));
+        stateCol.setCellFactory(list -> new CheckBoxTreeTableCell<>(null, null) {
             @Override
             public void updateItem(Boolean item, boolean empty) {
-                setVisible(item != null);
                 super.updateItem(item, empty);
+                if (!empty && item == null) {
+                    setGraphic(null);
+                }
             }
         });
 
@@ -182,14 +192,9 @@ public class DuplicateByMetadataTool implements RepairTool {
         );
         hashCol.setCellValueFactory(
                 c -> new SimpleStringProperty(c.getValue().getValue().isParent()
-                                              ? STR."\{c.getValue().getChildren().size()} files(s) - "
+                                              ? STR."\{c.getValue().getChildren().size()} files (\{c.getValue().getValue().getHash()})"
                                               : "")
         );
-//        pathCol.setCellValueFactory(
-//                c -> new SimpleStringProperty(c.getValue().getValue().isParent()
-//                                              ? STR."Hash: \{c.getValue().getValue().getHash()}"
-//                                              : c.getValue().getValue().mediaFile.fullPath().toString())
-//        );
 
         pathCol.setCellValueFactory(param -> param.getValue().getValue().pathProperty);
         pathCol.setCellFactory(new HyperlinkTreeCell<>());
@@ -209,7 +214,6 @@ public class DuplicateByMetadataTool implements RepairTool {
     void updateTable(List<HashDuplicate> duplicates) {
         lbNbDup.setText(STR."'\{duplicates.size()}' duplicates found.");
         TreeItem<TableRow> root = treeTableHash.getRoot();
-
         root.getChildren().clear();
         duplicates.stream()
                   .flatMap(hd -> Stream.concat(Stream.of(new TreeItem<>(new TableRow(hd.hash(), null))),
@@ -219,6 +223,10 @@ public class DuplicateByMetadataTool implements RepairTool {
                   .forEach(ti -> {
                       if (ti.getValue().isParent()) {
                           root.getChildren().add(ti);
+//                          if (ti.getValue().stateProperty != null)
+//                            ti.getValue().stateProperty.addListener((_, _, newValue) -> ti.getChildren()
+//                                                                                        .forEach(child -> child.getValue()
+//                                                                                                .stateProperty.set(newValue)));
                       } else {
                           Nodes.searchTreeItemByPredicate(root, tableRow -> Objects.equals(tableRow.hash, ti.getValue().hash))
                                .ifPresent(tableRowTreeItem -> {
