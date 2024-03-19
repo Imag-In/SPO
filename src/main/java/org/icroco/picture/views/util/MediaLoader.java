@@ -171,6 +171,9 @@ public class MediaLoader {
     }
 
     public void getOrLoadImage(final MediaFile mediaFile) {
+        if (mediaFile == null) {
+            return;
+        }
         record FutureImage(Image image, CompletableFuture<?> future) {
         }
         getCachedImage(mediaFile)

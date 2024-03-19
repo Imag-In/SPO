@@ -48,6 +48,7 @@ import org.icroco.picture.views.task.FxRunAllScope;
 import org.icroco.picture.views.task.IFxCallable;
 import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;
+import org.icroco.picture.views.util.CollectionPicker;
 import org.icroco.picture.views.util.DirectoryWatcher;
 import org.icroco.picture.views.util.Nodes;
 import org.jooq.lambda.Unchecked;
@@ -88,7 +89,7 @@ public class ImportView extends AbstractView<StackPane> {
 
     private final StackPane       root         = new StackPane();
     private final CustomTextField sourceDir    = new CustomTextField();
-    private       TextField          targetCollectionTf;
+    private CollectionPicker targetCollectionTf;
     private       TextField          targetSubDirTf;
     private       TagsField<Keyword> keywords;
     private final TextArea        exampleTf    = new TextArea();
@@ -232,7 +233,12 @@ public class ImportView extends AbstractView<StackPane> {
 
         rowIdx += 1;
         grid.add(createLabel(200, 300, i18N, I18NConstant.IMPORT_TGT_COL_LABEL), 0, rowIdx);
-        targetCollectionTf = createCustomText(false, new FontIcon(MaterialDesignF.FOLDER_OPEN_OUTLINE), this::chooseCollectionPath);
+        targetCollectionTf = new CollectionPicker(persistenceService, i18N, SECOND_COL_PREF_WIDTH);
+        targetCollectionTf.collectionProperty().addListener((_, _, newValue) -> {
+            targetCollection = newValue;
+            updateExample();
+        });
+//        targetCollectionTf = createCustomText(new FontIcon(MaterialDesignF.FOLDER_OPEN_OUTLINE), this::chooseCollectionPath);
         i18N.bindPrompt(targetCollectionTf, I18NConstant.IMPORT_TGT_COL_PROMPT);
 
         targetCollectionTf.setEditable(false);
@@ -502,71 +508,71 @@ public class ImportView extends AbstractView<StackPane> {
         }
     }
 
-    private void chooseCollectionPath(MouseEvent e) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "", ButtonType.OK, ButtonType.CANCEL);
-        alert.setTitle(i18N.get(I18NConstant.IMPORT_CHOOSE_TGT_TITLE));
-        alert.setHeaderText(null);
-        TreeItem<Path> rootTreeItem = new TreeItem<>(Path.of("root"));
-        TreeView<Path> treeView     = new TreeView<>(rootTreeItem);
-        persistenceService.findAllMediaCollection()
-                          .forEach(mediaCollection -> createTreeView(rootTreeItem, mediaCollection));
-        treeView.setCellFactory(_ -> new TreeCell<>() {
-            @Override
-            protected void updateItem(Path item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? "" : item.getFileName().toString());
-            }
-        });
-        treeView.setMinWidth(400);
-        treeView.setPrefWidth(300);
-        treeView.setShowRoot(false);
-        treeView.setEditable(false);
-        rootTreeItem.setExpanded(true);
-        alert.getDialogPane().contentProperty().setValue(treeView);
-        Nodes.show(alert, getRootContent().getScene()).filter(buttonType -> buttonType == ButtonType.OK)
-             .ifPresent(_ -> {
-                 if (treeView.getSelectionModel().getSelectedItem() != null) {
-                     log.info("OK: {}", treeView.getSelectionModel().getSelectedItem().getValue());
-                     targetCollection = treeView.getSelectionModel().getSelectedItem().getValue();
-                     targetCollectionTf.setText(targetCollection.toString());
-                     updateExample();
-                 }
-             });
-    }
+//    private void chooseCollectionPath(MouseEvent e) {
+//        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "", ButtonType.OK, ButtonType.CANCEL);
+//        alert.setTitle(i18N.get(I18NConstant.IMPORT_CHOOSE_TGT_TITLE));
+//        alert.setHeaderText(null);
+//        FilterableTreeItem<Path> rootTreeItem = new FilterableTreeItem<>(Path.of("root"));
+//        TreeView<Path> treeView     = new TreeView<>(rootTreeItem);
+//        persistenceService.findAllMediaCollection()
+//                          .forEach(mediaCollection -> createTreeView(rootTreeItem, mediaCollection));
+//        treeView.setCellFactory(_ -> new TreeCell<>() {
+//            @Override
+//            protected void updateItem(Path item, boolean empty) {
+//                super.updateItem(item, empty);
+//                setText(empty || item == null ? "" : item.getFileName().toString());
+//            }
+//        });
+//        treeView.setMinWidth(400);
+//        treeView.setPrefWidth(300);
+//        treeView.setShowRoot(false);
+//        treeView.setEditable(false);
+//        rootTreeItem.setExpanded(true);
+//        alert.getDialogPane().contentProperty().setValue(treeView);
+//        Nodes.show(alert, getRootContent().getScene()).filter(buttonType -> buttonType == ButtonType.OK)
+//             .ifPresent(_ -> {
+//                 if (treeView.getSelectionModel().getSelectedItem() != null) {
+//                     log.info("OK: {}", treeView.getSelectionModel().getSelectedItem().getValue());
+//                     targetCollection = treeView.getSelectionModel().getSelectedItem().getValue();
+//                     targetCollectionTf.setText(targetCollection.toString());
+//                     updateExample();
+//                 }
+//             });
+//    }
 
-    private void createTreeView(final TreeItem<Path> rootTreeItem, final MediaCollection mediaCollection) {
-        var pathTreeItem = new TreeItem<>(mediaCollection.path());
-        rootTreeItem.getChildren().add(pathTreeItem);
-        pathTreeItem.setExpanded(false);
-        log.info("Root Path: {}", pathTreeItem.getValue());
+//    private void createTreeView(final FilterableTreeItem<Path> rootTreeItem, final MediaCollection mediaCollection) {
+//        var pathTreeItem = new FilterableTreeItem<>(mediaCollection.path());
+//        rootTreeItem.getChildren().add(pathTreeItem);
+//        pathTreeItem.setExpanded(false);
+//        log.info("Root Path: {}", pathTreeItem.getValue());
+//
+//        mediaCollection.getSubdir()
+//                       .forEach(subPath -> {
+//                           var p = mediaCollection.path().resolve(subPath);
+//                           addSubDir(pathTreeItem, p, mediaCollection.id());
+//                       });
+//    }
 
-        mediaCollection.getSubdir()
-                       .forEach(subPath -> {
-                           var p = mediaCollection.path().resolve(subPath);
-                           addSubDir(pathTreeItem, p, mediaCollection.id());
-                       });
-    }
-
-    private void addSubDir(TreeItem<Path> current, Path path, int id) {
-        path = current.getValue().relativize(path);
-        for (int i = 0; i < path.getNameCount(); i++) {
-            var       subPath = path.subpath(i, i + 1);
-            final var c       = current;
-            final var child   = c.getValue().resolve(subPath);
-            current = current.getChildren()
-                             .stream()
-                             .filter(pathTreeItem -> pathTreeItem.getValue().equals(child))
-                             .findFirst()
-                             .orElseGet(() -> {
-                                 var newItem = new TreeItem<>(child);
-                                 c.getChildren().add(newItem);
-                                 c.getChildren()
-                                  .sort(Comparator.comparing(ti -> ti.getValue().getFileName().toString(),
-                                                             String.CASE_INSENSITIVE_ORDER));
-                                 return newItem;
-                             });
-        }
-    }
+//    private void addSubDir(TreeItem<Path> current, Path path, int id) {
+//        path = current.getValue().relativize(path);
+//        for (int i = 0; i < path.getNameCount(); i++) {
+//            var       subPath = path.subpath(i, i + 1);
+//            final var c       = current;
+//            final var child   = c.getValue().resolve(subPath);
+//            current = current.getChildren()
+//                             .stream()
+//                             .filter(pathTreeItem -> pathTreeItem.getValue().equals(child))
+//                             .findFirst()
+//                             .orElseGet(() -> {
+//                                 var newItem = new FilterableTreeItem<>(child);
+//                                 c.getChildren().add(newItem);
+//                                 c.getChildren()
+//                                  .sort(Comparator.comparing(ti -> ti.getValue().getFileName().toString(),
+//                                                             String.CASE_INSENSITIVE_ORDER));
+//                                 return newItem;
+//                             });
+//        }
+//    }
 
     private CustomTextField createCustomText(boolean isUpdateExample, FontIcon icon, Consumer<MouseEvent> cb) {
         var textField = new CustomTextField();
@@ -577,10 +583,6 @@ public class ImportView extends AbstractView<StackPane> {
 
         textField.pseudoClassStateChanged(Styles.STATE_DANGER, true);
         textField.textProperty().addListener((_, _, newV) -> {
-            if (isUpdateExample) {
-                updateExample();
-            }
-
             textField.pseudoClassStateChanged(Styles.STATE_DANGER, false);
             textField.pseudoClassStateChanged(Styles.STATE_SUCCESS, false);
             if (LangUtils.isBlank(newV)) {
@@ -663,7 +665,7 @@ public class ImportView extends AbstractView<StackPane> {
                         ? filePrefix.getText()
                         : Paths.get(targetSubDirTf.getText(), filePrefix.getText()).toString();
         if (targetCollection != null) {
-            return targetCollection.resolve(target + strategy.computeNewFileName(mediaFile));
+            return targetCollection.resolve(target).resolve(strategy.computeNewFileName(mediaFile));
         }
         return Path.of(target, strategy.computeNewFileName(mediaFile));
     }
