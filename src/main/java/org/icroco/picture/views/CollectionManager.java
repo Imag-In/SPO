@@ -416,4 +416,8 @@ public class CollectionManager {
     public List<HashDuplicate> findDuplicateByHash() {
         return persistenceService.findDuplicateByHash();
     }
+
+    public List<HashDuplicate> findDuplicateByHash(String path) {
+        return persistenceService.findDuplicateByHash(path);
+    }
 }

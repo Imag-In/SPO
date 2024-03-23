@@ -28,8 +28,11 @@ import java.util.Comparator;
 @Slf4j
 public class CollectionPicker extends CustomTextField {
 
-    private final SimpleBooleanProperty      expandAll          = new SimpleBooleanProperty(true);
+    private final SimpleBooleanProperty showRootProperty = new SimpleBooleanProperty(false);
     private final SimpleObjectProperty<Path> collectionProperty = new SimpleObjectProperty<>();
+
+    private final TreeView<Path>           treeView;
+    private final FilterableTreeItem<Path> rootTreeItem;
 
     public CollectionPicker(PersistenceService persistenceService, I18N i18N, int prefWidth) {
         this(new FontIcon(MaterialDesignF.FOLDER_OPEN_OUTLINE), persistenceService, i18N, prefWidth);
@@ -40,6 +43,9 @@ public class CollectionPicker extends CustomTextField {
         setRight(icon);
         icon.setCursor(Cursor.HAND);
         icon.setOnMouseClicked(event -> chooseCollectionPath(event, persistenceService, i18N));
+
+        rootTreeItem = new FilterableTreeItem<>(Path.of(i18N.get(I18NConstant.COL_PICKER_SHOW_TREE_ROOT)));
+        treeView = new TreeView<>(rootTreeItem);
 
         pseudoClassStateChanged(atlantafx.base.theme.Styles.STATE_DANGER, true);
         textProperty().addListener((_, _, newV) -> {
@@ -56,18 +62,14 @@ public class CollectionPicker extends CustomTextField {
         setPrefWidth(prefWidth);
     }
 
-    public void setExpandAll(boolean value) {
-        expandAll.setValue(value);
-    }
 
     private void chooseCollectionPath(MouseEvent e, PersistenceService persistenceService, I18N i18N) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "", ButtonType.OK, ButtonType.CANCEL);
-        alert.setTitle(i18N.get(I18NConstant.IMPORT_CHOOSE_TGT_TITLE));
+        alert.setTitle(i18N.get(I18NConstant.COL_PICKER_CHOOSE_TGT_TITLE));
         alert.setHeaderText(null);
-        FilterableTreeItem<Path> rootTreeItem = new FilterableTreeItem<>(Path.of("root"));
-        TreeView<Path>           treeView     = new TreeView<>(rootTreeItem);
+
+        treeView.showRootProperty().bind(showRootProperty);
         rootTreeItem.setExpanded(true);
-//        rootTreeItem.expandedProperty().bind(expandAll);
         persistenceService.findAllMediaCollection()
                           .forEach(mediaCollection -> createTreeView(rootTreeItem, mediaCollection));
         treeView.setCellFactory(_ -> new TreeCell<>() {
@@ -79,7 +81,6 @@ public class CollectionPicker extends CustomTextField {
         });
         treeView.setMinWidth(400);
         treeView.setPrefWidth(300);
-        treeView.setShowRoot(false);
         treeView.setEditable(false);
         treeView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         rootTreeItem.setExpanded(true);
@@ -119,6 +120,15 @@ public class CollectionPicker extends CustomTextField {
                      setText(targetCollection.toString());
                  }
              });
+    }
+
+    public void selectRoot() {
+        treeView.getSelectionModel().select(rootTreeItem);
+        setText(rootTreeItem.getValue().toString());
+    }
+
+    public boolean isRootSelected() {
+        return treeView.getSelectionModel().getSelectedItem() == rootTreeItem;
     }
 
     private void createTreeView(final FilterableTreeItem<Path> rootTreeItem, final MediaCollection mediaCollection) {
@@ -162,5 +172,9 @@ public class CollectionPicker extends CustomTextField {
 
     public ReadOnlyObjectProperty<Path> collectionProperty() {
         return collectionProperty;
+    }
+
+    public void setShowRootProperty(boolean value) {
+        showRootProperty.set(value);
     }
 }

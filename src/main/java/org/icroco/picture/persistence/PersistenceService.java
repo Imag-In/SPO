@@ -289,6 +289,14 @@ public class PersistenceService {
                                                              HashMap::new,
                                                              Collectors.mapping(identity(), toList())))
                               .entrySet();
+        var dup = groupByHash(stopWatch, dupByHash);
+        log.info("findAllDuplicate: {}", stopWatch.prettyPrint(TimeUnit.MILLISECONDS));
+
+        return dup;
+    }
+
+    @NonNull
+    private List<HashDuplicate> groupByHash(StopWatch stopWatch, Set<Map.Entry<String, List<MfDuplicate>>> dupByHash) {
         stopWatch.stop();
         stopWatch.start("Map");
 
@@ -301,6 +309,20 @@ public class PersistenceService {
                            .toList();
 
         stopWatch.stop();
+        return dup;
+    }
+
+    public List<HashDuplicate> findDuplicateByHash(String path) {
+        StopWatch stopWatch = new StopWatch("findAllDuplicate");
+        stopWatch.start("Db");
+        var dupByHash = mfRepo.findAllDuplicateStartingWithPath(path)
+                              .stream()
+                              .collect(Collectors.groupingBy(MfDuplicate::getHash,
+                                                             HashMap::new,
+                                                             Collectors.mapping(identity(), toList())))
+                              .entrySet();
+
+        var dup = groupByHash(stopWatch, dupByHash);
         log.info("findAllDuplicate: {}", stopWatch.prettyPrint(TimeUnit.MILLISECONDS));
 
         return dup;

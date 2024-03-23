@@ -26,10 +26,12 @@ public class I18NConstant {
     public static final String IMPORT_FILES_COUNTER_LABEL    = "import.files.counter.label";
     public static final String IMPORT_COPY_TASK_MESSAGE      = "import.copy.task.message";
     public static final String IMPORT_DEL_CONF               = "import.del.conf";
-    public static final String IMPORT_CHOOSE_TGT_TITLE       = "import.choose.tgt.title";
     public static final String IMPORT_NORIF_DELFILE_NB       = "import.norif.delfile.nb";
     public static final String IMPORT_ASK_HIGH_QUALITY       = "import.ask.high.quality";
     public static final String IMPORT_ASK_DELETE_FILES       = "import.ask.delete.files";
+
+    public static final String COL_PICKER_CHOOSE_TGT_TITLE = "collection.picker.choose.tgt.title";
+    public static final String COL_PICKER_SHOW_TREE_ROOT   = "collection.picker.show.tree.root";
 
 
     // region::end

@@ -87,17 +87,17 @@ public class ImportView extends AbstractView<StackPane> {
     private final       IMetadataWriter  metadataWriter;
     private final       I18N             i18N;
 
-    private final StackPane       root         = new StackPane();
-    private final CustomTextField sourceDir    = new CustomTextField();
-    private CollectionPicker targetCollectionTf;
+    private final StackPane        root         = new StackPane();
+    private final CustomTextField  sourceDir    = new CustomTextField();
+    private       CollectionPicker targetCollectionTf;
     private       TextField          targetSubDirTf;
     private       TagsField<Keyword> keywords;
-    private final TextArea        exampleTf    = new TextArea();
-    private final CustomTextField filePrefix   = new CustomTextField("");
-    private final Label           filesCounter = new Label("");
-    private final Button          importBtn    = new Button("Import");
-    private final ToggleSwitch    genThumbailsCb;
-    private final ToggleSwitch    deleteFilesCb;
+    private final TextArea         exampleTf    = new TextArea();
+    private final CustomTextField  filePrefix   = new CustomTextField("");
+    private final Label            filesCounter = new Label("");
+    private final Button           importBtn    = new Button("Import");
+    private final ToggleSwitch     genThumbailsCb;
+    private final ToggleSwitch     deleteFilesCb;
 
     private final MediaFile[] fakeMf = new MediaFile[] { MediaFile.builder()
                                                                   .originalDate(LocalDateTime.now())

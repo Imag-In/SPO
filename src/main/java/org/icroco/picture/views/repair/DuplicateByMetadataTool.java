@@ -17,16 +17,17 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.HashDuplicate;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.PersistenceService;
+import org.icroco.picture.util.I18N;
 import org.icroco.picture.views.CollectionManager;
 import org.icroco.picture.views.task.ModernTask;
 import org.icroco.picture.views.task.TaskService;
+import org.icroco.picture.views.util.CollectionPicker;
 import org.icroco.picture.views.util.HyperlinkTreeCell;
 import org.icroco.picture.views.util.MaskerPane;
 import org.icroco.picture.views.util.Nodes;
@@ -45,17 +46,30 @@ import java.util.stream.Stream;
 
 @Component
 @Lazy
-@RequiredArgsConstructor
 @Slf4j
 public class DuplicateByMetadataTool implements RepairTool {
     private final TaskService taskService;
     private final CollectionManager  collectionManager;
     private final PersistenceService persistenceService;
-    private final VBox        vb      = new VBox();
-    private final Label       lbNbDup = new Label("");
+    private final I18N        i18N;
+
+    private final VBox  vb      = new VBox();
+    private final Label lbNbDup = new Label("");
 
     private       TreeTableView<TableRow> treeTableHash;
-    private final MaskerPane<VBox>        maskerPane = new MaskerPane<>();
+    private final MaskerPane<VBox> maskerPane = new MaskerPane<>();
+    private final CollectionPicker targetCollectionTf;
+
+    public DuplicateByMetadataTool(TaskService taskService,
+                                   CollectionManager collectionManager,
+                                   PersistenceService persistenceService,
+                                   I18N i18N) {
+        this.taskService = taskService;
+        this.collectionManager = collectionManager;
+        this.persistenceService = persistenceService;
+        this.i18N = i18N;
+        this.targetCollectionTf = new CollectionPicker(persistenceService, i18N, 300);
+    }
 
     public enum EViewMode {
         DUPLICATE,
@@ -66,10 +80,10 @@ public class DuplicateByMetadataTool implements RepairTool {
     @Setter
     @ToString
     public static class TableRow {
-        private String    hash;
-        private MediaFile mediaFile;
-        private Boolean   state;
-        private final BooleanProperty            stateProperty;
+        private       String          hash;
+        private       MediaFile       mediaFile;
+        private       Boolean         state;
+        private final BooleanProperty stateProperty;
         private final SimpleObjectProperty<Path> pathProperty;
 
         public TableRow(String hash, MediaFile mediaFile) {
@@ -106,12 +120,15 @@ public class DuplicateByMetadataTool implements RepairTool {
 
     @PostConstruct
     void init() {
-        Button run = new Button(null, new FontIcon(MaterialDesignP.PLAY_CIRCLE_OUTLINE));
+        FontIcon graphic = new FontIcon(MaterialDesignP.PLAY_CIRCLE_OUTLINE);
+        graphic.setIconSize(36);
+        graphic.getStyleClass().add("button-top-bar");
+        Button run = new Button(null, graphic);
         FxUtil.styleCircleButton(run).setOnMouseClicked(event -> {
             if (event.getClickCount() == 1) {
                 maskerPane.start();
                 taskService.supply(ModernTask.<List<HashDuplicate>>builder()
-                                             .execute(myself -> collectionManager.findDuplicateByHash())
+                                             .execute(myself -> findDuplicates())
                                              .onSuccess((listModernTask, duplicates) -> updateTable(duplicates))
                                              // TODO: Error Mgt
                                              .build());
@@ -124,18 +141,19 @@ public class DuplicateByMetadataTool implements RepairTool {
         cbViewMode.setEditable(false);
         cbViewMode.setDisable(true);
         HBox hbCollection = new HBox();
-        hbCollection.getChildren().add(new Label("Choose a collection"));
-        hbCollection.setManaged(false);
-        hbCollection.setVisible(false);
+        targetCollectionTf.setShowRootProperty(true);
+        targetCollectionTf.selectRoot();
 
-        var hbButton = new HBox(viewMode, cbViewMode, hbCollection, run, new Label(STR."\{persistenceService.countMediaFiles()} files"));
+        hbCollection.getChildren().addAll(new Label("Choose a collection: "), targetCollectionTf);
+        hbCollection.setAlignment(Pos.CENTER);
+
+        var hbButton = new HBox(viewMode, cbViewMode, hbCollection, new Label(STR."\{persistenceService.countMediaFiles()} files."), run);
         hbButton.setSpacing(15);
         hbButton.setAlignment(Pos.CENTER_LEFT);
 
         var hbResults = new HBox(lbNbDup);
         hbResults.setSpacing(15);
         hbResults.setAlignment(Pos.CENTER_LEFT);
-
 
         vb.setSpacing(10);
         vb.setPrefWidth(400);
@@ -155,10 +173,18 @@ public class DuplicateByMetadataTool implements RepairTool {
         maskerPane.setContent(vb);
     }
 
+    private List<HashDuplicate> findDuplicates() {
+        if (targetCollectionTf.isRootSelected()) {
+            return collectionManager.findDuplicateByHash();
+        } else {
+            return collectionManager.findDuplicateByHash(targetCollectionTf.getText());
+        }
+    }
+
     TreeTableView<TableRow> createTreeTable() {
         var hashCol  = new TreeTableColumn<TableRow, String>("Duplicates");
         var stateCol = new TreeTableColumn<TableRow, Boolean>("Delete ?");
-        var idCol    = new TreeTableColumn<TableRow, String>("ID");
+        var idCol = new TreeTableColumn<TableRow, String>("ID");
         var pathCol = new TreeTableColumn<TableRow, Path>("Path");
 
         hashCol.setSortable(false);
@@ -177,7 +203,7 @@ public class DuplicateByMetadataTool implements RepairTool {
             t.getTreeTableView().getTreeItem(t.getTreeTablePosition().getRow()).getValue().stateProperty.set(t.getNewValue());
         });
 //        stateCol.setCellFactory(CheckBoxTreeTableCell.forTreeTableColumn(stateCol));
-        stateCol.setCellFactory(list -> new CheckBoxTreeTableCell<>(null, null) {
+        stateCol.setCellFactory(_ -> new CheckBoxTreeTableCell<>(null, null) {
             @Override
             public void updateItem(Boolean item, boolean empty) {
                 super.updateItem(item, empty);
