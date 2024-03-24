@@ -39,11 +39,12 @@ public class DirectoryWatcher {
     private final WatchService        watcher;
     private final boolean             recursive;
     private final TaskService         taskService;
-    private final Set<FileChange>     changes      = ConcurrentHashMap.newKeySet();
-    private final Map<Path, WatchKey> keys         = new ConcurrentHashMap<>();
+    private final Set<FileChange>     changes         = ConcurrentHashMap.newKeySet();
+    private final Map<Path, WatchKey> keys            = new ConcurrentHashMap<>();
     private       Thread              drainerVThread;
-    private final Predicate<Path>     excludeFiles = p -> p.getFileName().equals(Path.of(".DS_Store"));
-    private final AtomicBoolean suspend = new AtomicBoolean(false);
+    private final Predicate<Path>     excludeFiles    = p -> p.getFileName().equals(Path.of(".DS_Store"));
+    private final AtomicBoolean       suspend         = new AtomicBoolean(false);
+    private final AtomicBoolean       manualInterrupt = new AtomicBoolean(false);
 
     @Autowired
     public DirectoryWatcher(TaskService taskService,
@@ -204,9 +205,9 @@ public class DirectoryWatcher {
 
     private void drainFiles() {
         var ofSeconds = Duration.ofSeconds(10);
-        try {
-            //noinspection InfiniteLoopStatement
-            for (; ; ) {
+        for (; ; ) {
+            try {
+
                 Thread.sleep(ofSeconds);
                 if (suspend.get()) {
                     continue;
@@ -215,8 +216,6 @@ public class DirectoryWatcher {
                     log.info("Drain files changes detected: nb changes: '{}': ten first: {}",
                              changes.size(),
                              changes.stream().limit(10).toList());
-//                    var dirEvent = changes.stream().filter(fc -> Files.isDirectory(fc.path)).toList();
-//                    dirEvent.forEach(changes::remove);
 
                     // Add files when dire is created (sometime when you copy a dir, there is missing event for existing files)
                     changes.stream().filter(fc -> fc.type == FileChangeType.CREATED)
@@ -244,10 +243,6 @@ public class DirectoryWatcher {
                                                                          .toList())
                                                          .source(this)
                                                          .build();
-//                    // Add files when dir is deleted, we have to notifty UI.
-//                    dirEvent.stream().
-//                            filter(fc -> fc.type == FileChangeType.DELETED)
-//                            .forEach(fc -> event.getDeleted().add(fc.path));
 
                     if (event.isNotEmpty()) {
                         log.info("Drain files changes detected: valid changes are: '{}' creation, '{}' deletion, '{}' updates",
@@ -260,18 +255,26 @@ public class DirectoryWatcher {
                     }
                     changes.clear();
                 }
+            } catch (InterruptedException e) {
+                if (manualInterrupt.get()) {
+                    manualInterrupt.set(false);
+                    log.warn("Prog interruped, we continue");
+                } else {
+                    log.warn("Thread interruped");
+                    break;
+                }
             }
-        } catch (InterruptedException e) {
-            log.warn("Thread interruped");
         }
+
     }
 
     public void setSuspend(boolean value) {
         suspend.set(value);
         log.info("Directory Watcher suspended: '{}'", suspend.get());
-//        if (!value) {
-//            drainerVThread.notify();
-//        }
+        if (!suspend.get()) {
+            manualInterrupt.set(true);
+            drainerVThread.interrupt();
+        }
     }
 
     @EventListener
