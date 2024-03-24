@@ -104,7 +104,7 @@ jobs:
           echo "SPO_NEXT_VERSION=${SPO_NEXT_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Commit version
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@v9.1.4
         with:
           author_name: Christophe
           author_email: ouaibsky@gmail.com
