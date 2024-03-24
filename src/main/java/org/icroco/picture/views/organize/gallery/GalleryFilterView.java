@@ -89,11 +89,17 @@ public class GalleryFilterView implements FxView<VBox> {
         hb.setSpacing(10);
         HBox.setHgrow(hb, Priority.ALWAYS);
 
-        reset.setOnMouseClicked(_ -> toggleGroup.selectToggle(null));
+        reset.setOnMouseClicked(_ -> resetFilter());
         reset.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.DANGER);
         ok.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.SUCCESS);
 
         root.getChildren().addAll(tileKoT, tileRating, tileKeyword, hb);
+    }
+
+    private void resetFilter() {
+        toggleGroup.selectToggle(null);
+        keywords.clearTags();
+        rating.setValue(ERating.ABSENT);
     }
 
 
