@@ -88,6 +88,8 @@ for %%s in ("msi" "exe") do call "%JAVA_HOME%\bin\jpackage" ^
   --java-options -D"spring.profiles.active=default" ^
   --java-options -D"spring.config.location=classpath:/application.yml" ^
   --java-options "-Dspring.jmx.enabled=false" ^
+  --java-options "--add-opens javafx.controls/javafx.scene.control=ALL-UNNAMED" ^
+  --java-options "--add-opens javafx.base/com.sun.javafx.event=ALL-UNNAMED" ^
   --runtime-image build\java-runtime ^
   --icon src\distrib\win\spo.ico ^
   --win-shortcut ^

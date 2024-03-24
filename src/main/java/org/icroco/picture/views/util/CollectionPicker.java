@@ -70,6 +70,7 @@ public class CollectionPicker extends CustomTextField {
 
         treeView.showRootProperty().bind(showRootProperty);
         rootTreeItem.setExpanded(true);
+        rootTreeItem.getChildren().clear();
         persistenceService.findAllMediaCollection()
                           .forEach(mediaCollection -> createTreeView(rootTreeItem, mediaCollection));
         treeView.setCellFactory(_ -> new TreeCell<>() {

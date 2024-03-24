@@ -51,7 +51,8 @@ public class DirectoryWatcher {
                             CollectionRepository repository,
                             @Qualifier(SpoConfiguration.DIRECTORY_WATCHER) ExecutorService executorService) throws IOException {
         this(taskService, null, true);
-        executorService.submit(this::processEvents);
+//        executorService.submit(this::processEvents);
+        Thread.ofVirtual().name("File-Watcher").start(this::processEvents);
         drainerVThread = Thread.ofVirtual()
                                .name("File-Watcher-drainer")
                                .start(this::drainFiles);

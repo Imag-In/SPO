@@ -58,7 +58,7 @@ public class DuplicateByMetadataTool implements RepairTool {
 
     private       TreeTableView<TableRow> treeTableHash;
     private final MaskerPane<VBox> maskerPane = new MaskerPane<>();
-    private final CollectionPicker targetCollectionTf;
+    private final CollectionPicker collectionPicker;
 
     public DuplicateByMetadataTool(TaskService taskService,
                                    CollectionManager collectionManager,
@@ -68,7 +68,7 @@ public class DuplicateByMetadataTool implements RepairTool {
         this.collectionManager = collectionManager;
         this.persistenceService = persistenceService;
         this.i18N = i18N;
-        this.targetCollectionTf = new CollectionPicker(persistenceService, i18N, 300);
+        this.collectionPicker = new CollectionPicker(persistenceService, i18N, 300);
     }
 
     public enum EViewMode {
@@ -141,10 +141,10 @@ public class DuplicateByMetadataTool implements RepairTool {
         cbViewMode.setEditable(false);
         cbViewMode.setDisable(true);
         HBox hbCollection = new HBox();
-        targetCollectionTf.setShowRootProperty(true);
-        targetCollectionTf.selectRoot();
+        collectionPicker.setShowRootProperty(true);
+        collectionPicker.selectRoot();
 
-        hbCollection.getChildren().addAll(new Label("Choose a collection: "), targetCollectionTf);
+        hbCollection.getChildren().addAll(new Label("Choose a collection: "), collectionPicker);
         hbCollection.setAlignment(Pos.CENTER);
 
         var hbButton = new HBox(viewMode, cbViewMode, hbCollection, new Label(STR."\{persistenceService.countMediaFiles()} files."), run);
@@ -174,10 +174,10 @@ public class DuplicateByMetadataTool implements RepairTool {
     }
 
     private List<HashDuplicate> findDuplicates() {
-        if (targetCollectionTf.isRootSelected()) {
+        if (collectionPicker.isRootSelected()) {
             return collectionManager.findDuplicateByHash();
         } else {
-            return collectionManager.findDuplicateByHash(targetCollectionTf.getText());
+            return collectionManager.findDuplicateByHash(collectionPicker.getText());
         }
     }
 

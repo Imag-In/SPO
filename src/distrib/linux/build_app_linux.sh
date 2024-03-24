@@ -107,6 +107,8 @@ do
   --java-options '-Djdk.gtk.verbose=true' \
   --java-options '-Djdk.gtk.version=3' \
   --java-options "-Dspring.jmx.enabled=false" \
+  --java-options "--add-opens javafx.controls/javafx.scene.control=ALL-UNNAMED" \
+  --java-options "--add-opens javafx.base/com.sun.javafx.event=ALL-UNNAMED" \
   --java-options -Dspring.profiles.active=default \
   --java-options -Dspring.config.location=classpath:/application.yml \
   --runtime-image ${BUILD_DIR}/java-runtime \
