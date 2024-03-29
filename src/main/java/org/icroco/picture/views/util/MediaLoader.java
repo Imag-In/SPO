@@ -1,5 +1,6 @@
 package org.icroco.picture.views.util;
 
+import io.jbock.util.Either;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.scene.image.Image;
@@ -31,6 +32,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -56,7 +58,7 @@ public class MediaLoader {
     private final Set<Integer>       catalogToReGenerate = new CopyOnWriteArraySet<>();
 //    private final LRUCache<MediaFile, Thumbnail> lruCache = new LRUCache<>(1000);
 
-    final Function<MediaFile, Thumbnail> cacheOrLoad;
+    final Function<MediaFile, Either<Exception, Thumbnail>> cacheOrLoad;
 
     public MediaLoader(IThumbnailGenerator thumbnailGenerator,
                        ImageLoader imageLoader,
@@ -74,12 +76,13 @@ public class MediaLoader {
         this.hashGenerator = hashGenerator;
         this.persistenceService = persistenceService;
         this.thumbnailMapper = thumbnailMapper;
-        cacheOrLoad = mf -> getCachedValue(mf).orElseGet(() -> persistenceService.findByPathOrId(mf)
-                                                                                 .map(t -> {
-                                                                                     thCache.put(mf, t);
-                                                                                     return t;
-                                                                                 })
-                                                                                 .orElseThrow(() -> new IllegalArgumentException(STR."Cannot find thumbnail for: '\{mf.getFullPath()}', id: '\{mf.getId()}'")));
+        cacheOrLoad = mf -> getCachedValue(mf).or(() -> persistenceService.findByPathOrId(mf)
+                                                                          .map(t -> {
+                                                                              thCache.put(mf, t);
+                                                                              return t;
+                                                                          }))
+                                              .map(Either::<Exception, Thumbnail>right)
+                                              .orElseGet(() -> Either.left(new IllegalArgumentException(STR."Cannot find thumbnail for: '\{mf.getFullPath()}', id: '\{mf.getId()}'")));
     }
 
 
@@ -89,20 +92,21 @@ public class MediaLoader {
 
     public void loadAndCachedValue(final MediaFile mf) {
         taskService.supply(cacheOrLoad, mf)
-                   .thenAcceptAsync(_ -> Platform.runLater(() -> mf.setLoadedInCacheProperty(true)))
-                   .exceptionally(_ -> {
-                       Platform.runLater(() -> mf.setLoadedInCacheProperty(false));
-                       return null;
-                   });
+                   .thenAcceptAsync(either -> either.ifLeftOrElse(e -> {
+                                                                      Platform.runLater(() -> mf.setLoadedInCacheProperty(false));
+                                                                      log.warn(e.getMessage());
+                                                                  },
+                                                                  t -> Platform.runLater(() -> mf.setLoadedInCacheProperty(true))));
     }
 
     public void loadAndCachedValues(final Collection<MediaFile> files) {
         Thread.ofVirtual().start(() -> {
-            var head = files.stream()
-                            .limit(200)
-                            .toList();
-            head.forEach(cacheOrLoad::apply);
-            Platform.runLater(() -> head.forEach(mf -> mf.setLoadedInCacheProperty(false)));
+            var mediaFiles = files.stream()
+                                  .limit(200)
+                                  .map(cacheOrLoad)
+                                  .toList();
+
+            Platform.runLater(() -> files.forEach(mf -> mf.setLoadedInCacheProperty(false)));
         });
     }
 
@@ -216,6 +220,60 @@ public class MediaLoader {
                                                                                                       .build()));
                                      }
                                  }, false));
+    }
+
+
+    public void getOrLoadImage2(final MediaFile mediaFile, @NonNull BiConsumer<MediaFile, Image> fxImageConsumer) {
+        if (mediaFile == null) {
+            return;
+        }
+
+        taskService.supply(ModernTask.<Image>builder()
+                                     .execute(_ -> getCachedImage(mediaFile).orElseGet(() -> {
+                                         var image = new Image(mediaFile.getFullPath().toUri().toString(),
+                                                               0,
+                                                               0,
+                                                               true,
+                                                               false,
+                                                               false);
+                                         imagesCache.put(mediaFile, image);
+                                         return image;
+                                     }))
+                                     .onSuccess((_, image) -> fxImageConsumer.accept(mediaFile, image))
+                                     .build(),
+                           false);
+//        record FutureImage(Image image, CompletableFuture<?> future) {
+//        }
+//        getCachedImage(mediaFile)
+//                .ifPresentOrElse(image -> FxPlatformExecutor.fxRun(() -> fxImageConsumer.accept(mediaFile, image)),
+//                                 () -> taskService.supply(new AbstractTask<FutureImage>() {
+//                                     @Override
+//                                     protected FutureImage call() {
+//                                         var image = new Image(mediaFile.getFullPath().toUri().toString(),
+//                                                               0,
+//                                                               0,
+//                                                               true,
+//                                                               false,
+//                                                               false);
+////                                             var image = imageLoader.loadImage(mediaFile);
+//                                         var future = taskService.sendEvent(ImageLoadingdEvent.builder()
+//                                                                                              .mediaFile(mediaFile)
+//                                                                                              .progress(image.progressProperty())
+//                                                                                              .source(MediaLoader.this)
+//                                                                                              .build());
+//                                         imagesCache.put(mediaFile, image);
+////                                             Thread.sleep(20);
+//                                         return new FutureImage(image, future);
+//                                     }
+//
+//                                     @Override
+//                                     protected void succeeded() {
+//                                         var futureImage = getValue();
+//                                         // To make sure ImageLoadedEvent come after ImageLoadingdEvent.
+//                                         futureImage.future
+//                                                 .thenRun(() -> fxImageConsumer.accept(mediaFile, futureImage.image));
+//                                     }
+//                                 }, false));
     }
 
     @EventListener(WarmThumbnailCacheEvent.class)

@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.util.MaskerPane;
-import org.icroco.picture.views.util.MediaLoader;
 import org.springframework.lang.Nullable;
 
 import java.nio.file.Path;
@@ -44,7 +43,6 @@ public class ZoomDragPane extends BorderPane {
     private static final double               MIN_PX        = 10;
     private static final javafx.util.Duration DURATION      = javafx.util.Duration.millis(500);
 
-    private final MediaLoader mediaLoader;
     private       int         zoomLevel = 0;
     @Getter
     private final ImageView   view;
@@ -57,9 +55,8 @@ public class ZoomDragPane extends BorderPane {
     @Getter
     private final MaskerPane<ImageView> maskerPane = new MaskerPane<>(false);
 
-    public ZoomDragPane(MediaLoader mediaLoader) {
+    public ZoomDragPane() {
         setId("zoomDragPane");
-        this.mediaLoader = mediaLoader;
         //        setStyle("-fx-background-color: LIGHTGREY");
 
         view = new ImageView();
@@ -70,7 +67,7 @@ public class ZoomDragPane extends BorderPane {
 
         setCenter(maskerPane.getRootContent());
         maskerPane.setContent(view);
-        setImage(null, null, false);
+        setImage(null, null);
 
         /*
          * Unless its square, the Image must be scaled when rotated through 90 (or 270) degrees...
@@ -82,7 +79,7 @@ public class ZoomDragPane extends BorderPane {
         view.setOnZoom(this::zoom);
     }
 
-    public final void setImage(MediaFile mediaFile, @Nullable Image image, boolean fromCache) {
+    public final void setImage(MediaFile mediaFile, @Nullable Image image) {
         log.atDebug()
            .log(() -> "setImage: %s".formatted(Optional.ofNullable(mediaFile).map(MediaFile::getFullPath).map(Path::toString).orElse("-")));
         zoomLevel = 0;

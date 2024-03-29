@@ -19,6 +19,7 @@ import org.icroco.picture.util.StageReadyEvent;
 import org.icroco.picture.views.pref.UserPreference;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.theme.ThemeRepository;
+import org.icroco.picture.views.util.FxPlatformExecutor;
 import org.icroco.picture.views.util.ImageUtils;
 import org.icroco.picture.views.util.Nodes;
 import org.springframework.beans.BeansException;
@@ -177,9 +178,7 @@ public class ImagInApp extends Application {
 
     private void showError(Thread thread, Throwable throwable) {
         log.error("An unexpected error occurred in thread: {}, ", thread, throwable);
-        if (Platform.isFxApplicationThread()) {
-            showErrorToUser(throwable);
-        }
+        FxPlatformExecutor.fxRun(() -> showErrorToUser(throwable));
     }
 
     protected void preStart(final Stage primaryStage) {

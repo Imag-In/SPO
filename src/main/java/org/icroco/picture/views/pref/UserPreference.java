@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.stage.Screen;
+import javafx.stage.Stage;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.Dimension;
@@ -52,7 +54,7 @@ public class UserPreference {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class MainWindow {
+    public static class Window {
         private Double       posX;
         private Double       posY;
         private Double       width;
@@ -72,6 +74,24 @@ public class UserPreference {
 
         public boolean exist() {
             return !(posX == Double.MIN_VALUE || posY == Double.MIN_VALUE);
+        }
+
+        @JsonIgnore
+        public void restoreWindowDimension(Stage primaryStage) {
+            var scene = primaryStage.getScene();
+            if (exist()) {
+                scene.getWindow().setX(getPosX());
+                scene.getWindow().setY(getPosY());
+                scene.getWindow().setWidth(getWidth());
+                scene.getWindow().setHeight(getHeight());
+            } else {
+                primaryStage.centerOnScreen();
+                primaryStage.setWidth(Screen.getPrimary().getBounds().getWidth() - 100);
+                primaryStage.setHeight(Screen.getPrimary().getBounds().getHeight() - 50);
+            }
+            if (isMaximized()) {
+                primaryStage.setMaximized(true);
+            }
         }
 
     }
@@ -126,14 +146,15 @@ public class UserPreference {
         }
     }
 
-    private General general = new General();
-    private MainWindow     mainWindow  = new MainWindow(Double.MIN_VALUE, Double.MIN_VALUE, 1024D, 800D, -1, false, null);
+    private General general    = new General();
+    private Window  mainWindow = new Window(Double.MIN_VALUE, Double.MIN_VALUE, 1024D, 800D, -1, false, null);
+    private Window  diffWindow = new Window(Double.MIN_VALUE, Double.MIN_VALUE, 1024D, 800D, -1, false, null);
     private Collection     collection  = new Collection(-1, null);
     private Gallery        grid        = new Gallery(128, 128, 0, 5, 12);
     private SettingsDialog settings    = new SettingsDialog(new Dimension(600, 400));
     private String         catalogName = "pictures";
-    private Safety  safety  = new Safety(false, Path.of(System.getProperty("imagin.spo.backup",
-                                                                           STR."\{System.getProperty("user.home")}\{File.separatorChar}SPO_BIN")));
+    private Safety  safety     = new Safety(false, Path.of(System.getProperty("imagin.spo.backup",
+                                                                              STR."\{System.getProperty("user.home")}\{File.separatorChar}SPO_BIN")));
 
     public void setLastViewed(int id, Path path) {
         collection.setLastViewed(id);

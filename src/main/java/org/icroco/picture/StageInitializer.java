@@ -18,6 +18,8 @@ import org.icroco.picture.util.SceneReadyEvent;
 import org.icroco.picture.util.StageReadyEvent;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.MainView;
+import org.icroco.picture.views.compare.DiffWindow;
+import org.icroco.picture.views.pref.UserPreference;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.theme.ThemeManager;
 import org.scenicview.ScenicView;
@@ -39,6 +41,7 @@ public class StageInitializer {
     private final ThemeManager                   themeManager;
     private final MainView                       mainView;
     private final Env                            env;
+    private final DiffWindow diffWindow;
 
 //    @EventListener
 //    public void prepareEnv(ApplicationContextInitializedEvent event) {
@@ -63,7 +66,7 @@ public class StageInitializer {
     @FxEventListener
     public void onApplicationEvent(StageReadyEvent event) {
         Stage primaryStage = event.getStage();
-        primaryStage.setOnCloseRequest(this::saveWindowDimension);
+        primaryStage.setOnCloseRequest(this::closeMainApplication);
         primaryStage.setTitle("Imag'In");
 
         var antialiasing = Platform.isSupported(ConditionalFeature.SCENE3D)
@@ -73,6 +76,7 @@ public class StageInitializer {
         primaryStage.setScene(scene);
         if (Boolean.getBoolean("SCENIC")) {
             ScenicView.show(scene);
+            ScenicView.show(diffWindow.getStage().getScene());
         }
         if (env.isDev()) {
 //            CSSFXLogger.setLogLevel(CSSFXLogger.LogLevel.DEBUG);
@@ -87,8 +91,6 @@ public class StageInitializer {
                                       .orElseGet(themeManager::getDefaultTheme));
 
         restoreWindowDimension(scene, primaryStage);
-
-
         scene.getStylesheets().addAll(Resources.resolve("/styles/empty.css"), Resources.resolve("/styles/index.css"));
 
         context.publishEvent(new SceneReadyEvent(scene, primaryStage));
@@ -100,47 +102,42 @@ public class StageInitializer {
     }
 
     private void restoreWindowDimension(Scene scene, Stage primaryStage) {
-        var windowSettings = userPref.getUserPreference().getMainWindow();
-        if (windowSettings.exist()) {
-            scene.getWindow().setX(windowSettings.getPosX());
-            scene.getWindow().setY(windowSettings.getPosY());
-            scene.getWindow().setWidth(windowSettings.getWidth());
-            scene.getWindow().setHeight(windowSettings.getHeight());
-        } else {
-            primaryStage.centerOnScreen();
-            primaryStage.setWidth(Screen.getPrimary().getBounds().getWidth() - 100);
-            primaryStage.setHeight(Screen.getPrimary().getBounds().getHeight() - 50);
+        userPref.getUserPreference().getMainWindow().restoreWindowDimension(primaryStage);
+    }
+
+    protected void closeMainApplication(final WindowEvent windowEvent) {
+        if (windowEvent.getTarget() instanceof Stage stage) {
+            saveWindow(stage, userPref.getUserPreference().getMainWindow());
+            saveWindow(diffWindow.getStage(), userPref.getUserPreference().getDiffWindow());
+            diffWindow.close();
         }
-        if (userPref.getUserPreference().getMainWindow().isMaximized()) {
-            primaryStage.setMaximized(true);
+        if (Boolean.getBoolean("SCENIC")) {
+            System.exit(0);
         }
     }
 
-    protected void saveWindowDimension(final WindowEvent windowEvent) {
-        if (windowEvent.getTarget() instanceof Stage stage) {
-            var window         = stage.getScene().getWindow();
-            var windowSettings = userPref.getUserPreference().getMainWindow();
-            var firstScreen = Screen.getScreensForRectangle(new Rectangle2D(window.getX(),
-                                                                            window.getY(),
-                                                                            window.getWidth(),
-                                                                            window.getHeight()))
-                                    .stream()
-                                    .findFirst();
+    private void saveWindow(Stage stage, UserPreference.Window windowSettings) {
+        var window = stage.getScene().getWindow();
+        var firstScreen = Screen.getScreensForRectangle(new Rectangle2D(window.getX(),
+                                                                        window.getY(),
+                                                                        window.getWidth(),
+                                                                        window.getHeight()))
+                                .stream()
+                                .findFirst();
 
-            ObservableList<Screen> screens = Screen.getScreens();
-            windowSettings.setScreenIdx(-1);
-            for (int i = 0; i < screens.size(); i++) {
-                if (screens.get(i).equals(firstScreen.orElse(null))) {
-                    windowSettings.setScreenIdx(i);
-                    break;
-                }
+        ObservableList<Screen> screens = Screen.getScreens();
+        windowSettings.setScreenIdx(-1);
+        for (int i = 0; i < screens.size(); i++) {
+            if (screens.get(i).equals(firstScreen.orElse(null))) {
+                windowSettings.setScreenIdx(i);
+                break;
             }
-            windowSettings.setMaximized(stage.isMaximized());
-            windowSettings.setPosX(window.getX());
-            windowSettings.setPosY(window.getY());
-            windowSettings.setWidth(window.getWidth());
-            windowSettings.setHeight(window.getHeight());
-            windowSettings.setTheme(themeManager.getTheme());
         }
+        windowSettings.setMaximized(stage.isMaximized());
+        windowSettings.setPosX(window.getX());
+        windowSettings.setPosY(window.getY());
+        windowSettings.setWidth(window.getWidth());
+        windowSettings.setHeight(window.getHeight());
+        windowSettings.setTheme(themeManager.getTheme());
     }
 }

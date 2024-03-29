@@ -196,7 +196,7 @@ public class GalleryView implements FxView<StackPane> {
         carousel.addEventHandler(CustomMouseEvent.MOUSE_DOUBLE_CLICKED, this::onImageClick);
         carousel.setId("Carousel");
 
-        photo = new ZoomDragPane(mediaLoader);
+        photo = new ZoomDragPane();
         carousel.setCenter(photo);
         photo.maxHeightProperty().bind(carousel.heightProperty());
         photo.maxWidthProperty().bind(carousel.widthProperty());
@@ -433,7 +433,7 @@ public class GalleryView implements FxView<StackPane> {
                 photo.requestFocus();
                 if (prev == EGalleryClickState.GALLERY) {
                     gallery.setVisible(false);
-                    photo.setImage(null, null, false);
+                    photo.setImage(null, null);
                     carousel.setVisible(true);
                     mediaLoader.getOrLoadImage(mf);
                 } else {
@@ -602,7 +602,7 @@ public class GalleryView implements FxView<StackPane> {
 
     @FxEventListener
     public void imageLoaded(ImageLoadedEvent event) {
-        photo.setImage(event.getMediaFile(), event.getImage(), event.isFromCache());
+        photo.setImage(event.getMediaFile(), event.getImage());
         if (!event.isFromCache()) {
             photo.getMaskerPane().stop();
         }
@@ -771,5 +771,14 @@ public class GalleryView implements FxView<StackPane> {
     @Override
     public StackPane getRootContent() {
         return root;
+    }
+
+    public void diffRight(KeyEvent keyEvent) {
+        taskService.sendEvent(ShowDiffEvent.builder().right(gridView.getSelectionModel().getSelectedItem()).source(this).build());
+    }
+
+    public void diffLeft(KeyEvent keyEvent) {
+        taskService.sendEvent(ShowDiffEvent.builder().left(gridView.getSelectionModel().getSelectedItem()).source(this).build());
+
     }
 }

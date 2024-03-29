@@ -37,7 +37,8 @@ import java.nio.file.Files;
 import static org.icroco.picture.util.LangUtils.EMPTY_STRING;
 
 @Slf4j
-public class MediaFileGridCell extends GridCell<MediaFile> {
+public class
+MediaFileGridCell extends GridCell<MediaFile> {
     private final TaskService                             taskService;
     @Getter
     private final ImageView                               imageView;

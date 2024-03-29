@@ -20,6 +20,7 @@ import org.icroco.picture.event.ShowSettingsEvent;
 import org.icroco.picture.util.I18N;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
+import org.icroco.picture.views.compare.DiffWindow;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.FxView;
@@ -49,6 +50,7 @@ public class NavigationView implements FxView<HBox> {
 
     public NavigationView(@Qualifier(ViewConfiguration.CURRENT_VIEW)
                           SimpleStringProperty currentView,
+                          DiffWindow diffWindow,
                           UserPreferenceService preferenceService,
                           TaskService taskService,
                           I18N i18N) {
@@ -116,9 +118,10 @@ public class NavigationView implements FxView<HBox> {
         var photoDiffIcon = FontIcon.of(MaterialDesignC.COMPARE);
         var photoDiff     = new Button(null, photoDiffIcon);
         photoDiffIcon.getStyleClass().add("button-top-bar");
+        photoDiff.setOnMouseClicked(event -> diffWindow.show());
 
 //        photoDiff.setTooltip(new Tooltip("Settings"));
-        photoDiff.setDisable(true);
+//        photoDiff.setDisable(true);
         photoDiff.getStyleClass().add(Styles.LARGE);
         FxUtil.styleCircleButton(photoDiff); //.setOnAction(this::openSettings);
 
