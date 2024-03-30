@@ -18,6 +18,7 @@ import org.icroco.picture.util.SceneReadyEvent;
 import org.icroco.picture.util.StageReadyEvent;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.MainView;
+import org.icroco.picture.views.StageRepository;
 import org.icroco.picture.views.compare.DiffWindow;
 import org.icroco.picture.views.pref.UserPreference;
 import org.icroco.picture.views.pref.UserPreferenceService;
@@ -39,9 +40,10 @@ public class StageInitializer {
     private final ConfigurableApplicationContext context;
     private final UserPreferenceService          userPref;
     private final ThemeManager                   themeManager;
+    private final StageRepository stageRepository;
     private final MainView                       mainView;
     private final Env                            env;
-    private final DiffWindow diffWindow;
+    private final DiffWindow      diffWindow;
 
 //    @EventListener
 //    public void prepareEnv(ApplicationContextInitializedEvent event) {
@@ -86,9 +88,9 @@ public class StageInitializer {
 //            });
             scene.focusOwnerProperty().addListener((_, _, newValue) -> log.debug("Focus onwer: {}", newValue));
         }
-        themeManager.setScene(scene);
         themeManager.setTheme(Optional.ofNullable(userPref.getUserPreference().getMainWindow().getTheme())
                                       .orElseGet(themeManager::getDefaultTheme));
+        stageRepository.addStage(primaryStage);
 
         restoreWindowDimension(scene, primaryStage);
         scene.getStylesheets().addAll(Resources.resolve("/styles/empty.css"), Resources.resolve("/styles/index.css"));

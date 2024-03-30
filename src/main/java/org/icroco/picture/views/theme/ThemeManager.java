@@ -8,15 +8,18 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.collections.SetChangeListener;
 import javafx.css.PseudoClass;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import lombok.Getter;
 import org.icroco.picture.util.Resources;
+import org.icroco.picture.views.StageRepository;
 import org.icroco.picture.views.util.JColor;
 import org.springframework.stereotype.Component;
 
@@ -29,8 +32,8 @@ import static org.icroco.picture.util.Resources.getResource;
 
 @Component
 public final class ThemeManager {
-    static final String                      DUMMY_STYLESHEET = getResource("/styles/empty.css").toString();
-    static final String[]                    APP_STYLESHEETS  = new String[] {
+    static final String   DUMMY_STYLESHEET = getResource("/styles/empty.css").toString();
+    static final String[] APP_STYLESHEETS  = new String[] {
             Resources.resolve("/styles/index.css")
     };
 
@@ -50,9 +53,10 @@ public final class ThemeManager {
 
 
     @Getter
-    private final ThemeRepository repository;
-    @Getter
-    private       Scene           scene;
+    private final ThemeRepository themeRepository;
+    private final StageRepository stageRepository;
+//    @Getter
+//    private       Scene           scene;
 
     private SamplerTheme currentTheme = null;
     @Getter
@@ -64,14 +68,17 @@ public final class ThemeManager {
     @Getter
     private AccentColor  accentColor  = DEFAULT_ACCENT_COLOR;
 
-    public ThemeManager(ThemeRepository themeRepository) {
-        this.repository = themeRepository;
-    }
+    public ThemeManager(ThemeRepository themeRepository, StageRepository stageRepository) {
+        this.themeRepository = themeRepository;
+        this.stageRepository = stageRepository;
 
-    // MUST BE SET ON STARTUP
-    // (this is supposed to be a constructor arg, but since app don't use DI..., sorry)
-    public void setScene(Scene scene) {
-        this.scene = Objects.requireNonNull(scene);
+        /* w  ww. j a va 2  s.  c o m*/
+        stageRepository.getStages().addListener((SetChangeListener<Stage>) change -> {
+            if (change.wasAdded()) {
+                var stage = change.getElementAdded();
+                applyTheme(stage.getScene());
+            }
+        });
     }
 
     public SamplerTheme getTheme() {
@@ -79,7 +86,7 @@ public final class ThemeManager {
     }
 
     public SamplerTheme getDefaultTheme() {
-        return getRepository().getDefault();
+        return getThemeRepository().getDefault();
     }
 
     /**
@@ -88,29 +95,32 @@ public final class ThemeManager {
     public void setTheme(SamplerTheme theme) {
         Objects.requireNonNull(theme);
 
-        if (currentTheme != null) {
-            animateThemeChange(Duration.millis(750));
-        }
-
-        Application.setUserAgentStylesheet(Objects.requireNonNull(theme.getUserAgentStylesheet()));
-        getScene().getStylesheets().setAll(theme.getAllStylesheets());
-        getScene().getRoot().pseudoClassStateChanged(DARK, theme.isDarkMode());
-
-        // remove user CSS customizations and reset accent on theme change
-        resetAccentColor();
-        resetCustomCSS();
-
         currentTheme = theme;
-//        EVENT_BUS.publish(new ThemeEvent(EventType.THEME_CHANGE));
+        Application.setUserAgentStylesheet(Objects.requireNonNull(theme.getUserAgentStylesheet()));
+        stageRepository.getStages().stream()
+                       .map(Stage::getScene)
+                       .forEach(this::applyTheme);
+
     }
 
-    public void setFontFamily(String fontFamily) {
+    private void applyTheme(Scene scene) {
+        if (currentTheme != null) {
+            animateThemeChange(scene, Duration.millis(750));
+            scene.getStylesheets().setAll(currentTheme.getAllStylesheets());
+            scene.getRoot().pseudoClassStateChanged(DARK, currentTheme.isDarkMode());
+            // remove user CSS customizations and reset accent on theme change
+            resetAccentColor(scene);
+            resetCustomCSS(scene);
+        }
+    }
+
+    public void setFontFamily(Scene scene, String fontFamily) {
         Objects.requireNonNull(fontFamily);
-        setCustomDeclaration("-fx-font-family", "\"" + fontFamily + "\"");
+        setCustomDeclaration("-fx-font-family", STR."\"\{fontFamily}\"");
 
         this.fontFamily = fontFamily;
 
-        reloadCustomCSS();
+        reloadCustomCSS(scene);
 //        EVENT_BUS.publish(new ThemeEvent(EventType.FONT_CHANGE));
     }
 
@@ -118,17 +128,17 @@ public final class ThemeManager {
         return Objects.equals(DEFAULT_FONT_FAMILY_NAME, getFontFamily());
     }
 
-    public void setFontSize(int size) {
+    public void setFontSize(Scene scene, int size) {
         if (!SUPPORTED_FONT_SIZE.contains(size)) {
             throw new IllegalArgumentException(
                     String.format("Font size must in the range %d-%dpx. Actual value is %d.",
-                                  SUPPORTED_FONT_SIZE.get(0),
-                                  SUPPORTED_FONT_SIZE.get(SUPPORTED_FONT_SIZE.size() - 1),
+                                  SUPPORTED_FONT_SIZE.getFirst(),
+                                  SUPPORTED_FONT_SIZE.getLast(),
                                   size
                     ));
         }
 
-        setCustomDeclaration("-fx-font-size", size + "px");
+        setCustomDeclaration("-fx-font-size", STR."\{size}px");
         setCustomRule(".ikonli-font-icon", String.format("-fx-icon-size: %dpx;", size + 2));
 
         this.fontSize = size;
@@ -138,7 +148,7 @@ public final class ThemeManager {
                                   .min(Comparator.comparingInt(i -> Math.abs(i - rawZoom)))
                                   .orElseThrow(NoSuchElementException::new);
 
-        reloadCustomCSS();
+        reloadCustomCSS(scene);
 //        EVENT_BUS.publish(new ThemeEvent(EventType.FONT_CHANGE));
     }
 
@@ -146,59 +156,59 @@ public final class ThemeManager {
         return DEFAULT_FONT_SIZE == fontSize;
     }
 
-    public void setZoom(int zoom) {
+    public void setZoom(Scene scene, int zoom) {
         if (!SUPPORTED_ZOOM.contains(zoom)) {
             throw new IllegalArgumentException(
                     String.format("Zoom value must one of %s. Actual value is %d.", SUPPORTED_ZOOM, zoom)
             );
         }
 
-        setFontSize((int) Math.ceil(zoom != 100 ? (DEFAULT_FONT_SIZE * zoom) / 100.0f : DEFAULT_FONT_SIZE));
+        setFontSize(scene, (int) Math.ceil(zoom != 100 ? (DEFAULT_FONT_SIZE * zoom) / 100.0f : DEFAULT_FONT_SIZE));
         this.zoom = zoom;
     }
 
-    public void setAccentColor(AccentColor color) {
+    public void setAccentColor(Scene scene, AccentColor color) {
         Objects.requireNonNull(color);
 
-        animateThemeChange(Duration.millis(350));
+        animateThemeChange(scene, Duration.millis(350));
 
         if (accentColor != null) {
-            getScene().getRoot().pseudoClassStateChanged(accentColor.pseudoClass(), false);
+            scene.getRoot().pseudoClassStateChanged(accentColor.pseudoClass(), false);
         }
 
-        getScene().getRoot().pseudoClassStateChanged(color.pseudoClass(), true);
+        scene.getRoot().pseudoClassStateChanged(color.pseudoClass(), true);
         this.accentColor = color;
 
 //        EVENT_BUS.publish(new ThemeEvent(EventType.COLOR_CHANGE));
     }
 
-    public void resetAccentColor() {
-        animateThemeChange(Duration.millis(350));
+    public void resetAccentColor(Scene scene) {
+        animateThemeChange(scene, Duration.millis(350));
 
         if (accentColor != null) {
-            getScene().getRoot().pseudoClassStateChanged(accentColor.pseudoClass(), false);
+            scene.getRoot().pseudoClassStateChanged(accentColor.pseudoClass(), false);
             accentColor = null;
         }
 
 //        EVENT_BUS.publish(new ThemeEvent(EventType.COLOR_CHANGE));
     }
 
-    public void setNamedColors(Map<String, Color> colors) {
+    public void setNamedColors(Scene scene, Map<String, Color> colors) {
         Objects.requireNonNull(colors).forEach(this::setOrRemoveColor);
-        reloadCustomCSS();
+        reloadCustomCSS(scene);
 //        EVENT_BUS.publish(new ThemeEvent(EventType.COLOR_CHANGE));
     }
 
-    public void unsetNamedColors(String... colors) {
+    public void unsetNamedColors(Scene scene, String... colors) {
         for (String c : colors) {
             setOrRemoveColor(c, null);
         }
-        reloadCustomCSS();
+        reloadCustomCSS(scene);
 //        EVENT_BUS.publish(new ThemeEvent(EventType.COLOR_CHANGE));
     }
 
-    public void resetAllChanges() {
-        resetCustomCSS();
+    public void resetAllChanges(Scene scene) {
+        resetCustomCSS(scene);
 //        EVENT_BUS.publish(new ThemeEvent(EventType.THEME_CHANGE));
     }
 
@@ -248,7 +258,7 @@ public final class ThemeManager {
         }
     }
 
-    private void animateThemeChange(Duration duration) {
+    private void animateThemeChange(Scene scene, Duration duration) {
         Image snapshot = scene.snapshot(null);
         Pane  root     = (Pane) scene.getRoot();
 
@@ -263,7 +273,7 @@ public final class ThemeManager {
         transition.play();
     }
 
-    private void reloadCustomCSS() {
+    private void reloadCustomCSS(Scene scene) {
         Objects.requireNonNull(scene);
         StringBuilder css = new StringBuilder();
 
@@ -291,16 +301,16 @@ public final class ThemeManager {
             css.append("}\n");
         });
 
-        getScene().getRoot().getStylesheets().removeIf(uri -> uri.startsWith("data:text/css"));
-        getScene().getRoot().getStylesheets().add(
+        scene.getRoot().getStylesheets().removeIf(uri -> uri.startsWith("data:text/css"));
+        scene.getRoot().getStylesheets().add(
                 "data:text/css;base64," + Base64.getEncoder().encodeToString(css.toString().getBytes(UTF_8))
         );
-        getScene().getRoot().pseudoClassStateChanged(USER_CUSTOM, true);
+        scene.getRoot().pseudoClassStateChanged(USER_CUSTOM, true);
     }
 
-    public void resetCustomCSS() {
+    public void resetCustomCSS(Scene scene) {
         customCSSDeclarations.clear();
         customCSSRules.clear();
-        getScene().getRoot().pseudoClassStateChanged(USER_CUSTOM, false);
+        scene.getRoot().pseudoClassStateChanged(USER_CUSTOM, false);
     }
 }

@@ -22,7 +22,7 @@ public class SpoPropertyEditorFactory extends DefaultPropertyEditorFactory {
     public PropertyEditor<?> call(PropertySheet.Item item) {
         var value = item.getValue();
         if (value instanceof SamplerTheme) {
-            var                    ediror = Editors.createChoiceEditor(item, themeManager.getRepository().getAll());
+            var ediror = Editors.createChoiceEditor(item, themeManager.getThemeRepository().getAll());
             ComboBox<SamplerTheme> editor = (ComboBox<SamplerTheme>) ediror.getEditor();
             editor.setConverter(new StringConverter<>() {
                 @Override
@@ -32,7 +32,7 @@ public class SpoPropertyEditorFactory extends DefaultPropertyEditorFactory {
 
                 @Override
                 public SamplerTheme fromString(String string) {
-                    return themeManager.getRepository()
+                    return themeManager.getThemeRepository()
                                        .getAll()
                                        .stream()
                                        .filter(st -> st.getName().equals(string))
