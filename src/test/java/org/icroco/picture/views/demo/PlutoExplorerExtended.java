@@ -377,7 +377,7 @@ public final class PlutoExplorerExtended extends Application {
 
     private static final String TITLE            = "Pluto Explorer";
     private static final String IMAGE_CREDIT_URL = "http://www.nasa.gov/image-feature/global-mosaic-of-pluto-in-true-color";
-    private static final String IMAGE_URL        = "https://www.nasa.gov/sites/default/files/thumbnails/image/global-mosaic-of-pluto-in-true-color.jpg";
+    private static final String IMAGE_URL = "https://www.nasa.gov/wp-content/uploads/2023/03/global-mosaic-of-pluto-in-true-color.jpg";
 
     @Override
     public void start(final Stage primaryStage) {

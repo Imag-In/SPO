@@ -11,9 +11,9 @@ import java.util.Set;
 
 public interface IMetadataWriter {
 
-    Either<Exception, Path> setOrignialDate(Path path, LocalDateTime date);
+    Either<Throwable, Path> setOrignialDate(Path path, LocalDateTime date);
 
-    Either<Exception, Path> setOrientation(Path path, ERotation orientation);
+    Either<Throwable, Path> setOrientation(Path path, ERotation orientation);
 
     void setKeywords(Path path, Set<Keyword> keywords);
 
@@ -21,8 +21,8 @@ public interface IMetadataWriter {
 
     void removeKeywords(Path path, Set<String> keywords);
 
-    Either<Exception, Path> setRating(Path path, ERating rating);
+    Either<Throwable, Path> setRating(Path path, ERating rating);
 
-    Either<Exception, Path> setThumbnail(Path path, byte[] thumbnail);
+    Either<Throwable, Path> setThumbnail(Path path, byte[] thumbnail);
 
 }

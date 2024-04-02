@@ -2,6 +2,7 @@ package org.icroco.picture.views.util.widget;
 
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.Bounds;
 import javafx.geometry.Dimension2D;
@@ -43,17 +44,17 @@ public class ZoomDragPane extends BorderPane {
     private static final double               MIN_PX        = 10;
     private static final javafx.util.Duration DURATION      = javafx.util.Duration.millis(500);
 
-    private       int         zoomLevel = 0;
+    private       int                   zoomLevel      = 0;
     @Getter
-    private final ImageView   view;
-    private       double      imageWidth;
-    private       double      imageHeight;
-    private final double      rotation90scale;
+    private final ImageView             view;
+    private       double                imageWidth;
+    private       double                imageHeight;
+    private final double                rotation90scale;
     @Getter
-    private       MediaFile   mediaFile = null;
-
+    private       MediaFile             mediaFile      = null;
+    private final SimpleBooleanProperty extendViewport = new SimpleBooleanProperty(false);
     @Getter
-    private final MaskerPane<ImageView> maskerPane = new MaskerPane<>(false);
+    private final MaskerPane<ImageView> maskerPane     = new MaskerPane<>(false);
 
     public ZoomDragPane() {
         setId("zoomDragPane");
@@ -65,8 +66,10 @@ public class ZoomDragPane extends BorderPane {
         view.setCache(true);
         view.setPickOnBounds(true);
 
-        setCenter(maskerPane.getRootContent());
+//        view.fitHeightProperty().bind(prefHeightProperty());
+//        view.fitWidthProperty().bind(prefWidthProperty());
         maskerPane.setContent(view);
+        setCenter(maskerPane.getContent());
         setImage(null, null);
 
         /*
@@ -77,6 +80,27 @@ public class ZoomDragPane extends BorderPane {
         setMouseDraggedEventHandler();
         view.setOnScroll(this::zoom);
         view.setOnZoom(this::zoom);
+
+        extendViewport.addListener((_, _, newValue) -> updateViewport(newValue));
+    }
+
+    public void setExtendViewport(boolean value) {
+        extendViewport.set(value);
+    }
+
+    private void updateViewport(Boolean newValue) {
+        var image = view.getImage();
+        if (image != null) {
+//            if (newValue) {
+//                double      newMeasure = Math.min(image.getWidth(), image.getHeight());
+//                double      x          = (image.getWidth() - newMeasure) / 2;
+//                double      y          = (image.getHeight() - newMeasure) / 2;
+//                Rectangle2D rect       = new Rectangle2D(x, y, newMeasure, newMeasure);
+//                view.setViewport(rect);
+//            } else {
+//                view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
+//            }
+        }
     }
 
     public final void setImage(MediaFile mediaFile, @Nullable Image image) {

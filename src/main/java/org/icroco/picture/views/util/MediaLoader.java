@@ -15,6 +15,7 @@ import org.icroco.picture.model.*;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.persistence.mapper.ThumbnailMapper;
 import org.icroco.picture.thumbnail.IThumbnailGenerator;
+import org.icroco.picture.util.EitherUtils;
 import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.views.task.*;
 import org.icroco.picture.views.util.image.ImageLoader;
@@ -76,13 +77,12 @@ public class MediaLoader {
         this.hashGenerator = hashGenerator;
         this.persistenceService = persistenceService;
         this.thumbnailMapper = thumbnailMapper;
-        cacheOrLoad = mf -> getCachedValue(mf).or(() -> persistenceService.findByPathOrId(mf)
-                                                                          .map(t -> {
-                                                                              thCache.put(mf, t);
-                                                                              return t;
-                                                                          }))
-                                              .map(Either::<Exception, Thumbnail>right)
-                                              .orElseGet(() -> Either.left(new IllegalArgumentException(STR."Cannot find thumbnail for: '\{mf.getFullPath()}', id: '\{mf.getId()}'")));
+        cacheOrLoad = mf -> EitherUtils.of(getCachedValue(mf).or(() -> persistenceService.findByPathOrId(mf)
+                                                                                         .map(t -> {
+                                                                                             thCache.put(mf, t);
+                                                                                             return t;
+                                                                                         }))
+                , () -> new IllegalArgumentException(STR."Cannot find thumbnail for: '\{mf.getFullPath()}', id: '\{mf.getId()}'"));
     }
 
 

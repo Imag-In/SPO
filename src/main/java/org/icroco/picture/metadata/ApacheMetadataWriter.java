@@ -26,6 +26,7 @@ import org.icroco.picture.metadata.xmp.XMPBasicSchema;
 import org.icroco.picture.model.ERating;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.Keyword;
+import org.icroco.picture.util.EitherUtils;
 import org.icroco.picture.util.LangUtils;
 import org.icroco.picture.util.SpoException;
 import org.jooq.lambda.function.Consumer3;
@@ -56,16 +57,13 @@ public class ApacheMetadataWriter implements IMetadataWriter {
 
     @Override
     @SneakyThrows
-    public Either<Exception, Path> setOrignialDate(Path path, LocalDateTime date) {
-        try {
-            // WARN: Could use a lot of memory, but mandaroty with Imaging, otherwize we need to copy the file.
+    public Either<Throwable, Path> setOrignialDate(Path path, LocalDateTime date) {
+        return EitherUtils.ofCallable(() -> {
             final byte[] source = Files.readAllBytes(path);
             addExifTags(source, path, List.of((_, exif, _) -> updateOriginalDate(exif, date)));
 
-            return Either.right(path);
-        } catch (Exception e) {
-            return Either.left(e);
-        }
+            return path;
+        });
     }
 
     @SneakyThrows
@@ -78,16 +76,13 @@ public class ApacheMetadataWriter implements IMetadataWriter {
     }
 
     @Override
-    public Either<Exception, Path> setOrientation(Path path, ERotation orientation) {
-        try {
-            // WARN: Could use a lot of memory, but mandaroty with Imaging, otherwize we need to copy the file.
+    public Either<Throwable, Path> setOrientation(Path path, ERotation orientation) {
+        return EitherUtils.ofCallable(() -> {
             final byte[] source = Files.readAllBytes(path);
             addExifTags(source, path, List.of((root, _, _) -> updateOrientation(root, orientation.getOrientation())));
 
-            return Either.right(path);
-        } catch (Exception e) {
-            return Either.left(e);
-        }
+            return path;
+        });
     }
 
     @SneakyThrows
@@ -130,15 +125,13 @@ public class ApacheMetadataWriter implements IMetadataWriter {
     }
 
     @Override
-    public Either<Exception, Path> setRating(Path path, ERating rating) {
-        try {
+    public Either<Throwable, Path> setRating(Path path, ERating rating) {
+        return EitherUtils.ofCallable(() -> {
             addXmpTags(Files.readAllBytes(path),
                        path,
                        List.of(xmpMetaData -> updateRating(false, xmpMetaData, rating)));
-            return Either.right(path);
-        } catch (Exception e) {
-            return Either.left(e);
-        }
+            return path;
+        });
     }
 
     @SneakyThrows
@@ -148,8 +141,8 @@ public class ApacheMetadataWriter implements IMetadataWriter {
     }
 
     @Override
-    public Either<Exception, Path> setThumbnail(Path path, byte[] thumbnail) {
-        try {
+    public Either<Throwable, Path> setThumbnail(Path path, byte[] thumbnail) {
+        return EitherUtils.ofCallable(() -> {
             var current = getImageAndMetadata(path);
 
             // Get the writer
@@ -180,10 +173,8 @@ public class ApacheMetadataWriter implements IMetadataWriter {
             } finally {
                 writer.dispose();
             }
-            return Either.right(path);
-        } catch (Exception e) {
-            return Either.left(e);
-        }
+            return path;
+        });
     }
 
     record ImageAndMetadata(BufferedImage image, IIOMetadata metadata) {
