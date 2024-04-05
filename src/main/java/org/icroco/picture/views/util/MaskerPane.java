@@ -3,46 +3,63 @@ package org.icroco.picture.views.util;
 import atlantafx.base.controls.RingProgressIndicator;
 import atlantafx.base.util.Animations;
 import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.concurrent.Task;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.views.task.ModernTask;
+import org.icroco.picture.views.task.TaskService;
+
+import java.util.function.Supplier;
 
 @Slf4j
-public class MaskerPane<T extends Node> {
+public class MaskerPane<T extends Node> extends StackPane {
     private final RingProgressIndicator ring = new RingProgressIndicator(0, false);
     private final Pane                  progressPane;
-    @Getter
-    private final StackPane             rootContent;
-    @Getter
+    //    @Getter
+//    private final StackPane             rootContent;
+//    @Getter
     private       T                     content;
     private final boolean               wrapSp;
 
 
-    public MaskerPane() {
-        this(new StackPane(), false);
-    }
+//    public MaskerPane() {
+//        this(new StackPane(), false);
+//    }
 
-    public MaskerPane(boolean wrapIntoScrollPane) {
-        this(new StackPane(), wrapIntoScrollPane);
-    }
+//    public MaskerPane(boolean wrapIntoScrollPane) {
+//        this(new StackPane(), wrapIntoScrollPane);
+//    }
 
-    public MaskerPane(StackPane rootContent, boolean wrapIntoScrollPane) {
+    public MaskerPane(T content, boolean wrapIntoScrollPane) {
+        this.content = content;
+        this.setAlignment(Pos.CENTER);
+//        glass.getStyleClass().add("masker-glass"); //$NON-NLS-1$
+        this.setFocusTraversable(false);
         progressPane = createMasker();
-        this.rootContent = rootContent;
-        this.rootContent.getChildren().add(progressPane);
-        this.rootContent.setId("maskerRootPane"); // TODO: Remove / replace by class
+        this.getChildren().addAll(progressPane, wrapIntoScrollPane ? new ScrollPane(content) : content);
+        this.setId("maskerRootPane"); // TODO: Remove / replace by class
         wrapSp = wrapIntoScrollPane;
         progressPane.setVisible(false);
     }
 
-    public void setContent(T content) {
-        this.content = content;
-        rootContent.getChildren().addLast(wrapSp ? new ScrollPane(content) : content);
+//    public void setContent(T content) {
+//        this.content = content;
+//        rootContent.getChildren().addLast(wrapSp ? new ScrollPane(content) : content);
+//    }
+
+    public <R> Task<R> execute(TaskService service, Supplier<R> task) {
+        start();
+        var uiTask = ModernTask.<R>builder()
+                               .execute(_ -> task.get())
+                               .onFinished(this::stop)
+                               .build();
+        service.supply(uiTask, false);
+        return uiTask;
     }
 
     public void start(ReadOnlyDoubleProperty doubleProperty) {
@@ -54,7 +71,7 @@ public class MaskerPane<T extends Node> {
     public void start() {
         progressPane.setVisible(true);
 //        progressPane.setOpacity(.5);
-        content.setOpacity(0.5);
+        content.setOpacity(0.4);
         if (!ring.progressProperty().isBound()) {
             ring.setProgress(-1D);
         }
@@ -64,7 +81,7 @@ public class MaskerPane<T extends Node> {
         ring.progressProperty().unbind();
         progressPane.setVisible(false);
 //        ring.setProgress(1);
-        var t = Animations.fadeIn(content, Duration.millis(1000));
+        var t = Animations.fadeIn(content, Duration.millis(500));
         t.playFromStart();
         t.setOnFinished(_ -> ring.setProgress(0));
     }
@@ -84,13 +101,7 @@ public class MaskerPane<T extends Node> {
         hBox.setAlignment(Pos.CENTER);
         hBox.getChildren().addAll(vBox);
 
-        StackPane glass = new StackPane();
-        glass.setAlignment(Pos.CENTER);
-//        glass.getStyleClass().add("masker-glass"); //$NON-NLS-1$
-        glass.getChildren().add(hBox);
-
-        glass.setFocusTraversable(false);
-        return glass;
+        return hBox;
     }
 
     private Label createLabel() {

@@ -20,6 +20,6 @@ public record Dimension(int width, int height) {
         if (width <= 0 || height <= 0) {
             return "-";
         }
-        return width + " x " + height;
+        return STR."\{width} x \{height}";
     }
 }

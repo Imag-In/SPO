@@ -14,6 +14,7 @@ import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.StageRepository;
 import org.icroco.picture.views.pref.UserPreferenceService;
+import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.FxPlatformExecutor;
 import org.icroco.picture.views.util.MediaLoader;
 import org.icroco.picture.views.util.widget.ZoomDragPane;
@@ -22,8 +23,10 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class DiffWindow {
+    private final TaskService taskService;
     private final UserPreferenceService userPrefSvc;
     private final StageRepository       stageRepository;
+    private final MediaLoader mediaLoader;
 
     private final HBox         hBox  = new HBox();
     private final Scene        scene = new Scene(hBox);
@@ -35,12 +38,14 @@ public class DiffWindow {
 //    private ImageView    left;
 //    private ImageView right;
 
-    private final MediaLoader mediaLoader;
 
-    public DiffWindow(MediaLoader mediaLoader, UserPreferenceService userPrefSvc, StageRepository stageRepository) {
+    public DiffWindow(TaskService taskService,
+                      UserPreferenceService userPrefSvc,
+                      StageRepository stageRepository,
+                      MediaLoader mediaLoader) {
         this.userPrefSvc = userPrefSvc;
         this.stageRepository = stageRepository;
-        log.info("Constructor Diff");
+        this.taskService = taskService;
         this.mediaLoader = mediaLoader;
 
         left = new ZoomDragPane();
@@ -70,6 +75,7 @@ public class DiffWindow {
             stage.setScene(scene);
             stage.setTitle("Compare images");
             stage.initModality(Modality.NONE);
+            stageRepository.addStage(stage);
             hBox.maxHeightProperty().bind(stage.heightProperty());
             hBox.maxWidthProperty().bind(stage.widthProperty());
 //            left.setPreserveRatio(true);
@@ -79,7 +85,6 @@ public class DiffWindow {
 //            right.fitHeightProperty().bind(stage.heightProperty());
 //            right.fitWidthProperty().bind(stage.widthProperty().divide(2));
             stage.heightProperty().addListener((_, _, newValue) -> {
-                log.warn("new height: {}", newValue);
                 hBox.setPrefHeight(newValue.doubleValue());
                 left.setPrefHeight(newValue.doubleValue());
                 right.setPrefHeight(newValue.doubleValue());
@@ -90,7 +95,6 @@ public class DiffWindow {
             });
             stage.widthProperty().addListener((_, _, newValue) -> {
                 var size = newValue.doubleValue() / 2D;
-                log.warn("new width: {}", size);
                 hBox.setPrefWidth(newValue.doubleValue());
                 left.setPrefWidth(size);
                 right.setPrefWidth(size);
@@ -100,7 +104,6 @@ public class DiffWindow {
                 right.setMinWidth(size);
             });
             userPrefSvc.getUserPreference().getDiffWindow().restoreWindowDimension(stage);
-            stageRepository.addStage(stage);
         }
     }
 
@@ -113,10 +116,15 @@ public class DiffWindow {
         log.info("Update images: {}", event);
         stage.show();
         if (event.getLeft() != null) {
-            mediaLoader.getOrLoadImage2(event.getLeft(), this::updateLeft);
+            left.clearImage();
+            left.setImage(taskService, mediaLoader, event.getLeft());
+//            mediaLoader.getOrLoadImage2(event.getLeft(), this::updateLeft);
         }
         if (event.getRight() != null) {
-            mediaLoader.getOrLoadImage2(event.getRight(), this::updateRight);
+            right.clearImage();
+            right.setImage(taskService, mediaLoader, event.getRight());
+
+//            mediaLoader.getOrLoadImage2(event.getRight(), this::updateRight);
         }
     }
 
@@ -128,10 +136,12 @@ public class DiffWindow {
 //        left.setViewport(rect);
 //        left.setImage(image);
         left.setImage(mediaFile, image);
+        stage.toFront();
     }
 
     private void updateRight(MediaFile mediaFile, Image image) {
 //        right.setImage(image);
         right.setImage(mediaFile, image);
+        stage.toFront();
     }
 }

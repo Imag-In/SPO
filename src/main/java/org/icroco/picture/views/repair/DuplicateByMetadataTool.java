@@ -53,11 +53,11 @@ public class DuplicateByMetadataTool implements RepairTool {
     private final PersistenceService persistenceService;
     private final I18N        i18N;
 
-    private final VBox  vb      = new VBox();
+    private final VBox root = new VBox();
     private final Label lbNbDup = new Label("");
 
     private       TreeTableView<TableRow> treeTableHash;
-    private final MaskerPane<VBox> maskerPane = new MaskerPane<>();
+    private final MaskerPane<VBox> maskerPane;
     private final CollectionPicker collectionPicker;
 
     public DuplicateByMetadataTool(TaskService taskService,
@@ -69,6 +69,7 @@ public class DuplicateByMetadataTool implements RepairTool {
         this.persistenceService = persistenceService;
         this.i18N = i18N;
         this.collectionPicker = new CollectionPicker(persistenceService, i18N, 300);
+        maskerPane = new MaskerPane<>(root, false);
     }
 
     public enum EViewMode {
@@ -155,22 +156,21 @@ public class DuplicateByMetadataTool implements RepairTool {
         hbResults.setSpacing(15);
         hbResults.setAlignment(Pos.CENTER_LEFT);
 
-        vb.setSpacing(10);
-        vb.setPrefWidth(400);
-        HBox.setHgrow(vb, Priority.ALWAYS);
+        root.setSpacing(10);
+        root.setPrefWidth(400);
+        HBox.setHgrow(root, Priority.ALWAYS);
 
         treeTableHash = createTreeTable();
-        vb.getChildren().addAll(hbButton, hbResults, treeTableHash);
+        root.getChildren().addAll(hbButton, hbResults, treeTableHash);
         VBox.setVgrow(treeTableHash, Priority.ALWAYS);
-        StackPane.setAlignment(vb, Pos.TOP_CENTER);
+        StackPane.setAlignment(root, Pos.TOP_CENTER);
 
         Platform.runLater(() -> {
             var underConstruction = new Image("/images/under-construction.png", 200, -1, true, true);
             var view              = new ImageView(underConstruction);
             StackPane.setAlignment(view, Pos.TOP_RIGHT);
-            maskerPane.getRootContent().getChildren().add(view);
+            maskerPane.getChildren().add(view);
         });
-        maskerPane.setContent(vb);
     }
 
     private List<HashDuplicate> findDuplicates() {
@@ -303,7 +303,7 @@ public class DuplicateByMetadataTool implements RepairTool {
 
     @Override
     public Node getView() {
-        return maskerPane.getRootContent();
+        return maskerPane;
     }
 
     @Override

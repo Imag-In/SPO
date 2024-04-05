@@ -17,7 +17,9 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.ERotation;
 import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.MaskerPane;
+import org.icroco.picture.views.util.MediaLoader;
 import org.springframework.lang.Nullable;
 
 import java.nio.file.Path;
@@ -54,7 +56,7 @@ public class ZoomDragPane extends BorderPane {
     private       MediaFile             mediaFile      = null;
     private final SimpleBooleanProperty extendViewport = new SimpleBooleanProperty(false);
     @Getter
-    private final MaskerPane<ImageView> maskerPane     = new MaskerPane<>(false);
+    private final MaskerPane<ImageView> maskerPane;
 
     public ZoomDragPane() {
         setId("zoomDragPane");
@@ -68,8 +70,8 @@ public class ZoomDragPane extends BorderPane {
 
 //        view.fitHeightProperty().bind(prefHeightProperty());
 //        view.fitWidthProperty().bind(prefWidthProperty());
-        maskerPane.setContent(view);
-        setCenter(maskerPane.getContent());
+        maskerPane = new MaskerPane<>(view, false);
+        setCenter(maskerPane);
         setImage(null, null);
 
         /*
@@ -101,6 +103,24 @@ public class ZoomDragPane extends BorderPane {
 //                view.setViewport(new Rectangle2D(0, 0, imageWidth, imageHeight));
 //            }
         }
+    }
+
+    public void setImage(TaskService taskService, MediaLoader mediaLoader, MediaFile mediaFile) {
+        mediaLoader.getCachedImage(mediaFile)
+                   .or(() -> {
+                       log.info("Image not present loading ...");
+                       var task = maskerPane.execute(taskService, () -> mediaLoader.getImage(mediaFile));
+                       task.setOnSucceeded(_ -> setImage(mediaFile, task.getValue()));
+                       return Optional.empty();
+                   })
+                   .ifPresent(image -> setImage(mediaFile, image));
+    }
+
+    public void clearImage() {
+        view.setViewport(null);
+        view.setVisible(false);
+        imageHeight = getPrefHeight();
+        imageWidth = getPrefWidth();
     }
 
     public final void setImage(MediaFile mediaFile, @Nullable Image image) {

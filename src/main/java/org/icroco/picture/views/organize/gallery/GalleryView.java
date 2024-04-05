@@ -33,6 +33,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
 import org.icroco.picture.event.*;
@@ -88,7 +89,6 @@ public class GalleryView implements FxView<StackPane> {
     private final MediaLoader mediaLoader;
     private final UserPreferenceService pref;
     private final TaskService           taskService;
-    //    @Qualifier(OrganizeConfiguration.GALLERY_ZOOM)
     private       ZoomDragPane          photo;
     private final PersistenceService    persistenceService;
     private final GalleryFilterView     filterView;
@@ -100,22 +100,21 @@ public class GalleryView implements FxView<StackPane> {
     private final BorderPane                            carousel       = new BorderPane();
     private final Slider                                zoomThumbnails = createTickSlider();
     private final Breadcrumbs<Path>                     breadCrumbBar  = new Breadcrumbs<>();
-    private       CustomGridView<MediaFile>             gridView;
-    //    private final StackPane                             photoContainer = new StackPane();
     private final BooleanProperty                       expandCell     = new SimpleBooleanProperty(true);
     private final ObservableList<MediaFile>             images         = FXCollections.observableArrayList(MediaFile.extractor());
     private final DynamicFilteredList<MediaFile>        filteredImages = new DynamicFilteredList<>(images);
     private final SortedList<MediaFile>                 sortedImages   = new SortedList<>(filteredImages);
     private final SimpleObjectProperty<MediaCollection> currentCatalog = new SimpleObjectProperty<>(null);
     private final SimpleBooleanProperty                 mouseMoved     = new SimpleBooleanProperty(true);
+    private       CustomGridView<MediaFile>             gridView;
 
     private       EGalleryClickState dblCickState = EGalleryClickState.GALLERY;
+    private final FontIcon  editOn    = new FontIcon(CarbonIcons.EDIT);
+    private final FontIcon  editOff   = new FontIcon(CarbonIcons.EDIT_OFF);
+    private final FontIcon  blockIcon = new FontIcon(Material2OutlinedAL.BLOCK);
+    private final Label     editCell  = new Label();
+    private final ModalPane modalPane = new ModalPane();
     private       HBox               toolBar;
-    private final FontIcon           editOn       = new FontIcon(CarbonIcons.EDIT);
-    private final FontIcon           editOff      = new FontIcon(CarbonIcons.EDIT_OFF);
-    private final FontIcon           blockIcon    = new FontIcon(Material2OutlinedAL.BLOCK);
-    private final Label              editCell     = new Label();
-    private final ModalPane          modalPane    = new ModalPane();
 
 
     //    private final Label dateOverlay = new Label("Display Date");
@@ -774,11 +773,23 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     public void diffRight(KeyEvent keyEvent) {
-        taskService.sendEvent(ShowDiffEvent.builder().right(gridView.getSelectionModel().getSelectedItem()).source(this).build());
+        taskService.sendEvent(ShowDiffEvent.builder().right(gridView.getSelectionModel().getSelectedItem()).source(this).build())
+                   .thenAccept(_ -> setFocus());
     }
 
     public void diffLeft(KeyEvent keyEvent) {
-        taskService.sendEvent(ShowDiffEvent.builder().left(gridView.getSelectionModel().getSelectedItem()).source(this).build());
+        taskService.sendEvent(ShowDiffEvent.builder().left(gridView.getSelectionModel().getSelectedItem()).source(this).build())
+                   .thenAccept(_ -> setFocus());
+    }
 
+    private void setFocus() {
+        FxPlatformExecutor.fxRun(() -> {
+            ((Stage) root.getScene().getWindow()).toFront();
+            root.getScene().getWindow().requestFocus();
+            switch (dblCickState) {
+                case GALLERY -> gallery.requestFocus();
+                case IMAGE, IMAGE_BACK, ZOOM -> photo.requestFocus();
+            }
+        });
     }
 }

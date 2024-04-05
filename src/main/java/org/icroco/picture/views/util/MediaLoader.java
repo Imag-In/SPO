@@ -174,6 +174,7 @@ public class MediaLoader {
         });
     }
 
+    @Deprecated
     public void getOrLoadImage(final MediaFile mediaFile) {
         if (mediaFile == null) {
             return;
@@ -223,22 +224,26 @@ public class MediaLoader {
     }
 
 
+    public Image getImage(MediaFile mediaFile) {
+        return getCachedImage(mediaFile).orElseGet(() -> {
+            var image = new Image(mediaFile.getFullPath().toUri().toString(),
+                                  0,
+                                  0,
+                                  true,
+                                  false,
+                                  false);
+            imagesCache.put(mediaFile, image);
+            return image;
+        });
+    }
+
     public void getOrLoadImage2(final MediaFile mediaFile, @NonNull BiConsumer<MediaFile, Image> fxImageConsumer) {
         if (mediaFile == null) {
             return;
         }
 
         taskService.supply(ModernTask.<Image>builder()
-                                     .execute(_ -> getCachedImage(mediaFile).orElseGet(() -> {
-                                         var image = new Image(mediaFile.getFullPath().toUri().toString(),
-                                                               0,
-                                                               0,
-                                                               true,
-                                                               false,
-                                                               false);
-                                         imagesCache.put(mediaFile, image);
-                                         return image;
-                                     }))
+                                     .execute(_ -> getImage(mediaFile))
                                      .onSuccess((_, image) -> fxImageConsumer.accept(mediaFile, image))
                                      .build(),
                            false);
