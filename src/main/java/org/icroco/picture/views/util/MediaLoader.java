@@ -627,7 +627,7 @@ public class MediaLoader {
     private void generateThumbnails(final MediaCollection mediaCollection,
                                     final Collection<MediaFile> mediaFiles,
                                     boolean forceGenerateAll) {
-        Thread.ofVirtual().name("extract-thumbails")
+        Thread.ofVirtual().name("generate-thumbails")
               .start(() -> {
                   final var start = System.currentTimeMillis();
                   final var mfFiltered = forceGenerateAll

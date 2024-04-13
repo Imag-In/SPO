@@ -1,44 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-    <component name="DatabaseMigrationSettings" lastSelectedDirectory="src/main/resources/db/migration">
-        <database-infos>
-            <database-info>
-                <dbms-id>h2</dbms-id>
-                <mapping-types>
-                    <mapping-type sql-type-parameter="Nothing">
-                        <java-class>org.icroco.picture.persistence.model.PathType</java-class>
-                        <sql-type>varchar</sql-type>
-                    </mapping-type>
-                </mapping-types>
-            </database-info>
-            <database-info>
-                <dbms-id>db2</dbms-id>
-                <mapping-types>
-                    <mapping-type sql-type-parameter="Nothing">
-                        <java-class>java.nio.file.Path</java-class>
-                        <sql-type>varchar</sql-type>
-                    </mapping-type>
-                </mapping-types>
-            </database-info>
-        </database-infos>
-    </component>
-    <component name="JpaPluginProjectSettings" reExcludeTablePrefixes="" reExcludeColumnPrefixes="" reExcludeTableSuffixes=""
-               reExcludeColumnSuffixes="" mapperMethodToDtoPattern="toDomain">
-        <option name="entityNameTemplate"/>
-        <option name="tableNameTemplate" value="${className.underscore().toUpperCase()}"/>
-        <option name="columnNameTemplate" value="${fieldName.underscore().toUpperCase()}"/>
-        <option name="indexCase" value="upper"/>
-        <option name="scaffoldingLanguage"/>
-    </component>
-    <component name="PersistenceUnitSettings">
-        <persistence-units>
-            <persistence-unit name="Default" defaultSearchScope="Project">
-                <packages>
-                    <package value="org.icroco.picture.persistence"/>
-                </packages>
-            </persistence-unit>
-        </persistence-units>
-    </component>
     <component name="ReverseEngineeringSettings">
         <database-infos>
             <database-info dbms-id="h2">
