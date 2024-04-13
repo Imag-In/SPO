@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.icroco.imagin</groupId>
   <artifactId>spo</artifactId>
-  <version>1.1.2-SNAPSHOT</version>
+  <version>1.1.3-SNAPSHOT</version>
   <description>Simple tool to import, sort, filter, organize your photos.</description>
 
   <properties>
@@ -41,7 +41,7 @@
     <lombok.version>1.18.30</lombok.version>
     <mainClass>org.icroco.picture.ImagInApp</mainClass>
     <mapstruct.version>1.5.5.Final</mapstruct.version>
-      <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
     <maven-dependency-plugin.version>3.6.1</maven-dependency-plugin.version>
     <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
     <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
@@ -63,18 +63,18 @@
     <resource.delimiter>@</resource.delimiter>
     <sass-cli-maven-plugin.version>1.0.3</sass-cli-maven-plugin.version>
     <scenicview.version>17.0.2</scenicview.version>
-      <semver4j.version>5.2.3</semver4j.version>
-      <sortpom-maven-plugin.version>3.4.1</sortpom-maven-plugin.version>
+    <semver4j.version>5.2.3</semver4j.version>
+    <sortpom-maven-plugin.version>3.4.1</sortpom-maven-plugin.version>
     <spo.appName>Simple Photo Organizer</spo.appName>
     <spo.vendor>Imge'In</spo.vendor>
     <spring-boot-javafx-starter.version>1.0.4-SNAPSHOT</spring-boot-javafx-starter.version>
-      <spring-boot.version>3.2.4</spring-boot.version>
+    <spring-boot.version>3.2.4</spring-boot.version>
     <threeten-extra.version>1.7.2</threeten-extra.version>
     <thumbnailator.version>0.4.20</thumbnailator.version>
     <usbdrivedetector.version>2.2.1</usbdrivedetector.version>
-      <validatorfx.version>0.5.0</validatorfx.version>
+    <validatorfx.version>0.5.0</validatorfx.version>
     <versions-maven-plugin.version>2.16.2</versions-maven-plugin.version>
-      <virtualizedfx.version>21.4.0</virtualizedfx.version>
+    <virtualizedfx.version>21.4.0</virtualizedfx.version>
     <wellbehavedfx.version>0.3.3</wellbehavedfx.version>
   </properties>
 
