@@ -33,22 +33,21 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
 
     @Override
     public GridCell<MediaFile> call(final GridView<MediaFile> grid) {
-        final var
-                cell =
-                new MediaFileGridCell(taskService,
-                                      true,
-                                      mediaLoader,
-                                      isExpandCell,
-                                      currentMediaCollection,
-                                      (CustomGridView<MediaFile>) grid,
-                                      isEditable);
+        final var cell = new MediaFileGridCell(taskService,
+                                               true,
+                                               mediaLoader,
+                                               isExpandCell,
+                                               currentMediaCollection,
+                                               (CustomGridView<MediaFile>) grid,
+                                               isEditable);
 
         cell.setAlignment(Pos.CENTER);
         cell.setEditable(false);
-        cell.setOnMouseClicked(e -> callBack.accept(e, cell));
+//        cell.setOnMouseClicked(e -> callBack.accept(e, cell));
         cell.addEventHandler(CustomMouseEvent.MOUSE_DOUBLE_CLICKED, e -> callBack.accept(e, cell));
+        cell.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> callBack.accept(e, cell));
 
-        cell.itemProperty().addListener((ov, oldMediaItem, newMediaItem) -> {
+        cell.itemProperty().addListener((_, oldMediaItem, newMediaItem) -> {
 //            log.info("old: {}, new: {}", oldMediaItem, newMediaItem);
 //            if (newMediaItem != null && oldMediaItem == null) {
             if (newMediaItem != null && (oldMediaItem == null || !oldMediaItem.getHash().equals(newMediaItem.getHash()))) {

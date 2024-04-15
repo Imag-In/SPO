@@ -8,6 +8,7 @@ import com.dlsc.gemsfx.TagsField;
 import jakarta.annotation.PostConstruct;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
@@ -81,11 +82,12 @@ public class DetailsView extends AbstractView<VBox> {
     private final MediaLoader           mediaLoader;
     private final Env                   env;
     private final PersistenceService    persistenceService;
-    private final IKeywordManager     keywordManager;
-    private final I18N                i18N;
+    private final IKeywordManager keywordManager;
+    private final I18N            i18N;
     @Qualifier(OrganizeConfiguration.ORGANIZE_EDIT_MODE)
     private final SimpleBooleanProperty editMode;
-    private       MaskerPane<TabPane> maskerPane;
+
+    private       MaskerPane<ScrollPane> maskerPane;
     private final VBox                root                = new VBox();
     private final Label               name                = createLabel();
     private final Label               dbId                = createLabel(0, 100);
@@ -103,7 +105,7 @@ public class DetailsView extends AbstractView<VBox> {
     //    private final Label                 keywords            = createLabel();
     private final TagsField<Keyword>  keywords            = new TagsField<>();
     private final Label               filePathError       = createLabel();
-    private       TabPane               tabs;
+    private       TabPane                tabs;
     private       Path                path                = null;
     private final Button              printImageDetails   = new Button(null, FontIcon.of(MaterialDesignC.CONSOLE_LINE));
     private final Button              refreshThumbnail    = new Button(null, FontIcon.of(MaterialDesignR.RESTART));
@@ -112,15 +114,15 @@ public class DetailsView extends AbstractView<VBox> {
     private final Button              editTime            = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
     private final Button              extractDateFromFile = new Button(null, FontIcon.of(MaterialDesignC.CALENDAR_CHECK_OUTLINE));
     private final FontIcon            filePathErrorIcon   = FontIcon.of(MaterialDesignL.LINK_OFF);
+    private final GridPane               gridFullDetails = new GridPane();
 
-    private final ChangeListener<LocalDateTime> reloadNeeded = this::reload;
-    private       MediaFile                     mediaFile    = null;
+    private final ChangeListener<LocalDateTime>   reloadNeeded      = this::reload;
+    private       SimpleObjectProperty<MediaFile> mediaFileProperty = new SimpleObjectProperty<>(null);
 
     @PostConstruct
     private void postConstruct() {
         root.setId(ViewConfiguration.V_MEDIA_DETAILS);
         root.getStyleClass().add(ViewConfiguration.V_DETAILS);
-        root.setVisible(false);
         root.setPrefWidth(330);
 
         Tab info = new Tab("Info", createInfo());
@@ -135,11 +137,10 @@ public class DetailsView extends AbstractView<VBox> {
         tabs.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> selectTab(newValue));
         tabs.setFocusTraversable(false);
 
-        maskerPane = new MaskerPane<>(tabs, true);
-
         VBox.setVgrow(tabs, Priority.ALWAYS);
-        root.getChildren().add(maskerPane);
-        root.setFocusTraversable(false);
+
+        root.getChildren().add(tabs);
+        root.setVisible(false);
 
         originalDate.setConverter(new LocalDateStringConverter());
         originalDate.setEditable(false);
@@ -154,42 +155,44 @@ public class DetailsView extends AbstractView<VBox> {
 
     private void selectTab(Tab newValue) {
         if (newValue.getId().equals(IMAGE_METADATA_DETAILS)) {
-            maskerPane.start();
             var      directories = metadataExtractor.getAllByDirectory(path);
-            GridPane gp = (GridPane) tabs.getTabs().get(1).getContent();
-            gp.getChildren().clear();
+            gridFullDetails.getChildren().clear();
             int rowIdx = 0;
 
             for (var dir : directories) {
                 var dirLbl = createLabel(dir.simpleName(), 50, 300);
                 dirLbl.getStyleClass().add(Styles.TITLE_4);
                 dirLbl.setPadding(new Insets(0, 0, 5, 0));
-                gp.add(dirLbl, 0, rowIdx, 2, 1);
+                gridFullDetails.add(dirLbl, 0, rowIdx, 2, 1);
                 rowIdx += 2;
                 for (var d : dir.entries().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
                     Label label = createLabel(d.getValue().description(), 50, 150);
                     label.setTooltip(new Tooltip(STR."id: \{d.getKey().toString()}"));
                     label.getStyleClass().add(Styles.SMALL);
-                    gp.add(label, 0, rowIdx);
-                    gp.add(createTextField(Objects.toString(d.getValue().value()), 100, 150), 1, rowIdx);
+                    gridFullDetails.add(label, 0, rowIdx);
+                    gridFullDetails.add(createTextField(Objects.toString(d.getValue().value()), 100, 150), 1, rowIdx);
                     rowIdx++;
                 }
-                gp.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
+                gridFullDetails.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
                 rowIdx += 1;
             }
-            maskerPane.stop();
         }
     }
 
     private Node createFullDetails() {
-        GridPane grid = new GridPane();
-        grid.setAlignment(Pos.TOP_LEFT);
-        grid.setPadding(new Insets(10, 10, 10, 10));
+        gridFullDetails.setAlignment(Pos.TOP_LEFT);
+        gridFullDetails.setPadding(new Insets(10, 10, 10, 10));
 
-        return grid;
+        var sp = new ScrollPane(gridFullDetails);
+        sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+
+        maskerPane = new MaskerPane<>(sp);
+
+        return maskerPane;
     }
 
-    private GridPane createInfo() {
+    private Node createInfo() {
         GridPane grid = new GridPane();
         grid.setPadding(new Insets(10, 10, 10, 10));
         grid.setHgap(10);
@@ -234,7 +237,6 @@ public class DetailsView extends AbstractView<VBox> {
         grid.add(gps, 1, rowIdx);
         rowIdx += 2;
 
-
         grid.add(FontIcon.of(MaterialDesignC.CAMERA_OUTLINE), 0, rowIdx);
         grid.add(cameraMake, 1, rowIdx);
         rowIdx++;
@@ -253,12 +255,11 @@ public class DetailsView extends AbstractView<VBox> {
         grid.add(new Separator(Orientation.HORIZONTAL), 0, rowIdx, 2, 1);
         rowIdx += 1;
 
-        // Last one is indicator to alert if file path is not found.
+        // The Last one is indicator to alert if a file path is not found.
         grid.add(filePathErrorIcon, 0, rowIdx);
         grid.add(filePathError, 1, rowIdx);
 
         rowIdx += 1;
-
 
         // Thumbnail section
         grid.add(new Label("Thumbnail"), 0, rowIdx, 2, 1);
@@ -286,11 +287,16 @@ public class DetailsView extends AbstractView<VBox> {
         }
         grid.add(hb, 1, rowIdx);
 
-        return grid;
+        var sp = new ScrollPane(grid);
+        sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+
+        return sp;
     }
 
     void setBindings() {
         var notEditing = Bindings.not(editMode);
+        mediaFileProperty.addListener((_, oldValue, newValue) -> updateForm(oldValue, newValue));
 
         extractDateFromFile.setDisable(true);
         extractDateFromFile.disableProperty().bind(notEditing);
@@ -324,6 +330,7 @@ public class DetailsView extends AbstractView<VBox> {
         });
 
         editMode.addListener((_, _, newValue) -> { // Hack.
+            var mediaFile = mediaFileProperty.getValue();
             if (!newValue && mediaFile != null) {
                 var actions = new ArrayList<Consumer<MediaFile>>(5);
                 if (!CollectionUtils.containsAll(mediaFile.getKeywords(), keywords.getTags())) {
@@ -342,9 +349,18 @@ public class DetailsView extends AbstractView<VBox> {
                 }
             }
         });
+
+        refreshThumbnail.disableProperty().bind(Bindings.isEmpty(name.textProperty()));
+        printImageDetails.disableProperty().bind(Bindings.isEmpty(name.textProperty()));
+
+        name.textProperty().bind(mediaFileProperty.map(mf -> mf.getFullPath().getFileName().toString()).orElse(""));
+        dbId.textProperty().bind(mediaFileProperty.map(mf -> Long.toString(mf.getId())).orElse(""));
+
     }
 
+
     private void dateExtractedAction() {
+        var mediaFile = mediaFileProperty.getValue();
         FileUtil.extractDateTime(mediaFile.getFullPath())
                 .ifPresentOrElse(dt -> {
                     var pop = new Popover();
@@ -387,6 +403,7 @@ public class DetailsView extends AbstractView<VBox> {
 
     private void dateEditedAction() {
         var calendar = new Calendar();
+        var mediaFile = mediaFileProperty.getValue();
         calendar.setValue(mediaFile == null ? LocalDate.now() : mediaFile.getOriginalDate().toLocalDate());
 //            var calendar = new CalendarView();
 //            calendar.setShowTodayButton(true);
@@ -417,72 +434,77 @@ public class DetailsView extends AbstractView<VBox> {
 
     @FxEventListener
     public void updatePhotoSelected(PhotoSelectedEvent event) {
-        clearForm();
-        mediaFile = event.getMf();
-        if (mediaFile == null) {
-            return;
-        }
         log.debug("Print details for item: {}", event);
         if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
-            mediaFile.getLastUpdatedProperty().addListener(reloadNeeded);
-            printImageDetails.setOnMouseClicked(_ -> DefaultMetadataExtractor.printInformation(mediaFile.getFullPath()));
-            saveThumbnail.setTooltip(new Tooltip("Not Yet Implemented")); // I18N:
-            saveThumbnail.setOnMouseClicked(_ -> {
-                saveThumbnail.setDisable(true);
-                var task = ModernTask.builder()
-                                     .execute(self -> {
-                                         Optional.ofNullable(mediaFile)
-                                                 .map(MediaFile::getId)
-                                                 .flatMap(thumbnailRepository::findImageByMfId)// TODO: Look at cache level.
-                                                 .map(ThumbnailRepository.IdAndBytes::getImage)
-                                                 .ifPresent(bytes -> metadataWriter.setThumbnail(mediaFile.fullPath(), bytes));
-                                         return null;
-                                     })
-                                     .onFinished(() -> saveThumbnail.setDisable(false))
-                                     .build();
-                taskService.supply(task);
-            });
-            refreshThumbnail.setOnMouseClicked(_ -> taskService.sendEvent(ForceGenerateThumbnailEvent.builder()
-                                                                                                     .mediaFile(mediaFile)
-                                                                                                     .source(this)
-                                                                                                     .build()));
-            tabs.getSelectionModel().selectFirst();
-            fillForm();
-            root.setVisible(true);
+            mediaFileProperty.set(event.getMf());
+        } else {
+            mediaFileProperty.setValue(null);
         }
-        maskerPane.stop();
+    }
+
+    private void updateForm(MediaFile oldValue, MediaFile mediaFile) {
+        if (oldValue != null) {
+            oldValue.getLastUpdatedProperty().removeListener(reloadNeeded);
+        }
+        if (mediaFile == null) {
+            clearForm();
+            root.setVisible(false);
+            return;
+        }
+        root.setVisible(true);
+        clearForm();
+        mediaFile.getLastUpdatedProperty().addListener(reloadNeeded);
+        printImageDetails.setOnMouseClicked(_ -> DefaultMetadataExtractor.printInformation(mediaFile.getFullPath()));
+        saveThumbnail.setTooltip(new Tooltip("Not Yet Implemented")); // I18N:
+        saveThumbnail.setOnMouseClicked(_ -> {
+            saveThumbnail.setDisable(true);
+            var task = ModernTask.builder()
+                                 .execute(_ -> {
+                                     Optional.of(mediaFile)
+                                             .map(MediaFile::getId)
+                                             .flatMap(thumbnailRepository::findImageByMfId)// TODO: Look at cache level.
+                                             .map(ThumbnailRepository.IdAndBytes::getImage)
+                                             .ifPresent(bytes -> metadataWriter.setThumbnail(mediaFile.fullPath(), bytes));
+                                     return null;
+                                 })
+                                 .onFinished(() -> saveThumbnail.setDisable(false))
+                                 .build();
+            taskService.supply(task);
+        });
+        refreshThumbnail.setOnMouseClicked(_ -> taskService.sendEvent(ForceGenerateThumbnailEvent.builder()
+                                                                                                 .mediaFile(mediaFile)
+                                                                                                 .source(this)
+                                                                                                 .build()));
+        tabs.getSelectionModel().selectFirst();
+        fillForm();
+//            root.setVisible(true);
+//        maskerPane.stop();
     }
 
     private void clearForm() {
-        if (mediaFile != null) {
-            mediaFile.getLastUpdatedProperty().removeListener(reloadNeeded);
-        }
         rating.setValue(ERating.ABSENT);
         printImageDetails.setOnMouseClicked(null);
         refreshThumbnail.setOnMouseClicked(null);
         saveThumbnail.setOnMouseClicked(null);
-        root.setVisible(false);
-        thumbnailType.setText(EThumbnailType.ABSENT.toString());
-        thumbnailSize.setText("");
         size.setText("");
         gps.setText("");
         orientation.setText("");
         cameraMake.setText("");
         cameraModel.setText("");
-//        keywords.setText("");
         keywords.clear();
         keywords.clearTags();
-        thumbnailSize.setText("");
         creationTime.textProperty().unbind();
         creationTime.setText("");
         creationDate.textProperty().unbind();
         creationDate.setText("");
-        mediaFile = null;
         filePathErrorIcon.setVisible(false);
         filePathError.setText("");
+        thumbnailType.setText(EThumbnailType.ABSENT.toString());
+        thumbnailSize.setText("");
     }
 
     private void fillForm() {
+        var mediaFile = mediaFileProperty.getValue();
         mediaLoader.getCachedValue(mediaFile).ifPresent(t -> {
             thumbnailType.setText(mediaFile.getThumbnailType()
                                            .toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
@@ -490,8 +512,7 @@ public class DetailsView extends AbstractView<VBox> {
         });
         rating.setValue(mediaFile.getRating());
 //        log.info("Header: {}", metadataExtractor.header(mediaFile.getFullPath()));
-        dbId.setText(Long.toString(mediaFile.getId()));
-        name.setText(mediaFile.getFileName());
+//        name.setText(mediaFile.getFileName());
 //        log.info("MIN: {}, current: {}", LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.ofHours(0)), mediaFile.originalDate());
 //        if (!mediaFile.originalDate().isEqual(LocalDateTime.MIN)) {
 //            creationDate.setText(dateTimeFormatter.format(mediaFile.originalDate()));

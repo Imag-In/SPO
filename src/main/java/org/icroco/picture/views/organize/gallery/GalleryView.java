@@ -97,7 +97,7 @@ public class GalleryView implements FxView<StackPane> {
 
     private final StackPane                             root           = new StackPane();
     private final BorderPane                            gallery        = new BorderPane();
-    private final BorderPane                            carousel       = new BorderPane();
+    //    private final BorderPane                            carousel       = new BorderPane();
     private final Slider                                zoomThumbnails = createTickSlider();
     private final Breadcrumbs<Path>                     breadCrumbBar  = new Breadcrumbs<>();
     private final BooleanProperty                       expandCell     = new SimpleBooleanProperty(true);
@@ -192,13 +192,13 @@ public class GalleryView implements FxView<StackPane> {
                                                              editMode));
         gridView.setOnZoom(this::zoomOnGrid);
         currentCatalog.addListener(this::collectionChanged);
-        carousel.addEventHandler(CustomMouseEvent.MOUSE_DOUBLE_CLICKED, this::onImageClick);
-        carousel.setId("Carousel");
+//        carousel.addEventHandler(CustomMouseEvent.MOUSE_DOUBLE_CLICKED, this::onImageClick);
+//        carousel.setId("Carousel");
 
         photo = new ZoomDragPane();
-        carousel.setCenter(photo);
-        photo.maxHeightProperty().bind(carousel.heightProperty());
-        photo.maxWidthProperty().bind(carousel.widthProperty());
+//        carousel.setCenter(photo);
+        photo.maxHeightProperty().bind(root.heightProperty());
+        photo.maxWidthProperty().bind(root.widthProperty());
 
         breadCrumbBar.setCrumbFactory(item -> new Hyperlink(item.getValue().getFileName().toString()));
         breadCrumbBar.setAutoNavigationEnabled(false);
@@ -219,9 +219,9 @@ public class GalleryView implements FxView<StackPane> {
         gallery.getStyleClass().setAll("gallery-center");
         gallery.setCenter(gridView);
         gallery.setBottom(toolBar);
-        carousel.setVisible(false);
+        photo.setVisible(false);
         StackPane.setAlignment(dateOverlay, Pos.TOP_LEFT);
-        root.getChildren().addAll(modalPane, gallery, carousel, dateOverlay);
+        root.getChildren().addAll(modalPane, gallery, photo, dateOverlay);
 
 
         ofNullable(pref.getUserPreference().getGrid().getCellPerRow()).ifPresent(zoomThumbnails::setValue);
@@ -406,6 +406,7 @@ public class GalleryView implements FxView<StackPane> {
     }
 
     private void onImageClick(MouseEvent event) {
+        log.info("DblClick: {}", event);
         if (event.getClickCount() == 2 && event.getButton() == MouseButton.PRIMARY) {
             displayNext(null);
             event.consume();
@@ -433,12 +434,12 @@ public class GalleryView implements FxView<StackPane> {
                 if (prev == EGalleryClickState.GALLERY) {
                     gallery.setVisible(false);
                     photo.setImage(null, null);
-                    carousel.setVisible(true);
+                    photo.setVisible(true);
                     mediaLoader.getOrLoadImage(mf);
                 } else {
                     photo.noZoom();
                     gallery.setVisible(false);
-                    carousel.setVisible(true);
+                    photo.setVisible(true);
                 }
             }
             case ZOOM -> {
@@ -450,10 +451,10 @@ public class GalleryView implements FxView<StackPane> {
 
     private void displayGallery(MediaFile mf) {
         dblCickState = EGalleryClickState.GALLERY;
-        Timeline timeline1 = Animations.fadeOut(carousel, Duration.millis(500));
+        Timeline timeline1 = Animations.fadeOut(photo, Duration.millis(500));
         timeline1.setOnFinished(_ -> {
             gallery.setVisible(true);
-            carousel.setVisible(false);
+            photo.setVisible(false);
             if (mf != null) {
                 gallery.requestFocus();
                 gridView.getSelectionModel().select(mf);
@@ -569,7 +570,7 @@ public class GalleryView implements FxView<StackPane> {
     public void updatePhotoSelected(PhotoSelectedEvent event) {
         log.info("Receive PhotoSelectedEvent: {}", event);
         if (event.getType() == PhotoSelectedEvent.ESelectionType.SELECTED) {
-            final var source = ofNullable(event.getSource()).orElse(MediaFileListCellFactory.class).getClass();
+            final var source = ofNullable(event.getSource()).orElse(MediaFileGridCellFactory.class).getClass();
             final var mf     = event.getMf();
             log.atDebug().log(() -> {
                 Optional<Thumbnail> cache = persistenceService.getThumbnailFromCache(mf);

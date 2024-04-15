@@ -674,7 +674,11 @@ public class MediaLoader {
                       scope.join();
 
                       // Post compute.
-                      var files = tasks.stream().map(StructuredTaskScope.Subtask::get).map(TaskResult::result).toList();
+                      var files = tasks.stream()
+                                       .filter(t -> t.state() == StructuredTaskScope.Subtask.State.SUCCESS)
+                                       .map(StructuredTaskScope.Subtask::get)
+                                       .map(TaskResult::result)
+                                       .toList();
                       persistenceService.updateCollection(mediaCollection.id(),
                                                           Set.copyOf(LangUtils.safeCollection(files)),
                                                           emptySet(),

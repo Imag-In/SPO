@@ -39,13 +39,14 @@ public class OrganizeView implements FxView<BorderPane> {
         galleryView.getRootContent().requestFocus();
 
         root.setOnKeyPressed(event -> {
+            log.info("KeyPressed: {}", event.getCode());
             switch (event.getCode()) {
+                case KeyCode.ESCAPE -> applyAndConsume(event, galleryView::escapePressed);
                 case KeyCode.UP -> applyAndConsume(event, galleryView::upPressed);
                 case KeyCode.DOWN -> applyAndConsume(event, galleryView::downPressed);
                 case KeyCode.LEFT -> applyAndConsume(event, galleryView::leftPressed);
                 case KeyCode.RIGHT -> applyAndConsume(event, galleryView::rightPressed);
                 case KeyCode.ENTER -> applyAndConsume(event, galleryView::enterPressed);
-                case KeyCode.ESCAPE -> applyAndConsume(event, galleryView::escapePressed);
                 case KeyCode.PAGE_DOWN -> applyAndConsume(event, galleryView::pageDownPressed);
                 case KeyCode.PAGE_UP -> applyAndConsume(event, galleryView::pageUpPressed);
                 case KeyCode.BACK_SPACE, KeyCode.DELETE -> applyAndConsume(event, galleryView::deletePressed);

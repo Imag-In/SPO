@@ -35,14 +35,19 @@ public class MaskerPane<T extends Node> extends StackPane {
 //        this(new StackPane(), wrapIntoScrollPane);
 //    }
 
+    public MaskerPane(T content) {
+        this(content, false);
+    }
+
+    @Deprecated
     public MaskerPane(T content, boolean wrapIntoScrollPane) {
+        this.setId("maskerRootPane"); // TODO: Remove / replace by class
         this.content = content;
         this.setAlignment(Pos.CENTER);
 //        glass.getStyleClass().add("masker-glass"); //$NON-NLS-1$
-        this.setFocusTraversable(false);
         progressPane = createMasker();
+        progressPane.setFocusTraversable(false);
         this.getChildren().addAll(progressPane, wrapIntoScrollPane ? new ScrollPane(content) : content);
-        this.setId("maskerRootPane"); // TODO: Remove / replace by class
         wrapSp = wrapIntoScrollPane;
         progressPane.setVisible(false);
     }
@@ -62,12 +67,14 @@ public class MaskerPane<T extends Node> extends StackPane {
         return uiTask;
     }
 
+    @Deprecated
     public void start(ReadOnlyDoubleProperty doubleProperty) {
         ring.progressProperty().unbind();
         ring.progressProperty().bind(doubleProperty);
         start();
     }
 
+    @Deprecated
     public void start() {
         progressPane.setVisible(true);
 //        progressPane.setOpacity(.5);
@@ -77,6 +84,7 @@ public class MaskerPane<T extends Node> extends StackPane {
         }
     }
 
+    @Deprecated
     public void stop() {
         ring.progressProperty().unbind();
         progressPane.setVisible(false);

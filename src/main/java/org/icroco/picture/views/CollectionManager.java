@@ -293,6 +293,7 @@ public class CollectionManager {
                              return taskService.runAndWait(() -> askConfirmation.apply((long) size), false)
                                                .filter(b -> b)
                                                .map(_ -> {
+                                                   myself.updateTitle(STR."Init \{size} entries.");
                                                    var mc = MediaCollection.builder()
                                                                            .path(rootPath)
                                                                            .medias(EntryStream.of(List.copyOf(filteredImages))
@@ -301,8 +302,11 @@ public class CollectionManager {
                                                                                               .flatMap(i -> create(now,
                                                                                                                    i.getValue(),
                                                                                                                    false).stream())
+                                                                                              .peek(mf -> myself.updateMessage(STR."\{mf.getFullPath()} created."))
                                                                                               .collect(Collectors.toSet()))
                                                                            .build();
+                                                   myself.updateTitle(STR."Saving \{size} entries.");
+                                                   myself.updateMessage(STR."Saving \{size} entries.");
                                                    var mcSaved = persistenceService.saveCollection(mc);
                                                    taskService.sendEvent(ExtractThumbnailEvent.builder()
                                                                                               .mcId(mcSaved.id())
@@ -310,6 +314,7 @@ public class CollectionManager {
                                                                                               .source(this)
                                                                                               .build());
                                                    directoryWatcher.registerAll(mcSaved.path());
+                                                   myself.updateMessage(STR."\{size} entries saved.");
                                                    return mcSaved;
                                                })
                                                .orElseThrow(() -> new UserAbortedException(STR."User aborted action, collection too large: \{size}"));

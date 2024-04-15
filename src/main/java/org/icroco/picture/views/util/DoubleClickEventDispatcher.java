@@ -6,8 +6,10 @@ import javafx.event.*;
 import javafx.scene.input.MouseEvent;
 import javafx.util.Duration;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @NoArgsConstructor
+@Slf4j
 public class DoubleClickEventDispatcher implements EventDispatcher {
 
     /**

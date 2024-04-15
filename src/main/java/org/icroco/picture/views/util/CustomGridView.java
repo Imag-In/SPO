@@ -451,17 +451,20 @@ public class CustomGridView<T> extends GridView<T> {
         public GridViewMultipleSelectionModel(CustomGridView<T> grid) {
             this.grid = grid;
             selectedIndices.addListener((Observable _) -> selectedItems.setAll(selectedIndices.stream()
+                                                                                              .distinct()
                                                                                               .map(index -> grid.getItems().get(index))
                                                                                               .collect(Collectors.toList())));
             setSelectionMode(SelectionMode.MULTIPLE);
             grid.getItems().addListener((javafx.beans.Observable it) -> clearSelection());
-            selectionModeProperty().addListener(it -> clearSelection());
+            selectionModeProperty().addListener(_ -> clearSelection());
         }
 
         @Override
         public void clearAndSelect(int index) {
-            selectedIndices.clear();
-            select(index);
+            selectedIndices.removeIf(idx -> idx != index);
+            if (selectedIndices.isEmpty()) {
+                select(index);
+            }
         }
 
         @Override
