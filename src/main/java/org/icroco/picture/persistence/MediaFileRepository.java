@@ -28,7 +28,7 @@ public interface MediaFileRepository extends JpaRepository<MediaFileEntity, Long
 
     @Query(nativeQuery = true, value = """
             SELECT m1.ID, m1.HASH FROM MEDIA m1
-              JOIN (SELECT HASH, COUNT(*) FROM MEDIA GROUP BY HASH HAVING COUNT(*) > 1) m2
+              JOIN (SELECT HASH, COUNT(*) FROM MEDIA where MEDIA.FULL_PATH LIKE :path% GROUP BY HASH HAVING COUNT(*) > 1 ) m2
                 ON m1.HASH = m2.HASH
               WHERE m1.FULL_PATH LIKE :path%
             """)

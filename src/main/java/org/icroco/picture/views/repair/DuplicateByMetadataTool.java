@@ -238,7 +238,7 @@ public class DuplicateByMetadataTool implements RepairTool {
     }
 
     void updateTable(List<HashDuplicate> duplicates) {
-        lbNbDup.setText(STR."'\{duplicates.size()}' duplicates found.");
+        lbNbDup.setText(STR."'\{duplicates.size()}' duplicates found."); // I18N:
         TreeItem<TableRow> root = treeTableHash.getRoot();
         root.getChildren().clear();
         duplicates.stream()
