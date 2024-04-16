@@ -48,7 +48,7 @@ public class GitHubClient {
             try {
                 var latestVersion = github.getLatestRelease("Imag-In", "SPO");
                 log.info("Current: '{}', Latest release: '{}'",
-                         buildProperties.get("tag"),
+                         buildProperties.getVersion(),
                          latestVersion);
                 Optional.ofNullable(Semver.parse(latestVersion.tagName()))
                         .or(() -> Optional.ofNullable(Semver.parse(latestVersion.name())))
