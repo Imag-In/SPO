@@ -289,7 +289,6 @@ public class CollectionManager {
                              var now = LocalDate.now();
                              myself.updateProgress(0, size);
 
-
                              return taskService.runAndWait(() -> askConfirmation.apply((long) size), false)
                                                .filter(b -> b)
                                                .map(_ -> {
@@ -307,6 +306,7 @@ public class CollectionManager {
                                                                            .build();
                                                    myself.updateTitle(STR."Saving \{size} entries.");
                                                    myself.updateMessage(STR."Saving \{size} entries.");
+                                                   myself.updateProgress(-1, -1);
                                                    var mcSaved = persistenceService.saveCollection(mc);
                                                    taskService.sendEvent(ExtractThumbnailEvent.builder()
                                                                                               .mcId(mcSaved.id())

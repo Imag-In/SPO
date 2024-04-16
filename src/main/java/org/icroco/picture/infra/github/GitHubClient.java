@@ -21,11 +21,12 @@ import static java.time.Duration.ofSeconds;
 @Component
 @Slf4j
 public class GitHubClient {
-    private final TaskService     taskService;
-    private final BuildProperties buildProperties;
-    private final IGitHub         github;
-    private final Semver          currentVersion;
-    private final URI             releaseHome;
+    public static final String          GITHUB_API_URL = "https://api.github.com";
+    private final       TaskService     taskService;
+    private final       BuildProperties buildProperties;
+    private final       IGitHub         github;
+    private final       Semver          currentVersion;
+    private final       URI             releaseHome;
 
     public GitHubClient(TaskService taskService, BuildProperties buildProperties) {
         this.taskService = taskService;
@@ -33,7 +34,7 @@ public class GitHubClient {
         this.currentVersion = Semver.parse(buildProperties.getVersion());
         this.releaseHome = Unchecked.supplier(() -> new URI("https://github.com/Imag-In/SPO/releases")).get();
 
-        RestClient              restClient = RestClient.builder().baseUrl("https://api.github.com").build();
+        RestClient restClient = RestClient.builder().baseUrl(GITHUB_API_URL).build();
         RestClientAdapter       adapter    = RestClientAdapter.create(restClient);
         HttpServiceProxyFactory factory    = HttpServiceProxyFactory.builderFor(adapter).build();
 
@@ -44,18 +45,22 @@ public class GitHubClient {
     private void checkLatetestRelease() {
         Thread.ofVirtual().name("Release checking").start(Unchecked.runnable(() -> {
             Thread.sleep(ofSeconds(15)); // It cost nothing with Virtual Thread. // Put in conf.
-            var latestVersion = github.getLatestRelease("Imag-In", "SPO");
-            log.info("Current: '{}', Latest release: '{}'",
-                     buildProperties.get("tag"),
-                     latestVersion);
-            Optional.ofNullable(Semver.parse(latestVersion.tagName()))
-                    .or(() -> Optional.ofNullable(Semver.parse(latestVersion.name())))
-                    .filter(v -> v.isGreaterThan(currentVersion))
-                    .ifPresent(v -> taskService.sendEvent(NewVersionEvent.builder()
-                                                                         .version(v.getVersion())
-                                                                         .url(releaseHome)
-                                                                         .source(this)
-                                                                         .build()));
+            try {
+                var latestVersion = github.getLatestRelease("Imag-In", "SPO");
+                log.info("Current: '{}', Latest release: '{}'",
+                         buildProperties.get("tag"),
+                         latestVersion);
+                Optional.ofNullable(Semver.parse(latestVersion.tagName()))
+                        .or(() -> Optional.ofNullable(Semver.parse(latestVersion.name())))
+                        .filter(v -> v.isGreaterThan(currentVersion))
+                        .ifPresent(v -> taskService.sendEvent(NewVersionEvent.builder()
+                                                                             .version(v.getVersion())
+                                                                             .url(releaseHome)
+                                                                             .source(this)
+                                                                             .build()));
+            } catch (Exception e) {
+                log.warn("Cannot get latest version from: '{}'", GITHUB_API_URL);
+            }
         }));
     }
 }
