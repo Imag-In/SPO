@@ -20,6 +20,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Iterator;
@@ -45,16 +46,13 @@ public final class KeyboardExample extends Application {
     }
 
     private static final class Key {
+        @Getter
         private final KeyCode         keyCode;
         private final BooleanProperty pressedProperty;
 
         public Key(final KeyCode keyCode) {
             this.keyCode = keyCode;
             this.pressedProperty = new SimpleBooleanProperty(this, "pressed");
-        }
-
-        public KeyCode getKeyCode() {
-            return keyCode;
         }
 
         public boolean isPressed() {
@@ -150,14 +148,9 @@ public final class KeyboardExample extends Application {
             keyboardNode.setOnKeyReleased(keyEventHandler);
 
             keyboardNode.addEventHandler(KeyEvent.KEY_PRESSED,
-                                         new EventHandler<KeyEvent>() {
-                                             public void handle(
-                                                     final KeyEvent keyEvent) {
-                                                 handleFocusTraversal(
-                                                         keyboardNode,
-                                                         keyEvent);
-                                             }
-                                         });
+                                         keyEvent -> handleFocusTraversal(
+                                                 keyboardNode,
+                                                 keyEvent));
         }
 
         private Key lookupKey(final KeyCode keyCode) {
