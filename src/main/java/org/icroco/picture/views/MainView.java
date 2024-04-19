@@ -1,6 +1,7 @@
 package org.icroco.picture.views;
 
 import atlantafx.base.controls.ModalPane;
+import atlantafx.base.controls.ToggleSwitch;
 import jakarta.annotation.PostConstruct;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -8,8 +9,6 @@ import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -90,22 +89,6 @@ public class MainView implements FxView<StackPane> {
         Optional.ofNullable(views.get(newView)).ifPresent(v -> v.getRootContent().setVisible(true));
     }
 
-//    @EventListener(SceneReadyEvent.class)
-//    public void sceneReady(SceneReadyEvent event) throws BackingStoreException {
-//        log.info("READY, source: {}", event.getSource());
-//        event.getScene().getStylesheets().addAll(Resources.resolve("/styles/index.css"));
-//
-////        Resources.getPreferences().put("FOO", "BAR");
-////        Resources.getPreferences().flush();
-////        Resources.printPreferences(Resources.getPreferences(), "");
-//        if (Boolean.getBoolean("SCENIC")) {
-//            ScenicView.show(event.getScene());
-//        }
-////        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
-////            log.info("call: {}", element);
-////        }
-//    }
-
     @Override
     public StackPane getRootContent() {
         return root;
@@ -120,13 +103,13 @@ public class MainView implements FxView<StackPane> {
         HBox h = new HBox();
         h.setPadding(new Insets(15, 15, 5, 15));
         h.setAlignment(Pos.CENTER_RIGHT);
-        CheckBox checkBox = new CheckBox();
-        checkBox.setSelected(true);
-        h.getChildren().addAll(new Label("Would you like to report this issue ?"), checkBox); // I18N:
+        ToggleSwitch toggleSwitch = new ToggleSwitch("Would you like to report this issue ?");
+        toggleSwitch.setSelected(true);
+        h.getChildren().addAll(toggleSwitch); // I18N:
         dlg.getDialogPane().setHeader(h);
         Nodes.show(dlg, root.getScene())
              .filter(bt -> bt == ButtonType.OK)
-             .filter(_ -> checkBox.isSelected())
+             .filter(_ -> toggleSwitch.isSelected())
              .ifPresent(_ -> ghClient.reportIssue(throwable));
 //        DialogPane dialogPane = new DialogPane();
 //
