@@ -71,7 +71,7 @@
         <spo.appName>Simple Photo Organizer</spo.appName>
         <spo.vendor>Imge'In</spo.vendor>
         <spring-boot-javafx-starter.version>1.0.4-SNAPSHOT</spring-boot-javafx-starter.version>
-        <spring-boot.version>3.2.4</spring-boot.version>
+        <spring-boot.version>3.2.5</spring-boot.version>
         <threeten-extra.version>1.8.0</threeten-extra.version>
         <thumbnailator.version>0.4.20</thumbnailator.version>
         <usbdrivedetector.version>2.2.1</usbdrivedetector.version>
