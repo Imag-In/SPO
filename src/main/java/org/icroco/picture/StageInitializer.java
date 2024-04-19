@@ -7,11 +7,15 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.infra.github.GitHubClient;
 import org.icroco.picture.util.Env;
 import org.icroco.picture.util.Resources;
 import org.icroco.picture.util.SceneReadyEvent;
@@ -22,6 +26,7 @@ import org.icroco.picture.views.StageRepository;
 import org.icroco.picture.views.compare.DiffWindow;
 import org.icroco.picture.views.pref.UserPreference;
 import org.icroco.picture.views.pref.UserPreferenceService;
+import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.theme.ThemeManager;
 import org.scenicview.ScenicView;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
@@ -38,12 +43,14 @@ import java.util.Optional;
 public class StageInitializer {
 
     private final ConfigurableApplicationContext context;
-    private final UserPreferenceService          userPref;
-    private final ThemeManager                   themeManager;
+    private final UserPreferenceService userPref;
+    private final GitHubClient          gitHubClient;
+    private final ThemeManager          themeManager;
     private final StageRepository stageRepository;
     private final MainView                       mainView;
     private final Env                            env;
     private final DiffWindow      diffWindow;
+    private final TaskService           taskService;
 
 //    @EventListener
 //    public void prepareEnv(ApplicationContextInitializedEvent event) {
@@ -74,7 +81,11 @@ public class StageInitializer {
         var antialiasing = Platform.isSupported(ConditionalFeature.SCENE3D)
                            ? SceneAntialiasing.BALANCED
                            : SceneAntialiasing.DISABLED;
-        var scene = new Scene(mainView.getRootContent(), 1200, 800, false, antialiasing);
+        var            scene = new Scene(mainView.getRootContent(), 1200, 800, false, antialiasing);
+        KeyCombination kc    = new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN, KeyCombination.ALT_ANY, KeyCombination.SHIFT_ANY);
+        scene.getAccelerators().put(kc, () -> {
+            throw new IllegalStateException("This is a test");
+        });
         primaryStage.setScene(scene);
         if (Boolean.getBoolean("SCENIC")) {
             ScenicView.show(scene);

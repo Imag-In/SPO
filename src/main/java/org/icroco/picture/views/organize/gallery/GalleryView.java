@@ -108,13 +108,13 @@ public class GalleryView implements FxView<StackPane> {
     private final SimpleBooleanProperty                 mouseMoved     = new SimpleBooleanProperty(true);
     private       CustomGridView<MediaFile>             gridView;
 
-    private       EGalleryClickState dblCickState = EGalleryClickState.GALLERY;
     private final FontIcon  editOn    = new FontIcon(CarbonIcons.EDIT);
     private final FontIcon  editOff   = new FontIcon(CarbonIcons.EDIT_OFF);
     private final FontIcon  blockIcon = new FontIcon(Material2OutlinedAL.BLOCK);
     private final Label     editCell  = new Label();
     private final ModalPane modalPane = new ModalPane();
-    private       HBox               toolBar;
+    private       HBox      toolBar;
+    private       EGalleryClickState dblCickState = EGalleryClickState.GALLERY;
 
 
     //    private final Label dateOverlay = new Label("Display Date");

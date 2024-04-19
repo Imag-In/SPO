@@ -8,26 +8,26 @@ import javafx.application.Preloader;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 import net.codecrete.usb.UsbDevice;
-import org.controlsfx.dialog.ExceptionDialog;
+import org.icroco.picture.infra.github.GitHubProperties;
 import org.icroco.picture.persistence.MediaFileRepository;
 import org.icroco.picture.persistence.model.MediaFileEntity;
 import org.icroco.picture.splashscreen.LoaderProgressNotification;
 import org.icroco.picture.splashscreen.SpoPreLoader;
 import org.icroco.picture.util.Env;
-import org.icroco.picture.util.Error;
 import org.icroco.picture.util.StageReadyEvent;
+import org.icroco.picture.views.MainView;
 import org.icroco.picture.views.pref.UserPreference;
 import org.icroco.picture.views.pref.UserPreferenceService;
 import org.icroco.picture.views.theme.ThemeRepository;
 import org.icroco.picture.views.util.FxPlatformExecutor;
 import org.icroco.picture.views.util.ImageUtils;
-import org.icroco.picture.views.util.Nodes;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.Banner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
@@ -67,6 +67,7 @@ import java.util.Properties;
 @EntityScan(basePackageClasses = MediaFileEntity.class)
 @EnableAsync(proxyTargetClass = true)
 @EnableScheduling
+@EnableConfigurationProperties(value = { GitHubProperties.class })
 //@ImportAutoConfiguration(classes = ViewAutoConfiguration.class)
 @Slf4j
 public class ImagInApp extends Application {
@@ -177,8 +178,7 @@ public class ImagInApp extends Application {
     }
 
     private void showError(Thread thread, Throwable throwable) {
-        log.error("An unexpected error occurred in thread: {}, ", thread, throwable);
-        FxPlatformExecutor.fxRun(() -> showErrorToUser(throwable));
+        FxPlatformExecutor.fxRun(() -> applicationContext.getBean(MainView.class).showErrorToUser(thread, throwable));
     }
 
     protected void preStart(final Stage primaryStage) {
@@ -196,21 +196,6 @@ public class ImagInApp extends Application {
             }
         }
     }
-
-    protected void showErrorToUser(final Throwable throwable) {
-        Throwable       t   = Error.findOwnedException(throwable);
-        ExceptionDialog dlg = new ExceptionDialog(t);
-        Nodes.showDialog(dlg);
-    }
-
-//    protected void closeRequest(final WindowEvent windowEvent) {
-//        if (windowEvent.getTarget() instanceof Stage stage) {
-//            userPref.getUserPreference().getMainWindow().setPosX(stage.getX());
-//            userPref.getUserPreference().getMainWindow().setPosY(stage.getY());
-//            userPref.getUserPreference().getMainWindow().setWidth(stage.getWidth());
-//            userPref.getUserPreference().getMainWindow().setHeight(stage.getHeight());
-//        }
-//    }
 
     public static void main(String[] args) {
         launch(ImagInApp.class, args);

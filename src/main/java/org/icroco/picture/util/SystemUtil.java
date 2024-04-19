@@ -45,7 +45,7 @@ public class SystemUtil {
                 Unchecked.runnable(() -> Desktop.getDesktop().browseFileDirectory(path.toFile())).run();
             } else if (Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
                 Unchecked.runnable(() -> Desktop.getDesktop().open(path.toFile())).run();
-            } else if (SystemUtil.isWindoww()) {
+            } else if (isWindoww()) {
                 log.warn("Windows is not supporting: {}", "Desktop.Action.BROWSE_FILE_DIR");
                 final var EXPLORER_EXE = "explorer.exe";
 //                final String command      = STR."\{EXPLORER_EXE} /SELECT,\"\{path.toAbsolutePath().toString()}\"";

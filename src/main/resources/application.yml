@@ -38,6 +38,8 @@ logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(—){faint} %clr([%15.-15t]){faint} %clr(%-50.50logger{49}%4L){cyan} %clr(:){faint} %m%n:-%wEx}"
 
-#imagin:
-#  spo:
-#    database:
+imagin:
+  spo:
+    github:
+      appId: 879074
+      appInstallationId: 49716371
