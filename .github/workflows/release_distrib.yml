@@ -10,6 +10,9 @@ on:
 #      - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
 
+env:
+  java_version: '22'
+
 jobs:
   build-jar:
     runs-on: ubuntu-latest
@@ -25,7 +28,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu' # See 'Supported distributions' for available options
-          java-version: '22'
+          java-version: ${{ env.java_version }}
           java-package: 'jdk+fx'
           architecture: 'x64' # defaults to 'x64'
       #          cache: 'maven'
@@ -123,7 +126,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu' # See 'Supported distributions' for available options
-          java-version: '21'
+          java-version: ${{ env.java_version }}
           java-package: 'jdk+fx'
           architecture: 'x64' # defaults to 'x64'
 
@@ -163,7 +166,7 @@ jobs:
   #        uses: actions/setup-java@v4
   #        with:
   #          distribution: 'zulu' # See 'Supported distributions' for available options
-  #          java-version: '21'
+  #          java-version: ${{ env.java_version }}
   #          java-package: 'jdk+fx'
   #          architecture: 'aarch64' # defaults to 'x64'
   #
@@ -209,7 +212,7 @@ jobs:
   #        uses: actions/setup-java@v4
   #        with:
   #          distribution: 'zulu' # See 'Supported distributions' for available options
-  #          java-version: '21'
+  #          java-version: ${{ env.java_version }}
   #          java-package: 'jdk+fx'
   #      #          architecture: 'aarch64'
   #
@@ -248,7 +251,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu' # See 'Supported distributions' for available options
-          java-version: '21'
+          java-version: ${{ env.java_version }}
           java-package: 'jdk+fx'
           architecture: 'x64' # defaults to 'x64'
 
@@ -297,7 +300,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu' # See 'Supported distributions' for available options
-          java-version: '21'
+          java-version: ${{ env.java_version }}
           java-package: 'jdk+fx'
           architecture: 'x64' # defaults to 'x64'
 
