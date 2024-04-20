@@ -5,6 +5,9 @@ import lombok.ToString;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @ToString
 public class IiEvent extends ApplicationEvent {
@@ -27,7 +30,7 @@ public class IiEvent extends ApplicationEvent {
         public abstract C build();
 
         public String toString() {
-            return "IiEvent.IiEventBuilder(super=" + super.toString() + ")";
+            return STR."IiEvent.IiEventBuilder(super=\{super.toString()})";
         }
     }
 
@@ -42,5 +45,9 @@ public class IiEvent extends ApplicationEvent {
         public IiEvent build() {
             return new IiEvent(this);
         }
+    }
+
+    public ZonedDateTime getDateTime() {
+        return Instant.ofEpochMilli(getTimestamp()).atZone(ZoneId.systemDefault());
     }
 }

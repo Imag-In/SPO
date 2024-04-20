@@ -69,8 +69,7 @@ public class CollectionView implements FxView<VBox> {
     private final Button                   addCollection    = new Button();
     private final HBox                     collectionHeader = new HBox();
     @Getter
-    private final CollectionTreeItem rootTreeItem = new CollectionTreeItem(new CollectionNode(Path.of("Files"),
-                                                                                              -1));
+    private final CollectionTreeItem rootTreeItem = new CollectionTreeItem(new CollectionNode(Path.of("Files"), -1));
     private final TreeView<CollectionNode> treeView         = new TreeView<>(rootTreeItem);
 
     @Getter
@@ -83,7 +82,7 @@ public class CollectionView implements FxView<VBox> {
     protected void initializedOnce() {
         root.setId(ViewConfiguration.V_MEDIA_COLLECTION);
         root.getStyleClass().add(ViewConfiguration.V_MEDIA_COLLECTION);
-        root.getStyleClass().add("header");
+
         rootTreeItem.setExpanded(true);
         rootTreeItem.setValue(new CollectionNode(Path.of("/"), -1));
         treeView.setMinHeight(250);

@@ -2,6 +2,7 @@ package org.icroco.picture.views;
 
 import atlantafx.base.controls.ModalPane;
 import atlantafx.base.controls.ToggleSwitch;
+import com.dlsc.gemsfx.infocenter.InfoCenterPane;
 import jakarta.annotation.PostConstruct;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -56,7 +57,8 @@ public class MainView implements FxView<StackPane> {
     private final StackPane centerView = new StackPane();
     private final ModalPane modalPane = new ModalPane();
 
-    private final Map<String, FxView<?>> views = new HashMap<>(10);
+    private final Map<String, FxView<?>> views          = new HashMap<>(10);
+    private final InfoCenterPane         infoCenterPane = new InfoCenterPane();
 
     @PostConstruct
     protected void initializedOnce() {
@@ -77,7 +79,9 @@ public class MainView implements FxView<StackPane> {
                                              .map(FxView::getRootContent).toList());
         currentView.addListener(this::currentViewListener);
 
-        borderPane.setCenter(centerView);
+        infoCenterPane.setContent(centerView);
+
+        borderPane.setCenter(infoCenterPane);
         root.getChildren().addAll(modalPane, borderPane);
         Platform.runLater(() -> currentViewListener(null, null, currentView.get()));
     }
@@ -87,6 +91,10 @@ public class MainView implements FxView<StackPane> {
             Optional.ofNullable(views.get(oldView)).ifPresent(v -> v.getRootContent().setVisible(false));
         }
         Optional.ofNullable(views.get(newView)).ifPresent(v -> v.getRootContent().setVisible(true));
+    }
+
+    InfoCenterPane getInfoCenterPane() {
+        return infoCenterPane;
     }
 
     @Override

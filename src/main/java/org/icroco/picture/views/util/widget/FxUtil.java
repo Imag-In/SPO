@@ -1,5 +1,6 @@
 package org.icroco.picture.views.util.widget;
 
+import atlantafx.base.theme.Styles;
 import javafx.css.Styleable;
 import javafx.scene.Cursor;
 import javafx.scene.control.Button;
@@ -17,6 +18,11 @@ public class FxUtil {
 
     public static <T extends Styleable> T styleCircleFlat(T node) {
         node.getStyleClass().addAll(atlantafx.base.theme.Styles.BUTTON_CIRCLE, atlantafx.base.theme.Styles.FLAT);
+        return node;
+    }
+
+    public static <T extends Styleable> T styleFlat(T node) {
+        node.getStyleClass().addAll(Styles.BUTTON_ICON, atlantafx.base.theme.Styles.FLAT);
         return node;
     }
 }

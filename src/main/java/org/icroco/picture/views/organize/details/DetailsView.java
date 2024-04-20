@@ -124,12 +124,14 @@ public class DetailsView extends AbstractView<VBox> {
         root.setId(ViewConfiguration.V_MEDIA_DETAILS);
         root.getStyleClass().add(ViewConfiguration.V_DETAILS);
         root.setPrefWidth(330);
+        root.getStyleClass().add("header");
 
         Tab info = new Tab("Info", createInfo());
         info.setId("imageMetadataInfo");
         Tab details = new Tab("Details", createFullDetails());
         details.setId(IMAGE_METADATA_DETAILS);
         tabs = new TabPane(info, details);
+        tabs.setPrefWidth(330);
         root.setFocusTraversable(false);
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getStyleClass().add(atlantafx.base.theme.Styles.DENSE);
@@ -194,6 +196,7 @@ public class DetailsView extends AbstractView<VBox> {
 
     private Node createInfo() {
         GridPane grid = new GridPane();
+        grid.setMaxWidth(330);
         grid.setPadding(new Insets(10, 10, 10, 10));
         grid.setHgap(10);
         grid.setVgap(10);

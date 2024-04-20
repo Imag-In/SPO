@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.ImportDirectoryEvent;
 import org.icroco.picture.event.ShowOrganizeEvent;
 import org.icroco.picture.event.ShowSettingsEvent;
+import org.icroco.picture.event.ShowViewEvent;
 import org.icroco.picture.util.I18N;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
@@ -103,29 +104,46 @@ public class NavigationView implements FxView<HBox> {
 
         selectedTab.set(organizeLbl);
 
+        var hBox = new HBox();
         var settingsIcon = FontIcon.of(Material2OutlinedMZ.SETTINGS);
+
         settingsIcon.setId("settings");
         settingsIcon.getStyleClass().add("button-top-bar");
         var settings = new Button(null, settingsIcon);
+//        settings.setPadding(new Insets(8, 8, 8, 8));
+
         settings.setTooltip(new Tooltip("Settings"));
         settings.setDisable(false);
-        settings.getStyleClass().add(Styles.LARGE);
-        FxUtil.styleCircleButton(settings).setOnAction(this::openSettings);
+
+        FxUtil.styleFlat(settings).setOnAction(this::openSettings);
+        settings.setOnAction(this::openSettings);
         settings.setOnMouseClicked(_ -> taskService.sendEvent(ShowSettingsEvent.builder()
                                                                                .scene(getRootContent().getScene())
                                                                                .source(this)
                                                                                .build()));
         var photoDiffIcon = FontIcon.of(MaterialDesignC.COMPARE);
         var photoDiff     = new Button(null, photoDiffIcon);
+
         photoDiffIcon.getStyleClass().add("button-top-bar");
         photoDiff.setOnMouseClicked(event -> diffWindow.show());
 
 //        photoDiff.setTooltip(new Tooltip("Settings"));
 //        photoDiff.setDisable(true);
-        photoDiff.getStyleClass().add(Styles.LARGE);
-        FxUtil.styleCircleButton(photoDiff); //.setOnAction(this::openSettings);
+        FxUtil.styleFlat(photoDiff); //.setOnAction(this::openSettings);
 
-        root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, repairLbl, peopleLbl, exportLbl, new Spacer(), photoDiff, settings);
+        var notifIcon = FontIcon.of(Material2OutlinedMZ.NOTIFICATIONS_NONE);
+        var notif     = new Button(null, notifIcon);
+        FxUtil.styleFlat(notif); //.setOnAction(this::openSettings);
+        notifIcon.getStyleClass().add("button-top-bar");
+        notif.setOnMouseClicked(_ -> taskService.sendEvent(ShowViewEvent.builder()
+                                                                        .eventType(ShowViewEvent.EventType.SHOW)
+                                                                        .viewId(ViewConfiguration.V_NOTIFICATION)
+                                                                        .source(this)
+                                                                        .build()));
+
+        hBox.getChildren().addAll(photoDiff, settings, notif);
+        hBox.setAlignment(Pos.CENTER_RIGHT);
+        root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, repairLbl, peopleLbl, exportLbl, new Spacer(), hBox);
 
     }
 

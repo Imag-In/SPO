@@ -3,12 +3,11 @@ package org.icroco.picture.event;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.icroco.picture.model.MediaFile;
 
 @Getter
 @ToString
 @SuperBuilder
-public class CarouselEvent extends IiEvent {
+public class ShowViewEvent extends IiEvent {
 
     public enum EventType {
         SHOW,
@@ -16,5 +15,5 @@ public class CarouselEvent extends IiEvent {
     }
 
     private final EventType eventType;
-    private final MediaFile mediaFile;
+    private final String viewId;
 }

@@ -15,12 +15,13 @@ public class ViewConfiguration {
     public static final String V_DETAILS          = "v-details";
     public static final String V_GALLERY          = "v-gallery";
     public static final String V_MAIN             = "v-main";
+    public static final String V_NOTIFICATION = "v-notification";
     public static final String V_MEDIA_COLLECTION = "v-media-collection";
     public static final String V_MEDIA_DETAILS    = "v-media-details";
     public static final String V_STATUSBAR        = "v-status";
     public static final String V_TASKS            = "v-tasks";
     public static final String V_PREFERENCES      = "v-preferences";
-    public static final String V_REPAIR = "v-repair";
+    public static final String V_REPAIR       = "v-repair";
 
 
     @Bean(CURRENT_VIEW)

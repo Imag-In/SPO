@@ -143,6 +143,10 @@
   //}
 
   .v-details {
+    -fx-background-color: -color-bg-inset;
+    -fx-border-color: -color-border-default;
+    -fx-border-width: 0 0 0 1px;
+
     .combo-box-base {
       -fx-border-style: solid;
       -fx-border-width: 0;
