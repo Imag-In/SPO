@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.icroco.imagin</groupId>
   <artifactId>spo</artifactId>
-  <version>1.1.5-SNAPSHOT</version>
+  <version>1.1.6-SNAPSHOT</version>
   <description>Simple tool to import, sort, filter, organize your photos.</description>
 
   <properties>
@@ -24,13 +24,13 @@
     <eclipse-collections-api.version>11.1.0</eclipse-collections-api.version>
     <either.version>1.5.2</either.version>
     <gemsfx.version>2.9.0</gemsfx.version>
-        <github-api.version>1.321</github-api.version>
+    <github-api.version>1.321</github-api.version>
     <ikonli-bom.version>12.3.1</ikonli-bom.version>
     <imageio-jpeg.version>3.10.1</imageio-jpeg.version>
     <java-does-usb.version>1.0.0</java-does-usb.version>
     <java.version>22</java.version>
     <javafx.version>22.0.1</javafx.version>
-        <jjwt-jackson.version>0.12.5</jjwt-jackson.version>
+    <jjwt-jackson.version>0.12.5</jjwt-jackson.version>
     <jmh.version>1.37</jmh.version>
     <jool.version>0.9.15</jool.version>
     <jsr305.version>3.0.2</jsr305.version>
@@ -196,23 +196,23 @@
       <groupId>io.github.palexdev</groupId>
       <artifactId>virtualizedfx</artifactId>
       <version>${virtualizedfx.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>${jjwt-jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>${jjwt-jackson.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>${jjwt-jackson.version}</version>
-            <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-api</artifactId>
+      <version>${jjwt-jackson.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-impl</artifactId>
+      <version>${jjwt-jackson.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-jackson</artifactId>
+      <version>${jjwt-jackson.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <!--        <dependency>-->
     <!--            <groupId>com.github.oshi</groupId>-->
@@ -299,11 +299,11 @@
       <groupId>org.jooq</groupId>
       <artifactId>jool</artifactId>
       <version>${jool.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.kohsuke</groupId>
-            <artifactId>github-api</artifactId>
-            <version>${github-api.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.kohsuke</groupId>
+      <artifactId>github-api</artifactId>
+      <version>${github-api.version}</version>
     </dependency>
     <dependency>
       <groupId>org.kordamp.ikonli</groupId>
@@ -676,375 +676,375 @@
 
   <profiles>
 
-        <!--        <profile>-->
-        <!--            <mcId>unix-active</mcId>-->
-        <!--            <activation>-->
-        <!--                <os>-->
-        <!--                    <family>unix</family>-->
-        <!--                </os>-->
-        <!--            </activation>-->
-        <!--            <properties>-->
-        <!--                <platform>linux</platform>-->
-        <!--            </properties>-->
-        <!--        </profile>-->
-        <!--        <profile>-->
-        <!--            <mcId>windows-active</mcId>-->
-        <!--            <activation>-->
-        <!--                <os>-->
-        <!--                    <family>windows</family>-->
-        <!--                </os>-->
-        <!--            </activation>-->
-        <!--            <properties>-->
-        <!--                <platform>win</platform>-->
-        <!--            </properties>-->
-        <!--        </profile>-->
-        <!--                <profile>-->
-        <!--                    <mcId>mac-active</mcId>-->
-        <!--                    <activation>-->
-        <!--                        <os>-->
-        <!--                            <family>mac</family>-->
-        <!--                        </os>-->
-        <!--                    </activation>-->
-        <!--                    <properties>-->
-        <!--                        <os.detected.name>mac</os.detected.name>-->
-        <!--                    </properties>-->
-        <!--                </profile>-->
-        <profile>
-            <id>prepare-jar-and-dep</id>
-            <activation>
-                <property>
-                    <name>release</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>${build-helper-maven-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>parse-version</id>
-                                <goals>
-                                    <goal>parse-version</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <version>${maven-dependency-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>copy-dependencies</id>
-                                <goals>
-                                    <goal>copy-dependencies</goal>
-                                </goals>
-                                <phase>package</phase>
-                                <configuration>
-                                    <excludeGroupIds>org.openjfx</excludeGroupIds>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <version>${maven-resources-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>copy-jar</id>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/dependency</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>${project.build.directory}</directory>
-                                            <filtering>false</filtering>
-                                            <includes>
-                                                <include>${project.build.finalName}.jar</include>
-                                            </includes>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>release-mac-x64</id>
-            <activation>
-                <os>
-                    <family>mac</family>
-                    <arch>x86_64</arch>
-                </os>
-                <property>
-                    <name>release</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <version>${maven-resources-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>copy-distrib-files</id>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <phase>process-resources</phase>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/pkg-config</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>${basedir}/src/distrib</directory>
-                                            <filtering>true</filtering>
-                                            <includes>
-                                                <include>mac/${os.arch}-jpackage.txt</include>
-                                            </includes>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <!-- https://github.com/wiverson/jtoolprovider-plugin -->
-                        <groupId>io.github.wiverson</groupId>
-                        <artifactId>jtoolprovider-plugin</artifactId>
-                        <version>${jtoolprovider-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>jlink</id>
-                                <goals>
-                                    <goal>java-tool</goal>
-                                </goals>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <toolName>jlink</toolName>
-                                    <removeDirectories>${project.build.directory}/custom-jvm/</removeDirectories>
-                                    <!--                                    <modulePath>${project.basedir}/jmods/${os.detected.classifier}-javafx/javafx-jmods-${javafx.version}/-->
-                                    <!--                                    </modulePath>-->
-                                    <addModules>${jvm.modules}</addModules>
-                                    <output>${project.build.directory}/custom-jvm</output>
-                                    <args>
-                                        <arg>--strip-native-commands</arg>
-                                        <arg>--no-header-files</arg>
-                                        <arg>--strip-debug</arg>
-                                        <arg>--no-man-pages</arg>
-                                        <arg>--compress=zip-6</arg>
-                                    </args>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>jpackage</id>
-                                <goals>
-                                    <goal>java-tool</goal>
-                                </goals>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <toolName>jpackage</toolName>
-                                    <removeDirectories>${project.build.directory}/installer-work</removeDirectories>
-                                    <args>@${project.build.directory}/pkg-config/mac/${os.arch}-jpackage.txt</args>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>release-win-x64</id>
-            <activation>
-                <os>
-                    <family>windows</family>
-                    <arch>amd64</arch>
-                </os>
-                <property>
-                    <name>release</name>
-                </property>
-            </activation>
-            <properties>
-                <!-- Replace this UUID with a custom one for your project. This ID is used by the Windows installer system
+    <!--        <profile>-->
+    <!--            <mcId>unix-active</mcId>-->
+    <!--            <activation>-->
+    <!--                <os>-->
+    <!--                    <family>unix</family>-->
+    <!--                </os>-->
+    <!--            </activation>-->
+    <!--            <properties>-->
+    <!--                <platform>linux</platform>-->
+    <!--            </properties>-->
+    <!--        </profile>-->
+    <!--        <profile>-->
+    <!--            <mcId>windows-active</mcId>-->
+    <!--            <activation>-->
+    <!--                <os>-->
+    <!--                    <family>windows</family>-->
+    <!--                </os>-->
+    <!--            </activation>-->
+    <!--            <properties>-->
+    <!--                <platform>win</platform>-->
+    <!--            </properties>-->
+    <!--        </profile>-->
+    <!--                <profile>-->
+    <!--                    <mcId>mac-active</mcId>-->
+    <!--                    <activation>-->
+    <!--                        <os>-->
+    <!--                            <family>mac</family>-->
+    <!--                        </os>-->
+    <!--                    </activation>-->
+    <!--                    <properties>-->
+    <!--                        <os.detected.name>mac</os.detected.name>-->
+    <!--                    </properties>-->
+    <!--                </profile>-->
+    <profile>
+      <id>prepare-jar-and-dep</id>
+      <activation>
+        <property>
+          <name>release</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>${build-helper-maven-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>parse-version</id>
+                <goals>
+                  <goal>parse-version</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>${maven-dependency-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>copy-dependencies</id>
+                <goals>
+                  <goal>copy-dependencies</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <excludeGroupIds>org.openjfx</excludeGroupIds>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <version>${maven-resources-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>copy-jar</id>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <phase>pre-integration-test</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/dependency</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.build.directory}</directory>
+                      <filtering>false</filtering>
+                      <includes>
+                        <include>${project.build.finalName}.jar</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>release-mac-x64</id>
+      <activation>
+        <os>
+          <family>mac</family>
+          <arch>x86_64</arch>
+        </os>
+        <property>
+          <name>release</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <version>${maven-resources-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>copy-distrib-files</id>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <phase>process-resources</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/pkg-config</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${basedir}/src/distrib</directory>
+                      <filtering>true</filtering>
+                      <includes>
+                        <include>mac/${os.arch}-jpackage.txt</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <!-- https://github.com/wiverson/jtoolprovider-plugin -->
+            <groupId>io.github.wiverson</groupId>
+            <artifactId>jtoolprovider-plugin</artifactId>
+            <version>${jtoolprovider-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>jlink</id>
+                <goals>
+                  <goal>java-tool</goal>
+                </goals>
+                <phase>pre-integration-test</phase>
+                <configuration>
+                  <toolName>jlink</toolName>
+                  <removeDirectories>${project.build.directory}/custom-jvm/</removeDirectories>
+                  <!--                                    <modulePath>${project.basedir}/jmods/${os.detected.classifier}-javafx/javafx-jmods-${javafx.version}/-->
+                  <!--                                    </modulePath>-->
+                  <addModules>${jvm.modules}</addModules>
+                  <output>${project.build.directory}/custom-jvm</output>
+                  <args>
+                    <arg>--strip-native-commands</arg>
+                    <arg>--no-header-files</arg>
+                    <arg>--strip-debug</arg>
+                    <arg>--no-man-pages</arg>
+                    <arg>--compress=zip-6</arg>
+                  </args>
+                </configuration>
+              </execution>
+              <execution>
+                <id>jpackage</id>
+                <goals>
+                  <goal>java-tool</goal>
+                </goals>
+                <phase>pre-integration-test</phase>
+                <configuration>
+                  <toolName>jpackage</toolName>
+                  <removeDirectories>${project.build.directory}/installer-work</removeDirectories>
+                  <args>@${project.build.directory}/pkg-config/mac/${os.arch}-jpackage.txt</args>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>release-win-x64</id>
+      <activation>
+        <os>
+          <family>windows</family>
+          <arch>amd64</arch>
+        </os>
+        <property>
+          <name>release</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- Replace this UUID with a custom one for your project. This ID is used by the Windows installer system
                                                                                                                                    to know that an installer is intended to replace/upgrade an earlier version. The easiest thing to do is
                                                                                                                                    grab a unique UUID via https://www.uuidgenerator.net -->
-                <!-- This is used to set many user-visible fields in the Windows Installer. See windows-jpackage.txt -->
-                <windows.vendor>Imag'In</windows.vendor>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <version>${maven-resources-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>copy-distrib-files</id>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <phase>process-resources</phase>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/pkg-config</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>${basedir}/src/distrib</directory>
-                                            <filtering>true</filtering>
-                                            <includes>
-                                                <include>win/${os.arch}-jpackage.txt</include>
-                                            </includes>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <!-- https://github.com/wiverson/jtoolprovider-plugin -->
-                        <groupId>io.github.wiverson</groupId>
-                        <artifactId>jtoolprovider-plugin</artifactId>
-                        <version>${jtoolprovider-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>jlink</id>
-                                <goals>
-                                    <goal>java-tool</goal>
-                                </goals>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <toolName>jlink</toolName>
-                                    <removeDirectories>${project.build.directory}/custom-jvm/</removeDirectories>
-                                    <!--                                    <modulePath>${project.basedir}/jmods/${os.detected.classifier}-javafx/javafx-jmods-${javafx.version}/-->
-                                    <!--                                    </modulePath>-->
-                                    <addModules>${jvm.modules}</addModules>
-                                    <output>${project.build.directory}/custom-jvm</output>
-                                    <args>
-                                        <arg>--strip-native-commands</arg>
-                                        <arg>--no-header-files</arg>
-                                        <arg>--strip-debug</arg>
-                                        <arg>--no-man-pages</arg>
-                                        <arg>--compress=zip-6</arg>
-                                    </args>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>jpackage</id>
-                                <goals>
-                                    <goal>java-tool</goal>
-                                </goals>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <debug>true</debug>
-                                    <toolName>jpackage</toolName>
-                                    <removeDirectories>${project.build.directory}/installer-work</removeDirectories>
-                                    <args>@${project.build.directory}/pkg-config/win/${os.arch}-jpackage.txt</args>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>release-linux-x64</id>
-            <activation>
-                <os>
-                    <family>unix</family>
-                    <arch>amd64</arch>
-                </os>
-                <property>
-                    <name>release</name>
-                </property>
-            </activation>
-            <properties>
-                <!-- Replace this UUID with a custom one for your project. This ID is used by the Windows installer system
+        <!-- This is used to set many user-visible fields in the Windows Installer. See windows-jpackage.txt -->
+        <windows.vendor>Imag'In</windows.vendor>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <version>${maven-resources-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>copy-distrib-files</id>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <phase>process-resources</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/pkg-config</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${basedir}/src/distrib</directory>
+                      <filtering>true</filtering>
+                      <includes>
+                        <include>win/${os.arch}-jpackage.txt</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <!-- https://github.com/wiverson/jtoolprovider-plugin -->
+            <groupId>io.github.wiverson</groupId>
+            <artifactId>jtoolprovider-plugin</artifactId>
+            <version>${jtoolprovider-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>jlink</id>
+                <goals>
+                  <goal>java-tool</goal>
+                </goals>
+                <phase>pre-integration-test</phase>
+                <configuration>
+                  <toolName>jlink</toolName>
+                  <removeDirectories>${project.build.directory}/custom-jvm/</removeDirectories>
+                  <!--                                    <modulePath>${project.basedir}/jmods/${os.detected.classifier}-javafx/javafx-jmods-${javafx.version}/-->
+                  <!--                                    </modulePath>-->
+                  <addModules>${jvm.modules}</addModules>
+                  <output>${project.build.directory}/custom-jvm</output>
+                  <args>
+                    <arg>--strip-native-commands</arg>
+                    <arg>--no-header-files</arg>
+                    <arg>--strip-debug</arg>
+                    <arg>--no-man-pages</arg>
+                    <arg>--compress=zip-6</arg>
+                  </args>
+                </configuration>
+              </execution>
+              <execution>
+                <id>jpackage</id>
+                <goals>
+                  <goal>java-tool</goal>
+                </goals>
+                <phase>pre-integration-test</phase>
+                <configuration>
+                  <debug>true</debug>
+                  <toolName>jpackage</toolName>
+                  <removeDirectories>${project.build.directory}/installer-work</removeDirectories>
+                  <args>@${project.build.directory}/pkg-config/win/${os.arch}-jpackage.txt</args>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>release-linux-x64</id>
+      <activation>
+        <os>
+          <family>unix</family>
+          <arch>amd64</arch>
+        </os>
+        <property>
+          <name>release</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- Replace this UUID with a custom one for your project. This ID is used by the Windows installer system
                                                                                                                                      to know that an installer is intended to replace/upgrade an earlier version. The easiest thing to do is
                                                                                                                                      grab a unique UUID via https://www.uuidgenerator.net -->
-                <!-- This is used to set many user-visible fields in the Windows Installer. See windows-jpackage.txt -->
-                <windows.vendor>Imag'In</windows.vendor>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <version>${maven-resources-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>copy-distrib-files</id>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <phase>process-resources</phase>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/pkg-config</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>${basedir}/src/distrib</directory>
-                                            <filtering>true</filtering>
-                                            <includes>
-                                                <include>linux/${os.arch}-jpackage.txt</include>
-                                            </includes>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <!-- https://github.com/wiverson/jtoolprovider-plugin -->
-                        <groupId>io.github.wiverson</groupId>
-                        <artifactId>jtoolprovider-plugin</artifactId>
-                        <version>${jtoolprovider-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>jlink</id>
-                                <goals>
-                                    <goal>java-tool</goal>
-                                </goals>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <toolName>jlink</toolName>
-                                    <removeDirectories>${project.build.directory}/custom-jvm/</removeDirectories>
-                                    <!--                                    <modulePath>${project.basedir}/jmods/${os.detected.classifier}-javafx/javafx-jmods-${javafx.version}/-->
-                                    <!--                                    </modulePath>-->
-                                    <addModules>${jvm.modules}</addModules>
-                                    <output>${project.build.directory}/custom-jvm</output>
-                                    <args>
-                                        <arg>--strip-native-commands</arg>
-                                        <arg>--no-header-files</arg>
-                                        <arg>--strip-debug</arg>
-                                        <arg>--no-man-pages</arg>
-                                        <arg>--compress=zip-6</arg>
-                                    </args>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>jpackage</id>
-                                <goals>
-                                    <goal>java-tool</goal>
-                                </goals>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <debug>true</debug>
-                                    <toolName>jpackage</toolName>
-                                    <removeDirectories>${project.build.directory}/installer-work</removeDirectories>
-                                    <args>@${project.build.directory}/pkg-config/linux/${os.arch}-jpackage.txt</args>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
+        <!-- This is used to set many user-visible fields in the Windows Installer. See windows-jpackage.txt -->
+        <windows.vendor>Imag'In</windows.vendor>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <version>${maven-resources-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>copy-distrib-files</id>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <phase>process-resources</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/pkg-config</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${basedir}/src/distrib</directory>
+                      <filtering>true</filtering>
+                      <includes>
+                        <include>linux/${os.arch}-jpackage.txt</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <!-- https://github.com/wiverson/jtoolprovider-plugin -->
+            <groupId>io.github.wiverson</groupId>
+            <artifactId>jtoolprovider-plugin</artifactId>
+            <version>${jtoolprovider-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>jlink</id>
+                <goals>
+                  <goal>java-tool</goal>
+                </goals>
+                <phase>pre-integration-test</phase>
+                <configuration>
+                  <toolName>jlink</toolName>
+                  <removeDirectories>${project.build.directory}/custom-jvm/</removeDirectories>
+                  <!--                                    <modulePath>${project.basedir}/jmods/${os.detected.classifier}-javafx/javafx-jmods-${javafx.version}/-->
+                  <!--                                    </modulePath>-->
+                  <addModules>${jvm.modules}</addModules>
+                  <output>${project.build.directory}/custom-jvm</output>
+                  <args>
+                    <arg>--strip-native-commands</arg>
+                    <arg>--no-header-files</arg>
+                    <arg>--strip-debug</arg>
+                    <arg>--no-man-pages</arg>
+                    <arg>--compress=zip-6</arg>
+                  </args>
+                </configuration>
+              </execution>
+              <execution>
+                <id>jpackage</id>
+                <goals>
+                  <goal>java-tool</goal>
+                </goals>
+                <phase>pre-integration-test</phase>
+                <configuration>
+                  <debug>true</debug>
+                  <toolName>jpackage</toolName>
+                  <removeDirectories>${project.build.directory}/installer-work</removeDirectories>
+                  <args>@${project.build.directory}/pkg-config/linux/${os.arch}-jpackage.txt</args>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
 
   </profiles>
 </project>
