@@ -15,11 +15,14 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTreeTableCell;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.icroco.picture.event.ShowDiffEvent;
 import org.icroco.picture.model.HashDuplicate;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.persistence.PersistenceService;
@@ -42,7 +45,10 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
+
+import static org.icroco.picture.views.util.Nodes.applyAndConsume;
 
 @Component
 @Lazy
@@ -69,7 +75,30 @@ public class DuplicateByMetadataTool implements RepairTool {
         this.persistenceService = persistenceService;
         this.i18N = i18N;
         this.collectionPicker = new CollectionPicker(persistenceService, i18N, 300);
-        maskerPane = new MaskerPane<>(root, false);
+        maskerPane = new MaskerPane<>(root);
+        root.setOnKeyPressed(event -> {
+            log.info("KeyPressed: {}", event.getCode());
+            switch (event.getCode()) {
+                case KeyCode.SPACE, KeyCode.ENTER -> applyAndConsume(event, this::space);
+                case KeyCode.L -> applyAndConsume(event, this::diffLeft);
+                case KeyCode.R -> applyAndConsume(event, this::diffRight);
+            }
+        });
+    }
+
+    private void space(KeyEvent keyEvent) {
+        Optional.ofNullable(treeTableHash.getSelectionModel().getSelectedItem())
+                .ifPresent(item -> item.getValue().setState(!item.getValue().getState()));
+    }
+
+    private void diffRight(KeyEvent keyEvent) {
+        Optional.ofNullable(treeTableHash.getSelectionModel().getSelectedItem())
+                .ifPresent(item -> taskService.sendEvent(ShowDiffEvent.builder().right(item.getValue().getMediaFile()).source(this).build()));
+    }
+
+    private void diffLeft(KeyEvent keyEvent) {
+        Optional.ofNullable(treeTableHash.getSelectionModel().getSelectedItem())
+                .ifPresent(item -> taskService.sendEvent(ShowDiffEvent.builder().left(item.getValue().getMediaFile()).source(this).build()));
     }
 
     public enum EViewMode {
@@ -184,7 +213,7 @@ public class DuplicateByMetadataTool implements RepairTool {
     TreeTableView<TableRow> createTreeTable() {
         var hashCol  = new TreeTableColumn<TableRow, String>("Duplicates");
         var stateCol = new TreeTableColumn<TableRow, Boolean>("Delete ?");
-        var idCol = new TreeTableColumn<TableRow, String>("ID");
+        var idCol   = new TreeTableColumn<TableRow, String>("ID");
         var pathCol = new TreeTableColumn<TableRow, Path>("Path");
 
         hashCol.setSortable(false);

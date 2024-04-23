@@ -100,13 +100,13 @@ public class MediaLoader {
     }
 
     public void loadAndCachedValues(final Collection<MediaFile> files) {
+        final var localFiles = new ArrayList<>(files);
         Thread.ofVirtual().start(() -> {
-            var mediaFiles = files.stream()
-                                  .limit(200)
-                                  .map(cacheOrLoad)
-                                  .toList();
+            localFiles.stream()
+                      .limit(200)
+                      .forEach(cacheOrLoad::apply);
 
-            Platform.runLater(() -> files.forEach(mf -> mf.setLoadedInCacheProperty(false)));
+            Platform.runLater(() -> localFiles.forEach(mf -> mf.setLoadedInCacheProperty(true)));
         });
     }
 

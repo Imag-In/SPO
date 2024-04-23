@@ -5,7 +5,9 @@ import atlantafx.base.theme.Styles;
 import com.dlsc.gemsfx.infocenter.InfoCenterPane;
 import com.dlsc.gemsfx.infocenter.NotificationGroup;
 import com.dlsc.gemsfx.infocenter.NotificationView;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +46,20 @@ public class NotificationManager {
         devicesGroup.setViewFactory(deviceViewFactory());
 
         infoCenterPane.setAutoHideDuration(Duration.seconds(5));
-        infoCenterPane.getInfoCenterView().transparentProperty().set(true);
+        infoCenterPane.getInfoCenterView().transparentProperty().set(false);
+
+        devicesGroup.getNotifications()
+                    .add(new NotificationUsb(UsbStorageDeviceEvent.builder()
+                                                                  .deviceName("Foo")
+                                                                  .type(UsbStorageDeviceEvent.EventType.CONNECTED)
+                                                                  .source(this)
+                                                                  .build()));
+        devicesGroup.getNotifications()
+                    .add(new NotificationUsb(UsbStorageDeviceEvent.builder()
+                                                                  .deviceName("Bar")
+                                                                  .type(UsbStorageDeviceEvent.EventType.REMOVED)
+                                                                  .source(this)
+                                                                  .build()));
 
 //        notificationPane.getChildren().add(notificationBar);
 //        StackPane.setAlignment(notificationBar, Pos.TOP_RIGHT);
@@ -66,7 +81,12 @@ public class NotificationManager {
     private @NonNull Callback<NotificationUsb, NotificationView<UsbStorageDeviceEvent, NotificationUsb>> deviceViewFactory() {
         return n -> {
             var view = new NotificationView<>(n);
-            view.setGraphic(new FontIcon(Material2OutlinedMZ.USB));
+            FontIcon graphic = new FontIcon(Material2OutlinedMZ.USB);
+            graphic.setId("notifcationGroupIcon");
+//            graphic.setIconSize(48);
+            var vbox = new VBox(graphic);
+            vbox.setAlignment(Pos.CENTER);
+            view.setGraphic(graphic);
             return view;
         };
     }
@@ -82,12 +102,14 @@ public class NotificationManager {
     public void listenEvent(UsbStorageDeviceEvent event) {
         if (event.getType() == UsbStorageDeviceEvent.EventType.CONNECTED) {
             devicesGroup.getNotifications().add(new NotificationUsb(event));
+//            infoCenterPane.getInfoCenterView().transparentProperty().set(!infoCenterPane.getInfoCenterView().transparentProperty().getValue());
+
 //            final var msg = new Notification("""
 //                                                     USB Storage detected: '%s'"
 //                                                       Do you want to import files ?
 //                                                     """.formatted(event.getDeviceName())
 //            );
-//            customizeIcon(NotificationEvent.NotificationType.QUESTION, msg, new FontIcon(FontAwesomeSolid.SD_CARD));
+            //            customizeIcon(NotificationEvent.NotificationType.QUESTION, msg, new FontIcon(FontAwesomeSolid.SD_CARD));
 //
 //            msg.getStyleClass().addAll(Styles.ACCENT, Styles.ELEVATED_1);
 //            msg.setPrefHeight(Region.USE_PREF_SIZE);
@@ -97,6 +119,8 @@ public class NotificationManager {
 //            msg.setPrimaryActions(yesBtn);
 //
 //            addAlert(msg, Duration.seconds(30));
+        } else if (event.getType() == UsbStorageDeviceEvent.EventType.REMOVED) {
+            devicesGroup.getNotifications().add(new NotificationUsb(event));
         }
     }
 

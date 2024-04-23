@@ -126,6 +126,8 @@ public class DiffWindow {
 
 //            mediaLoader.getOrLoadImage2(event.getRight(), this::updateRight);
         }
+        log.info("Update images done: {}", event);
+
     }
 
     private void updateLeft(MediaFile mediaFile, Image image) {

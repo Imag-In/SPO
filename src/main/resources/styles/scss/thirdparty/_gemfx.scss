@@ -1,4 +1,5 @@
 /* This is dummy file to clear user agent stylesheet. */
+
 .tags-field > .flow-pane > .tag-view {
   -color-button-bg: -color-accent-emphasis;
   -color-button-fg: -color-fg-emphasis;
@@ -38,6 +39,10 @@
   -fx-border-width: 0;
   -fx-border-insets: 0;
   -fx-background-color: transparent;
+}
+
+.tags-field > auto-completion-label {
+  -fx-text-background-color: -color-bg-default;
 }
 
 .search-field-list-view .search-field-list-cell .text {

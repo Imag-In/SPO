@@ -33,7 +33,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
-import javafx.stage.Stage;
 import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
 import org.icroco.picture.event.*;
@@ -785,7 +784,7 @@ public class GalleryView implements FxView<StackPane> {
 
     private void setFocus() {
         FxPlatformExecutor.fxRun(() -> {
-            ((Stage) root.getScene().getWindow()).toFront();
+//            ((Stage) root.getScene().getWindow()).toFront();
             root.getScene().getWindow().requestFocus();
             switch (dblCickState) {
                 case GALLERY -> gallery.requestFocus();

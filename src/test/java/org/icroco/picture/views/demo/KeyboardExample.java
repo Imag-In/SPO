@@ -95,9 +95,7 @@ public final class KeyboardExample extends Application {
                     new EventHandler<KeyEvent>() {
                         public void handle(final KeyEvent keyEvent) {
                             if (keyEvent.getCode() == KeyCode.ENTER) {
-                                setPressed(keyEvent.getEventType()
-                                           == KeyEvent.KEY_PRESSED);
-
+                                setPressed(keyEvent.getEventType() == KeyEvent.KEY_PRESSED);
                                 keyEvent.consume();
                             }
                         }

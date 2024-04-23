@@ -1,0 +1,51 @@
+.info-center-view .notification-view > .content {
+    /*-fx-background-radius: 8px;*/
+    -fx-background-color: -color-base-0;
+    /*-fx-padding: 10px 10px;*/
+    -fx-effect: dropshadow(gaussian, rgba(220, 220, 220, .26), 15, 0.16, -1, 4);
+}
+
+.info-center-view > .main-pane > .all-groups-container .groups-container > .group-view > .header > .group-name-label {
+    -fx-text-fill: -color-fg-default;
+}
+
+/*.info-center-view   {*/
+/*    -fx-background-color: rgba(255, 255, 255, .4);*/
+/*}*/
+
+.info-center-view > .main-pane > .top-level-container {
+    -fx-background-color: -color-base-2;
+    /*-fx-background-color: rgba(255, 255, 255, .1);*/
+
+    /*-fx-opacity: .9;*/
+}
+
+.info-center-view .notification-view > .content,
+.info-center-view .notification-view * {
+    -fx-text-fill: -color-fg-default;
+    -fx-background-color: -color-bg-default;
+}
+
+.info-center-view .notification-view > .content > .close-icon-wrapper * {
+    -fx-icon-color: -color-bg-default;
+}
+
+.info-center-view .notification-view > .content > .close-icon-wrapper > .ikonli-font-icon {
+    -fx-icon-color: -color-fg-default;
+}
+
+
+/*.info-center-view .notification-view > .content > .text-container > .title-time-box > upper-right-pane > .time-label {*/
+/*    -fx-text-fill: -color-bg-default;*/
+/*}*/
+
+/*.info-center-view .notification-view > .content > .text-container > .description-label {*/
+/*    -fx-text-fill: -color-bg-default;*/
+/*}*/
+
+
+/*.info-center-view .wrapper {*/
+/*    -fx-background-color: rgba(255, 255, 255, .5);*/
+/*    -fx-background-radius: 6px;*/
+/*    -fx-padding: 10px;*/
+/*}*/

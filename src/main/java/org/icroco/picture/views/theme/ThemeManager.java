@@ -34,6 +34,7 @@ import static org.icroco.picture.util.Resources.getResource;
 public final class ThemeManager {
     static final String   DUMMY_STYLESHEET = getResource("/styles/empty.css").toString();
     static final String[] APP_STYLESHEETS  = new String[] {
+            Resources.resolve("/styles/empty.css"),
             Resources.resolve("/styles/index.css")
     };
 
@@ -97,7 +98,8 @@ public final class ThemeManager {
 
         currentTheme = theme;
         Application.setUserAgentStylesheet(Objects.requireNonNull(theme.getUserAgentStylesheet()));
-        stageRepository.getStages().stream()
+        stageRepository.getStages()
+                       .stream()
                        .map(Stage::getScene)
                        .forEach(this::applyTheme);
 
