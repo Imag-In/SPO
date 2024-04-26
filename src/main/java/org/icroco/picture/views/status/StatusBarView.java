@@ -100,10 +100,10 @@ public class StatusBarView implements FxView<HBox> {
         versionAvailableIcon.getStyleClass().add(Styles.ACCENT);
 
         ContextMenu contextMenu = new ContextMenu();
-        MenuItem    openRelease = new MenuItem("Release page");
+        MenuItem openRelease = new MenuItem("Release page"); // I18N:
         openRelease.setOnAction(this::goToReleaseUrl);
 
-        MenuItem download = new MenuItem("Download");
+        MenuItem download = new MenuItem("Download"); // I18N:
         download.setOnAction(this::openRelease);
         download.setDisable(true);
 

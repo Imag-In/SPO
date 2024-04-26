@@ -19,6 +19,8 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -402,5 +404,11 @@ public class Nodes {
             descendant = descendant.getParent();
         }
         return false;
+    }
+
+    public Node createDecoratorNode(Color color) {
+        javafx.scene.shape.Rectangle d = new Rectangle(7, 7);
+        d.setFill(color);
+        return d;
     }
 }

@@ -5,16 +5,14 @@ import atlantafx.base.theme.Styles;
 import com.dlsc.gemsfx.infocenter.InfoCenterPane;
 import com.dlsc.gemsfx.infocenter.NotificationGroup;
 import com.dlsc.gemsfx.infocenter.NotificationView;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.event.ImportDirectoryEvent;
-import org.icroco.picture.event.NotificationEvent;
-import org.icroco.picture.event.ShowViewEvent;
-import org.icroco.picture.event.UsbStorageDeviceEvent;
+import org.icroco.picture.event.*;
 import org.icroco.picture.views.task.TaskService;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2OutlinedAL;
@@ -48,18 +46,30 @@ public class NotificationManager {
         infoCenterPane.setAutoHideDuration(Duration.seconds(5));
         infoCenterPane.getInfoCenterView().transparentProperty().set(false);
 
-        devicesGroup.getNotifications()
-                    .add(new NotificationUsb(UsbStorageDeviceEvent.builder()
-                                                                  .deviceName("Foo")
-                                                                  .type(UsbStorageDeviceEvent.EventType.CONNECTED)
-                                                                  .source(this)
-                                                                  .build()));
-        devicesGroup.getNotifications()
-                    .add(new NotificationUsb(UsbStorageDeviceEvent.builder()
-                                                                  .deviceName("Bar")
-                                                                  .type(UsbStorageDeviceEvent.EventType.REMOVED)
-                                                                  .source(this)
-                                                                  .build()));
+
+        infoCenterPane.getInfoCenterView().getUnmodifiableNotifications()
+                      .addListener((ListChangeListener.Change<?> _) -> {
+                                       int size = infoCenterPane.getInfoCenterView().getUnmodifiableNotifications().size();
+                                       taskService.sendEvent(NotificationSizeEvent.builder().size(size).source(this).build());
+                                   }
+                      );
+
+//        Platform.runLater(() -> {
+//            devicesGroup.getNotifications()
+//                        .add(new NotificationUsb(UsbStorageDeviceEvent.builder()
+//                                                                      .deviceName("Foo")
+//                                                                      .type(UsbStorageDeviceEvent.EventType.CONNECTED)
+//                                                                      .source(this)
+//                                                                      .build()));
+//            devicesGroup.getNotifications()
+//                        .add(new NotificationUsb(UsbStorageDeviceEvent.builder()
+//                                                                      .deviceName("Bar")
+//                                                                      .type(UsbStorageDeviceEvent.EventType.REMOVED)
+//                                                                      .source(this)
+//                                                                      .build()));
+//            taskService.sendEvent(NotificationSizeEvent.builder().size(infoCenterPane.getInfoCenterView().getUnmodifiableNotifications().size()).source(this).build());
+//        });
+
 
 //        notificationPane.getChildren().add(notificationBar);
 //        StackPane.setAlignment(notificationBar, Pos.TOP_RIGHT);
@@ -254,4 +264,6 @@ public class NotificationManager {
             setOnClick(_ -> OnClickBehaviour.REMOVE);
         }
     }
+
+
 }

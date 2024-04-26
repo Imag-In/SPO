@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 
 
-
 .v-main {
 
   -fx-background-color: -color-bg-default;
@@ -39,6 +38,39 @@
   .v-navigation {
     -fx-border-color: -color-border-default;
     -fx-border-width: 0 0 1px 0;
+    //-fx-icon-size: 24px;
+
+    .icon-container {
+      //-fx-icon-size: 24px;
+      .ikonli-font-icon {
+        -fx-icon-size: 24px;
+      }
+
+      .zero-notif {
+        .ikonli-font-icon {
+          -fx-icon-size: 24px;
+          //-fx-icon-color: red;
+          -fx-icon-code: "mdomz-notifications_none";
+        }
+      }
+
+      //> .ikonli-font-icon {
+
+      //}
+
+      .many-notif {
+        //.ikonli-font-icon {
+        //-fx-icon-size: 24px;
+        //-fx-icon-color: -fx;
+        -fx-icon-code: "mdomz-notification_important";
+        //}
+
+        //> .ikonli-font-icon {
+        //  -fx-icon-code: "mdomz-notifications_none";
+        //}
+        //}
+      }
+    }
   }
 
   .v-status {

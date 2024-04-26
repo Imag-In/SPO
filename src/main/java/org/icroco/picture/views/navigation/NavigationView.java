@@ -9,15 +9,13 @@ import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
-import org.icroco.picture.event.ImportDirectoryEvent;
-import org.icroco.picture.event.ShowOrganizeEvent;
-import org.icroco.picture.event.ShowSettingsEvent;
-import org.icroco.picture.event.ShowViewEvent;
+import org.icroco.picture.event.*;
 import org.icroco.picture.util.I18N;
 import org.icroco.picture.views.FxEventListener;
 import org.icroco.picture.views.ViewConfiguration;
@@ -40,12 +38,14 @@ public class NavigationView implements FxView<HBox> {
 
     private final SimpleStringProperty currentView;
 
-    private final HBox  root = new HBox();
-    private final Label importLbl;
-    private final Label organizeLbl;
-    private final Label repairLbl;
-    private final Label peopleLbl;
-    private final Label exportLbl;
+    private final HBox                  root        = new HBox();
+    private final Label                 importLbl;
+    private final Label                 organizeLbl;
+    private final Label                 repairLbl;
+    private final Label                 peopleLbl;
+    private final Label                 exportLbl;
+    private final Button                notif;
+    //    private final FontIcon              notifIcon   = FontIcon.of(Material2OutlinedMZ.NOTIFICATIONS_NONE);
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
 
 
@@ -105,17 +105,18 @@ public class NavigationView implements FxView<HBox> {
         selectedTab.set(organizeLbl);
 
         var hBox = new HBox();
+        hBox.setId("icon-container");
         var settingsIcon = FontIcon.of(Material2OutlinedMZ.SETTINGS);
 
+
         settingsIcon.setId("settings");
-        settingsIcon.getStyleClass().add("button-top-bar");
         var settings = new Button(null, settingsIcon);
+        settingsIcon.getStyleClass().add("button-top-bar");
+        FxUtil.styleFlat(settings).setOnAction(this::openSettings);
 //        settings.setPadding(new Insets(8, 8, 8, 8));
 
         settings.setTooltip(new Tooltip("Settings"));
         settings.setDisable(false);
-
-        FxUtil.styleFlat(settings).setOnAction(this::openSettings);
         settings.setOnAction(this::openSettings);
         settings.setOnMouseClicked(_ -> taskService.sendEvent(ShowSettingsEvent.builder()
                                                                                .scene(getRootContent().getScene())
@@ -131,10 +132,14 @@ public class NavigationView implements FxView<HBox> {
 //        photoDiff.setDisable(true);
         FxUtil.styleFlat(photoDiff); //.setOnAction(this::openSettings);
 
-        var notifIcon = FontIcon.of(Material2OutlinedMZ.NOTIFICATIONS_NONE);
-        var notif     = new Button(null, notifIcon);
+        notif = new Button(null);
         FxUtil.styleFlat(notif); //.setOnAction(this::openSettings);
+        FontIcon notifIcon = FontIcon.of(Material2OutlinedMZ.NOTIFICATIONS_NONE);
+        notif.setGraphic(notifIcon);
+        notifIcon.getStyleClass().add("zero-notif");
         notifIcon.getStyleClass().add("button-top-bar");
+
+//        notifIcon.getStyleClass().add("button-top-bar");
         notif.setOnMouseClicked(_ -> taskService.sendEvent(ShowViewEvent.builder()
                                                                         .eventType(ShowViewEvent.EventType.SHOW)
                                                                         .viewId(ViewConfiguration.V_NOTIFICATION)
@@ -161,6 +166,10 @@ public class NavigationView implements FxView<HBox> {
         return label;
     }
 
+    public Node getVisualNotification() {
+        return notif;
+    }
+
     @FxEventListener
     public void importDir(ImportDirectoryEvent event) {
         selectedTab.setValue(importLbl);
@@ -170,6 +179,30 @@ public class NavigationView implements FxView<HBox> {
     public void importDir(ShowOrganizeEvent event) {
         selectedTab.setValue(organizeLbl);
     }
+
+    @FxEventListener
+    public void listenEvent(NotificationSizeEvent event) {
+        log.info("Notif size: {}", event.getSize());
+        notif.getStyleClass().removeIf(s -> s.contains("-notif"));
+
+//        Decorator.removeAllDecorations(notifIcon);
+        if (event.getSize() != 0) {
+            if (!notif.getStyleClass().contains("many-notif")) {
+                notif.getStyleClass().add("many-notif");
+            }
+            if (!notif.getStyleClass().contains(Styles.ACCENT)) {
+                notif.getStyleClass().add(Styles.ACCENT);
+            }
+        } else {
+            if (!notif.getStyleClass().contains("zero-notif")) {
+                notif.getStyleClass().add("zero-notif");
+            }
+            notif.getStyleClass().remove(Styles.ACCENT);
+        }
+//            Decorator.addDecoration(notifIcon, new GraphicDecoration(Nodes.createDecoratorNode(Color.RED), Pos.TOP_RIGHT));
+//        }
+    }
+
 
     @Override
     public HBox getRootContent() {
