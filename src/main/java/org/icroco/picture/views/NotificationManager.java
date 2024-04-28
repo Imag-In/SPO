@@ -3,25 +3,33 @@ package org.icroco.picture.views;
 import atlantafx.base.controls.Notification;
 import atlantafx.base.theme.Styles;
 import com.dlsc.gemsfx.infocenter.InfoCenterPane;
+import com.dlsc.gemsfx.infocenter.NotificationAction;
 import com.dlsc.gemsfx.infocenter.NotificationGroup;
 import com.dlsc.gemsfx.infocenter.NotificationView;
+import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import javafx.util.Duration;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.*;
+import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.views.task.TaskService;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2OutlinedAL;
 import org.kordamp.ikonli.material2.Material2OutlinedMZ;
 import org.kordamp.ikonli.materialdesign2.MaterialDesignI;
 import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
+import java.time.ZonedDateTime;
+import java.util.Optional;
+
+import static java.time.Duration.ofSeconds;
 
 @Service
 @Slf4j
@@ -29,18 +37,22 @@ public class NotificationManager {
     private final TaskService                                                         taskService;
     private final InfoCenterPane                                                      infoCenterPane;
     //    private final VBox           notificationBar = new VBox();
-    private final NotificationGroup<NotificationEvent, NotificationEventNotification> errorGroup   = new NotificationGroup<>("Error");
-    private final NotificationGroup<UsbStorageDeviceEvent, NotificationUsb>           devicesGroup = new NotificationGroup<>("Devices");
+    private final NotificationGroup<MediaFile, MediaFileNotification>                 imgGroup     = new NotificationGroup<>("Images");// I18N:
+    private final NotificationGroup<UsbStorageDeviceEvent, NotificationUsb>           devicesGroup = new NotificationGroup<>("Devices");// I18N:
+    private final NotificationGroup<NotificationEvent, NotificationEventNotification> defaultGroup = new NotificationGroup<>("General"); // I18N:
 
     public NotificationManager(TaskService taskService, MainView mainView) {
         this.taskService = taskService;
         infoCenterPane = mainView.getInfoCenterPane();
 
-        infoCenterPane.getInfoCenterView().getGroups().addAll(errorGroup, devicesGroup);
-        errorGroup.setSortOrder(0);
-        errorGroup.setViewFactory(errorViewFactory());
+        infoCenterPane.getInfoCenterView().getGroups().addAll(defaultGroup, imgGroup, devicesGroup);
+        defaultGroup.setSortOrder(0);
+        defaultGroup.setViewFactory(errorViewFactory());
 
-        devicesGroup.setSortOrder(1);
+        imgGroup.setSortOrder(1);
+        imgGroup.setViewFactory(mfBotifFactory());
+
+        devicesGroup.setSortOrder(2);
         devicesGroup.setViewFactory(deviceViewFactory());
 
         infoCenterPane.setAutoHideDuration(Duration.seconds(5));
@@ -53,23 +65,6 @@ public class NotificationManager {
                                        taskService.sendEvent(NotificationSizeEvent.builder().size(size).source(this).build());
                                    }
                       );
-
-//        Platform.runLater(() -> {
-//            devicesGroup.getNotifications()
-//                        .add(new NotificationUsb(UsbStorageDeviceEvent.builder()
-//                                                                      .deviceName("Foo")
-//                                                                      .type(UsbStorageDeviceEvent.EventType.CONNECTED)
-//                                                                      .source(this)
-//                                                                      .build()));
-//            devicesGroup.getNotifications()
-//                        .add(new NotificationUsb(UsbStorageDeviceEvent.builder()
-//                                                                      .deviceName("Bar")
-//                                                                      .type(UsbStorageDeviceEvent.EventType.REMOVED)
-//                                                                      .source(this)
-//                                                                      .build()));
-//            taskService.sendEvent(NotificationSizeEvent.builder().size(infoCenterPane.getInfoCenterView().getUnmodifiableNotifications().size()).source(this).build());
-//        });
-
 
 //        notificationPane.getChildren().add(notificationBar);
 //        StackPane.setAlignment(notificationBar, Pos.TOP_RIGHT);
@@ -84,6 +79,8 @@ public class NotificationManager {
         return n -> {
             var view = new NotificationView<>(n);
             updateErrorView(view);
+            view.getGraphic().setId("notifcationGroupIcon");
+
             return view;
         };
     }
@@ -93,12 +90,31 @@ public class NotificationManager {
             var view = new NotificationView<>(n);
             FontIcon graphic = new FontIcon(Material2OutlinedMZ.USB);
             graphic.setId("notifcationGroupIcon");
-//            graphic.setIconSize(48);
             var vbox = new VBox(graphic);
             vbox.setAlignment(Pos.CENTER);
             view.setGraphic(graphic);
             return view;
         };
+    }
+
+    private @NonNull Callback<MediaFileNotification, NotificationView<MediaFile, MediaFileNotification>> mfBotifFactory() {
+        return n -> {
+            var view = new NotificationView<>(n);
+            view.getGraphic().setId("notifcationGroupIcon");
+
+            return view;
+        };
+    }
+
+    /////////////////////////////////////////////
+    //// Event Listeners (Fx Thread guaranted)
+    /////////////////////////////////////////////
+    @FxEventListener
+    public void listenEvent(NotificationEvent event) {
+        // TODO: Historize latest alerts into DB.
+        log.debug("Notification: {}", event);
+
+        defaultGroup.getNotifications().add(new NotificationEventNotification(event));
     }
 
     @FxEventListener
@@ -110,41 +126,9 @@ public class NotificationManager {
 
     @FxEventListener
     public void listenEvent(UsbStorageDeviceEvent event) {
-        if (event.getType() == UsbStorageDeviceEvent.EventType.CONNECTED) {
-            devicesGroup.getNotifications().add(new NotificationUsb(event));
-//            infoCenterPane.getInfoCenterView().transparentProperty().set(!infoCenterPane.getInfoCenterView().transparentProperty().getValue());
-
-//            final var msg = new Notification("""
-//                                                     USB Storage detected: '%s'"
-//                                                       Do you want to import files ?
-//                                                     """.formatted(event.getDeviceName())
-//            );
-            //            customizeIcon(NotificationEvent.NotificationType.QUESTION, msg, new FontIcon(FontAwesomeSolid.SD_CARD));
-//
-//            msg.getStyleClass().addAll(Styles.ACCENT, Styles.ELEVATED_1);
-//            msg.setPrefHeight(Region.USE_PREF_SIZE);
-//            msg.setMaxHeight(Region.USE_PREF_SIZE);
-//
-//            var yesBtn = getButton(event, msg);
-//            msg.setPrimaryActions(yesBtn);
-//
-//            addAlert(msg, Duration.seconds(30));
-        } else if (event.getType() == UsbStorageDeviceEvent.EventType.REMOVED) {
-            devicesGroup.getNotifications().add(new NotificationUsb(event));
-        }
-    }
-
-    private Button getButton(UsbStorageDeviceEvent event, Notification msg) {
-        var yesBtn = new Button("Yes");
-        yesBtn.setOnMouseClicked(_ -> {
-            msg.setVisible(false);
-            var dcim = event.getRootDirectory().resolve("DCIM");
-            taskService.sendEvent(ImportDirectoryEvent.builder()
-                                                      .rootDirectory(Files.exists(dcim) ? dcim : event.getRootDirectory())
-                                                      .source(this)
-                                                      .build());
-        });
-        return yesBtn;
+        NotificationUsb e = new NotificationUsb(event);
+        devicesGroup.getNotifications().add(e);
+        e.setExpanded(true);
     }
 
 //    private void addAlert(Notification msg, Duration showDuration) {
@@ -233,37 +217,82 @@ public class NotificationManager {
         msg.setGraphic(icon);
     }
 
-    /////////////////////////////////////////////
-    //// Event Listeners (Fx Thread guaranted)
-    /////////////////////////////////////////////
-    @FxEventListener
-    public void listenEvent(NotificationEvent event) {
-        // TODO: Historize latest alerts into DB.
-        log.debug("Notification: {}", event);
+    @Getter
+    public static class AbstractNotification<N> extends com.dlsc.gemsfx.infocenter.Notification<N> {
+        private Optional<java.time.Duration> autoCloseAfter;
 
-        errorGroup.getNotifications().add(new NotificationEventNotification(event));
+        public AbstractNotification(String title, String summary, ZonedDateTime dateTime, java.time.Duration autoCloseAfter) {
+            super(title, summary, dateTime);
+            setAutoCloseAfter(autoCloseAfter);
+        }
 
-//        final var msg = new Notification(event.getMessage(), new FontIcon(Material2OutlinedAL.HELP_OUTLINE));
-//        customizeIcon(event.getType(), msg, null);
-//        msg.setPrefHeight(Region.USE_PREF_SIZE);
-//        msg.setMaxHeight(Region.USE_PREF_SIZE);
-//
-//        addAlert(msg, Duration.seconds(event.getTimeoutInSeconds()));
-    }
+        public AbstractNotification(String title, String summary, ZonedDateTime dateTime) {
+            this(title, summary, dateTime, null);
+        }
 
-    private static class NotificationEventNotification extends com.dlsc.gemsfx.infocenter.Notification<NotificationEvent> {
-        public NotificationEventNotification(NotificationEvent event) {
-            super("Error", event.getMessage(), event.getDateTime());
-            setOnClick(_ -> OnClickBehaviour.NONE);
+
+        public AbstractNotification(String title, String summary) {
+            this(title, summary, ZonedDateTime.now(), null);
+        }
+
+        public AbstractNotification(String title, String summary, java.time.Duration autoCloseAfter) {
+            this(title, summary, ZonedDateTime.now(), null);
+        }
+
+        final void setAutoCloseAfter(@Nullable java.time.Duration duration) {
+            this.autoCloseAfter = Optional.ofNullable(duration);
+            this.autoCloseAfter.ifPresent(d -> {
+                Thread.ofVirtual().name("AutoCloseNotif").start(() -> {
+                    try {
+                        Thread.sleep(d);
+                        Platform.runLater(AbstractNotification.this::remove);
+                    } catch (Throwable e) {
+                        log.error("Cannot autoclose notification: {}", getTitle(), e);
+                    }
+                });
+            });
         }
     }
 
-    private static class NotificationUsb extends com.dlsc.gemsfx.infocenter.Notification<UsbStorageDeviceEvent> {
+    private static class NotificationEventNotification extends AbstractNotification<NotificationEvent> {
+        public NotificationEventNotification(NotificationEvent event) {
+            super(event.getType().toString(), event.getMessage(), event.getDateTime());
+            setUserObject(event);
+            setOnClick(_ -> OnClickBehaviour.NONE);
+            if (event.getType() == NotificationEvent.NotificationType.INFO) {
+                setAutoCloseAfter(java.time.Duration.ofSeconds(event.getTimeoutInSeconds()));
+            }
+        }
+    }
+
+    private class NotificationUsb extends AbstractNotification<UsbStorageDeviceEvent> {
         public NotificationUsb(UsbStorageDeviceEvent event) {
-            super(event.getDeviceName(), STR."\{event.getType().toString()}: \{event.getRootDirectory()}", event.getDateTime());
+            super(STR."USB Storage detected: '\{event.getDeviceName()}'",
+                  STR."Mount directory: \{event.getRootDirectory()}",
+                  event.getDateTime(),
+                  ofSeconds(20)); // I18N:
+            setOnClick(_ -> OnClickBehaviour.NONE);
+            if (event.getType() == UsbStorageDeviceEvent.EventType.CONNECTED) {
+                var openUsb = new NotificationAction<>("Import", (_) -> { // I18N:
+                    var dcim = event.getRootDirectory().resolve("DCIM");
+                    taskService.sendEvent(ImportDirectoryEvent.builder()
+                                                              .rootDirectory(Files.exists(dcim) ? dcim : event.getRootDirectory())
+                                                              .source(this)
+                                                              .build());
+                    return OnClickBehaviour.HIDE_AND_REMOVE;
+                });
+
+                getActions().add(openUsb);
+            }
+
+        }
+    }
+
+    private static class MediaFileNotification extends AbstractNotification<MediaFile> {
+        public MediaFileNotification(MediaFile mediaFile) {
+            super("Image", mediaFile.getFullPath().toString());
+            setUserObject(mediaFile);
             setOnClick(_ -> OnClickBehaviour.REMOVE);
         }
     }
-
-
 }

@@ -632,7 +632,9 @@ public class MediaLoader {
                   final var start = System.currentTimeMillis();
                   final var mfFiltered = forceGenerateAll
                                          ? mediaFiles
-                                         : mediaFiles.stream().filter(mf -> mf.getThumbnailType() == EThumbnailType.ABSENT).toList();
+                                         : mediaFiles.stream()
+                                                     .filter(mf -> mf.getThumbnailType().isAbsent())
+                                                     .toList();
 
                   log.info("Generate high quality thumbnail, nbEntries: {}", mfFiltered.size());
                   if (mfFiltered.isEmpty()) {
@@ -650,8 +652,7 @@ public class MediaLoader {
                       var tasks = mfFiltered.stream()
                                             .map(mf -> wrap(STR."Generate thumbnail: \{mf.fileName()}",
                                                             () -> persistenceService.findByPathOrId(mf)
-                                                                                    .filter(_ -> mf.getThumbnailType()
-                                                                                                 != EThumbnailType.GENERATED)
+                                                                                    .filter(_ -> mf.getThumbnailType().isNotGenerated())
                                                                                     .map(t -> {
                                                                                         var i = thumbnailGenerator.generate(t);
                                                                                         if (i != null) {

@@ -77,7 +77,7 @@ public class Rating extends HBox {
     }
 
     public void setIconSize(int size) {
-//        iconSize.setValue(24);
+        iconSize.setValue(24);
     }
 
 }

@@ -237,6 +237,7 @@ public class DefaultMetadataExtractor implements IMetadataExtractor {
 
 
     public Set<Keyword> extractKeywords(Path path, Optional<IptcDirectory> firstIptcDirectory) {
+        // TODO: First, though, you have to figure which TAG holds the keywords in your case.  The two main keyword tags are IPTC:Keywords and XMP:Subject, so you can check with your other programs to see which tag is being read.
         return firstIptcDirectory.map(directory -> {
                                      var keywords = directory.getStringArray(IptcDirectory.TAG_KEYWORDS);
 

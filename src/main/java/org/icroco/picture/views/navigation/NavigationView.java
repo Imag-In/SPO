@@ -9,7 +9,6 @@ import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
@@ -30,7 +29,6 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-
 @Slf4j
 @Component
 public class NavigationView implements FxView<HBox> {
@@ -47,7 +45,6 @@ public class NavigationView implements FxView<HBox> {
     private final Button                notif;
     //    private final FontIcon              notifIcon   = FontIcon.of(Material2OutlinedMZ.NOTIFICATIONS_NONE);
     private final ObjectProperty<Label> selectedTab = new SimpleObjectProperty<>();
-
 
     public NavigationView(@Qualifier(ViewConfiguration.CURRENT_VIEW)
                           SimpleStringProperty currentView,
@@ -87,11 +84,11 @@ public class NavigationView implements FxView<HBox> {
 //                content.getChildren().setAll(preview);
 //            }
             if (val == importLbl) {
-                currentView.set(ViewConfiguration.V_IMPORT);
+                this.currentView.set(ViewConfiguration.V_IMPORT);
             } else if (val == organizeLbl) {
-                currentView.set(ViewConfiguration.V_ORGANIZE);
+                this.currentView.set(ViewConfiguration.V_ORGANIZE);
             } else if (val == repairLbl) {
-                currentView.set(ViewConfiguration.V_REPAIR);
+                this.currentView.set(ViewConfiguration.V_REPAIR);
             }
 
             if (old != null) {
@@ -105,7 +102,7 @@ public class NavigationView implements FxView<HBox> {
         selectedTab.set(organizeLbl);
 
         var hBox = new HBox();
-        hBox.setId("icon-container");
+        hBox.getStyleClass().add("icon-container");
         var settingsIcon = FontIcon.of(Material2OutlinedMZ.SETTINGS);
 
 
@@ -126,7 +123,7 @@ public class NavigationView implements FxView<HBox> {
         var photoDiff     = new Button(null, photoDiffIcon);
 
         photoDiffIcon.getStyleClass().add("button-top-bar");
-        photoDiff.setOnMouseClicked(event -> diffWindow.show());
+        photoDiff.setOnMouseClicked(_ -> diffWindow.show());
 
 //        photoDiff.setTooltip(new Tooltip("Settings"));
 //        photoDiff.setDisable(true);
@@ -134,10 +131,14 @@ public class NavigationView implements FxView<HBox> {
 
         notif = new Button(null);
         FxUtil.styleFlat(notif); //.setOnAction(this::openSettings);
-        FontIcon notifIcon = FontIcon.of(Material2OutlinedMZ.NOTIFICATIONS_NONE);
+        FontIcon notifIcon = new FontIcon();
+//        FontIcon notifIcon = FontIcon.of(Material2OutlinedMZ.NOTIFICATIONS_NONE);
         notif.setGraphic(notifIcon);
-        notifIcon.getStyleClass().add("zero-notif");
-        notifIcon.getStyleClass().add("button-top-bar");
+//        notifIcon.getStyleClass().add("zero-notif");
+//        notif.setId("zero-notif");
+        notif.getStyleClass().add("button-top-bar");
+        notif.getStyleClass().add("zero-notif");
+
 
 //        notifIcon.getStyleClass().add("button-top-bar");
         notif.setOnMouseClicked(_ -> taskService.sendEvent(ShowViewEvent.builder()
@@ -149,7 +150,6 @@ public class NavigationView implements FxView<HBox> {
         hBox.getChildren().addAll(photoDiff, settings, notif);
         hBox.setAlignment(Pos.CENTER_RIGHT);
         root.getChildren().addAll(new Spacer(), importLbl, organizeLbl, repairLbl, peopleLbl, exportLbl, new Spacer(), hBox);
-
     }
 
     private void openSettings(ActionEvent e) {
@@ -164,10 +164,6 @@ public class NavigationView implements FxView<HBox> {
         label.setPadding(new Insets(0, 10, 0, 10));
 
         return label;
-    }
-
-    public Node getVisualNotification() {
-        return notif;
     }
 
     @FxEventListener
@@ -185,7 +181,6 @@ public class NavigationView implements FxView<HBox> {
         log.info("Notif size: {}", event.getSize());
         notif.getStyleClass().removeIf(s -> s.contains("-notif"));
 
-//        Decorator.removeAllDecorations(notifIcon);
         if (event.getSize() != 0) {
             if (!notif.getStyleClass().contains("many-notif")) {
                 notif.getStyleClass().add("many-notif");
@@ -199,8 +194,6 @@ public class NavigationView implements FxView<HBox> {
             }
             notif.getStyleClass().remove(Styles.ACCENT);
         }
-//            Decorator.addDecoration(notifIcon, new GraphicDecoration(Nodes.createDecoratorNode(Color.RED), Pos.TOP_RIGHT));
-//        }
     }
 
 
