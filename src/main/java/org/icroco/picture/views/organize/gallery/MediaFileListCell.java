@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
+import org.icroco.picture.thumbnail.ThumbnailService;
 import org.icroco.picture.views.util.ImageUtils;
 import org.icroco.picture.views.util.MediaLoader;
 
@@ -17,10 +18,12 @@ public class MediaFileListCell extends ListCell<MediaFile> {
     @Getter
     private final ImageView   imageView;
     private final MediaLoader mediaLoader;
+    private final ThumbnailService thumbnailService;
     public final  StackPane   root;
 
-    public MediaFileListCell(MediaLoader mediaLoader) {
+    public MediaFileListCell(MediaLoader mediaLoader, ThumbnailService thumbnailService) {
         this.mediaLoader = mediaLoader;
+        this.thumbnailService = thumbnailService;
         getStyleClass().add("image-grid-cell");
         imageView = new ImageView(ImageUtils.LOADING);
         imageView.fitHeightProperty().bind(this.heightProperty().subtract(3));
@@ -41,7 +44,7 @@ public class MediaFileListCell extends ListCell<MediaFile> {
             this.setGraphic(null);
         } else {
 //            if (item.isLoaded()) {
-            setImage(mediaLoader.getCachedValue(item)
+            setImage(thumbnailService.get(item)
                                 .map(Thumbnail::getImage)
                                 .orElse(ImageUtils.LOADING));
 //            } else {

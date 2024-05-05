@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.event.PhotoSelectedEvent;
 import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.thumbnail.ThumbnailService;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.MediaLoader;
 
@@ -16,10 +17,11 @@ import org.icroco.picture.views.util.MediaLoader;
 public class MediaFileListCellFactory implements Callback<ListView<MediaFile>, ListCell<MediaFile>> {
     private final MediaLoader mediaLoader;
     private final TaskService taskService;
+    private final ThumbnailService thumbnailService;
 
     @Override
     public ListCell<MediaFile> call(ListView<MediaFile> param) {
-        final var cell = new MediaFileListCell(mediaLoader);
+        final var cell = new MediaFileListCell(mediaLoader, thumbnailService);
         cell.setAlignment(Pos.CENTER);
         cell.setEditable(false);
 

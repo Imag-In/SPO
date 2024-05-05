@@ -198,7 +198,9 @@ public class PersistenceService {
                 log.debug("Hash: '{}'", file.getHash());
             });
         }
-        mfMapper.fromEntityToDomain(mfRepo.save(mfMapper.toEntity(file)), file);
+        var fileSaved = mfMapper.fromEntityToDomain(mfRepo.save(mfMapper.toEntity(file)), file);
+        var c         = mcCache.get(file.getCollectionId(), MediaCollection.class);
+        c.replaceMedias(List.of(fileSaved));
     }
 
     @Transactional
@@ -262,7 +264,7 @@ public class PersistenceService {
         try {
             wLock.lock();
 //            thumbnail.setDimension(new Dimension(thumbnail.getImage().getWidth(), thumbnail.getImage().getHeight()));
-            mf.setThumbnailType(thumbnail.getOrigin());
+//            mf.setThumbnailType(thumbnail.getOrigin());
             saveMediaFile(mf);
             return save(thumbnail);
         } finally {
@@ -275,10 +277,10 @@ public class PersistenceService {
         return Optional.ofNullable(thCache.get(mediaFile));
     }
 
-    public Optional<Thumbnail> findByPathOrId(MediaFile mediaFile) {
-        return thumbRepo.findById(mediaFile.getId())
-                        .map(thMapper::toDomain);
-    }
+//    public Optional<Thumbnail> findByPathOrId(MediaFile mediaFile) {
+//        return thumbRepo.findById(mediaFile.getId())
+//                        .map(thMapper::toDomain);
+//    }
 
     public List<HashDuplicate> findDuplicateByHash() {
         StopWatch stopWatch = new StopWatch("findAllDuplicate");

@@ -178,7 +178,6 @@ public class NavigationView implements FxView<HBox> {
 
     @FxEventListener
     public void listenEvent(NotificationSizeEvent event) {
-        log.info("Notif size: {}", event.getSize());
         notif.getStyleClass().removeIf(s -> s.contains("-notif"));
 
         if (event.getSize() != 0) {

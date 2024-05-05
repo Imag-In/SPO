@@ -41,6 +41,7 @@ import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.persistence.PersistenceService;
+import org.icroco.picture.thumbnail.ThumbnailService;
 import org.icroco.picture.util.Constant;
 import org.icroco.picture.util.I18N;
 import org.icroco.picture.util.SceneReadyEvent;
@@ -84,12 +85,13 @@ import static org.icroco.picture.util.SystemUtil.mouseNonContiguousSelection;
 public class GalleryView implements FxView<StackPane> {
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(GalleryView.class);
 
-    private final I18N        i18N;
-    private final MediaLoader mediaLoader;
+    private final I18N             i18N;
+    private final MediaLoader      mediaLoader;
     private final UserPreferenceService pref;
     private final TaskService           taskService;
     private       ZoomDragPane          photo;
     private final PersistenceService    persistenceService;
+    private final ThumbnailService thumbnailService;
     private final GalleryFilterView     filterView;
     @Qualifier(OrganizeConfiguration.ORGANIZE_EDIT_MODE)
     private final SimpleBooleanProperty editMode;
@@ -184,6 +186,7 @@ public class GalleryView implements FxView<StackPane> {
 //        editCell.setOpacity(0.4);
         editMode.bind(Bindings.equal(editCell.graphicProperty(), editOn));
         gridView.setCellFactory(new MediaFileGridCellFactory(mediaLoader,
+                                                             thumbnailService,
                                                              taskService,
                                                              expandCell,
                                                              currentCatalog,
@@ -573,14 +576,13 @@ public class GalleryView implements FxView<StackPane> {
             final var mf     = event.getMf();
             log.atDebug().log(() -> {
                 Optional<Thumbnail> cache = persistenceService.getThumbnailFromCache(mf);
-                Optional<Thumbnail> db    = persistenceService.findByPathOrId(mf);
-                return "Photo selected: root: '%s', '%s', '%s', from: '%s'. Thumbhnail DB mcId: '%s', type: '%s'. Tumbhnail Cache, mcId: '%s', type: '%s'"
+                Optional<Thumbnail> th = thumbnailService.get(mf);
+                return "Photo selected: root: '%s', '%s', from: '%s'. Thumbhnail DB mcId: '%s', type: '%s'. Tumbhnail Cache, mcId: '%s', type: '%s'"
                         .formatted(mf.getId(),
                                    mf.getFileName(),
-                                   mf.getThumbnailType(),
                                    source.getSimpleName(),
-                                   db.map(Thumbnail::getMfId).orElse(-1L),
-                                   db.map(Thumbnail::getOrigin).orElse(null),
+                                   th.map(Thumbnail::getMfId).orElse(-1L),
+                                   th.map(Thumbnail::getOrigin).orElse(null),
                                    cache.map(Thumbnail::getMfId).orElse(-1L),
                                    cache.map(Thumbnail::getOrigin).orElse(null)
                         );

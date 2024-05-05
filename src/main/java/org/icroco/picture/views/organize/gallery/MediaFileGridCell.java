@@ -23,6 +23,7 @@ import org.icroco.picture.model.EKeepOrThrow;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
 import org.icroco.picture.model.Thumbnail;
+import org.icroco.picture.thumbnail.ThumbnailService;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.CustomGridView;
 import org.icroco.picture.views.util.ImageUtils;
@@ -39,11 +40,13 @@ import static org.icroco.picture.util.LangUtils.EMPTY_STRING;
 @Slf4j
 public class
 MediaFileGridCell extends GridCell<MediaFile> {
-    private final TaskService                             taskService;
+    private final TaskService      taskService;
     @Getter
-    private final ImageView                               imageView;
-    private final boolean                                 preserveImageProperties;
-    private final MediaLoader                             mediaLoader;
+    private final ImageView        imageView;
+    private final boolean          preserveImageProperties;
+    private final MediaLoader      mediaLoader;
+    private final ThumbnailService thumbnailService;
+
     public final  StackPane                               root;
     public final  BooleanProperty                         isExpandCell;
     private final ReadOnlyObjectProperty<MediaCollection> currentMediaCollection;
@@ -62,12 +65,14 @@ MediaFileGridCell extends GridCell<MediaFile> {
                              BooleanProperty isExpandCell,
                              ReadOnlyObjectProperty<MediaCollection> currentMediaCollection,
                              CustomGridView<MediaFile> grid,
-                             BooleanProperty isEditable) {
+                             BooleanProperty isEditable,
+                             ThumbnailService thumbnailService) {
         this.taskService = taskService;
         this.preserveImageProperties = preserveImageProperties;
         this.mediaLoader = mediaLoader;
         this.isExpandCell = isExpandCell;
         this.currentMediaCollection = currentMediaCollection;
+        this.thumbnailService = thumbnailService;
         isExpandCell.addListener((_, _, _) -> requestLayout());
         getStyleClass().add("image-grid-cell");
 //        loadingView.maxHeight(128 - 5);
@@ -145,7 +150,7 @@ MediaFileGridCell extends GridCell<MediaFile> {
                                                                                                                  (!lastHash.equals(item.getHash())),
                                                                                                                  MediaFileGridCellFactory.isCellVisible(
                                                                                                                          grid, this)));
-                    setImage(mediaLoader.getCachedValue(item)
+                    setImage(thumbnailService.get(item)
                                         .map(Thumbnail::getImage)
                                         .orElse(ImageUtils.getNoThumbnailImage()));
                 }

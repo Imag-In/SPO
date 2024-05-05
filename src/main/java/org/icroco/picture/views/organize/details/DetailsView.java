@@ -36,6 +36,7 @@ import org.icroco.picture.model.*;
 import org.icroco.picture.model.converter.KeywordStringConverter;
 import org.icroco.picture.persistence.PersistenceService;
 import org.icroco.picture.persistence.ThumbnailRepository;
+import org.icroco.picture.thumbnail.ThumbnailService;
 import org.icroco.picture.util.Env;
 import org.icroco.picture.util.FileUtil;
 import org.icroco.picture.util.I18N;
@@ -82,39 +83,40 @@ public class DetailsView extends AbstractView<VBox> {
     private final MediaLoader           mediaLoader;
     private final Env                   env;
     private final PersistenceService    persistenceService;
-    private final IKeywordManager keywordManager;
-    private final I18N            i18N;
+    private final ThumbnailService thumbnailService;
+    private final IKeywordManager  keywordManager;
+    private final I18N             i18N;
     @Qualifier(OrganizeConfiguration.ORGANIZE_EDIT_MODE)
     private final SimpleBooleanProperty editMode;
 
     private       MaskerPane<ScrollPane> maskerPane;
-    private final VBox                root                = new VBox();
-    private final Label               name                = createLabel();
-    private final Label               dbId                = createLabel(0, 100);
-    private final Label               creationDate        = createLabel();
-    private final Label               creationTime        = createLabel();
-    private final DatePicker          originalDate        = new DatePicker();
-    private final Label               gps                 = createLabel();
-    private final Label               size                = createLabel();
-    private final Label               thumbnailType       = createLabel();
-    private final Label               thumbnailSize       = createLabel();
-    private final Label               orientation         = createLabel();
-    private final Label               cameraMake          = createLabel();
-    private final Label               cameraModel         = createLabel();
-    private final Rating              rating              = new Rating();
+    private final VBox               root                = new VBox();
+    private final Label              name                = createLabel();
+    private final Label              dbId                = createLabel(0, 100);
+    private final Label              creationDate        = createLabel();
+    private final Label              creationTime        = createLabel();
+    private final DatePicker         originalDate        = new DatePicker();
+    private final Label              gps                 = createLabel();
+    private final Label              size                = createLabel();
+    private final Label              thumbnailType       = createLabel();
+    private final Label              thumbnailSize       = createLabel();
+    private final Label              orientation         = createLabel();
+    private final Label              cameraMake          = createLabel();
+    private final Label              cameraModel         = createLabel();
+    private final Rating             rating              = new Rating();
     //    private final Label                 keywords            = createLabel();
-    private final TagsField<Keyword>  keywords            = new TagsField<>();
-    private final Label               filePathError       = createLabel();
+    private final TagsField<Keyword> keywords            = new TagsField<>();
+    private final Label              filePathError       = createLabel();
     private       TabPane                tabs;
-    private       Path                path                = null;
-    private final Button              printImageDetails   = new Button(null, FontIcon.of(MaterialDesignC.CONSOLE_LINE));
-    private final Button              refreshThumbnail    = new Button(null, FontIcon.of(MaterialDesignR.RESTART));
-    private final Button              saveThumbnail       = new Button(null, FontIcon.of(MaterialDesignC.CONTENT_SAVE_OUTLINE));
-    private final Button              editDate            = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
-    private final Button              editTime            = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
-    private final Button              extractDateFromFile = new Button(null, FontIcon.of(MaterialDesignC.CALENDAR_CHECK_OUTLINE));
-    private final FontIcon            filePathErrorIcon   = FontIcon.of(MaterialDesignL.LINK_OFF);
-    private final GridPane               gridFullDetails = new GridPane();
+    private       Path               path                = null;
+    private final Button             printImageDetails   = new Button(null, FontIcon.of(MaterialDesignC.CONSOLE_LINE));
+    private final Button             refreshThumbnail    = new Button(null, FontIcon.of(MaterialDesignR.RESTART));
+    private final Button             saveThumbnail       = new Button(null, FontIcon.of(MaterialDesignC.CONTENT_SAVE_OUTLINE));
+    private final Button             editDate            = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
+    private final Button             editTime            = new Button(null, FontIcon.of(Material2OutlinedAL.CREATE));
+    private final Button             extractDateFromFile = new Button(null, FontIcon.of(MaterialDesignC.CALENDAR_CHECK_OUTLINE));
+    private final FontIcon           filePathErrorIcon   = FontIcon.of(MaterialDesignL.LINK_OFF);
+    private final GridPane           gridFullDetails     = new GridPane();
 
     private final ChangeListener<LocalDateTime>   reloadNeeded      = this::reload;
     private       SimpleObjectProperty<MediaFile> mediaFileProperty = new SimpleObjectProperty<>(null);
@@ -157,7 +159,7 @@ public class DetailsView extends AbstractView<VBox> {
 
     private void selectTab(Tab newValue) {
         if (newValue.getId().equals(IMAGE_METADATA_DETAILS)) {
-            var      directories = metadataExtractor.getAllByDirectory(path);
+            var directories = metadataExtractor.getAllByDirectory(path);
             gridFullDetails.getChildren().clear();
             int rowIdx = 0;
 
@@ -508,9 +510,8 @@ public class DetailsView extends AbstractView<VBox> {
 
     private void fillForm() {
         var mediaFile = mediaFileProperty.getValue();
-        mediaLoader.getCachedValue(mediaFile).ifPresent(t -> {
-            thumbnailType.setText(mediaFile.getThumbnailType()
-                                           .toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
+        thumbnailService.get(mediaFile).ifPresent(t -> {
+            thumbnailType.setText(t.getOrigin().toString()); //map(t -> tn.getOrigin().toString()).orElse(FILE_NOT_FOUND));
             thumbnailSize.setText(Objects.toString(t.getDimension()));
         });
         rating.setValue(mediaFile.getRating());

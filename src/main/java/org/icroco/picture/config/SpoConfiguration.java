@@ -48,7 +48,7 @@ public class SpoConfiguration {
     public static final  String CACHE_THUMBNAILS      = "thumbnails";
     private static final String CACHE_THUMBNAILS_RAW  = CACHE_THUMBNAILS + "-raw";
     public static final  String CACHE_IMAGE_FULL_SIZE = "imageFullSize";
-    public static final String CACHE_IMAGE_HEADER    = "imageHeader";
+    public static final String CACHE_IMAGE_HEADER = "imageHeader";
 
     public static final String CACHE_CATALOG     = "catalog";
     public static final String CACHE_KEYWORD = "keyword";

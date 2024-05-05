@@ -59,6 +59,10 @@ public class ImageUtils {
         }
     }
 
+//    static Image createTRansparent() {
+//        return new BufferedImage(DEFAULT_THUMB_SIZE.width(), DEFAULT_THUMB_SIZE.height(), BufferedImage.TYPE_INT_ARGB);
+//    }
+
     static Image createImage(String text) {
         int             width  = DEFAULT_THUMB_SIZE.width();
         int             height = DEFAULT_THUMB_SIZE.height();

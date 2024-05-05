@@ -29,7 +29,7 @@ class ImgscalrGeneratorTest {
         var dataBuffer = ImageUtils.getRawImage(thumbnail.getImage());
 
 // Each bank element in the data buffer is a 32-bit integer
-        long sizeBytes = ((long) dataBuffer.length) * 4l;
-        long sizeMB    = sizeBytes / (1024l * 1024l);
+        long sizeBytes = ((long) dataBuffer.length) * 4L;
+        long sizeMB    = sizeBytes / (1024L * 1024L);
     }
 }

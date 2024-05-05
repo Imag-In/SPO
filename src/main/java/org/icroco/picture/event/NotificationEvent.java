@@ -21,5 +21,5 @@ public class NotificationEvent extends IiEvent {
     @Builder.Default
     private NotificationType type             = NotificationType.INFO;
     @Builder.Default
-    private int              timeoutInSeconds = 5;
+    private int timeoutInSeconds = 30;
 }

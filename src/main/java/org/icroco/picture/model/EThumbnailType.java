@@ -34,11 +34,15 @@ public enum EThumbnailType {
         return this == ABSENT || this == GENERATED_ERROR || this == EXTRACTED_ERROR;
     }
 
+    public boolean isAbsentOrExtractedError() {
+        return this == ABSENT || this == EXTRACTED_ERROR;
+    }
+
     public boolean isNotGenerated() {
         return this != GENERATED && this != GENERATED_ERROR;
     }
 
     public boolean isNotExtracted() {
-        return this != EXTRACTED && this != EXTRACTED_ERROR;
+        return this != EXTRACTED;
     }
 }

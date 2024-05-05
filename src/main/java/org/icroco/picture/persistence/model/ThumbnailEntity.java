@@ -44,4 +44,8 @@ public class ThumbnailEntity {
 
     @NotNull
     private DimensionEntity dimension;
+
+    @Column(name = "LAST_ERROR_MSG", length = 1024)
+    private String lastErrorMessage;
+
 }

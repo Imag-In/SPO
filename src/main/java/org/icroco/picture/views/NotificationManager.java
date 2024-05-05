@@ -259,7 +259,7 @@ public class NotificationManager {
             super(event.getType().toString(), event.getMessage(), event.getDateTime());
             setUserObject(event);
             setOnClick(_ -> OnClickBehaviour.NONE);
-            if (event.getType() == NotificationEvent.NotificationType.INFO) {
+            if (event.getType() == NotificationEvent.NotificationType.INFO && event.getTimeoutInSeconds() > 0) {
                 setAutoCloseAfter(java.time.Duration.ofSeconds(event.getTimeoutInSeconds()));
             }
         }

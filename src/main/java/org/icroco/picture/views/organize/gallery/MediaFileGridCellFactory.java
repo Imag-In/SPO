@@ -14,6 +14,7 @@ import org.controlsfx.control.GridCell;
 import org.controlsfx.control.GridView;
 import org.icroco.picture.model.MediaCollection;
 import org.icroco.picture.model.MediaFile;
+import org.icroco.picture.thumbnail.ThumbnailService;
 import org.icroco.picture.views.task.TaskService;
 import org.icroco.picture.views.util.CustomGridView;
 import org.icroco.picture.views.util.CustomMouseEvent;
@@ -25,6 +26,7 @@ import java.util.function.BiConsumer;
 @RequiredArgsConstructor
 public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, GridCell<MediaFile>> {
     private final MediaLoader                               mediaLoader;
+    private final ThumbnailService                        thumbnailService;
     private final TaskService                               taskService;
     private final BooleanProperty                           isExpandCell;
     private final ReadOnlyObjectProperty<MediaCollection> currentMediaCollection;
@@ -39,7 +41,8 @@ public class MediaFileGridCellFactory implements Callback<GridView<MediaFile>, G
                                                isExpandCell,
                                                currentMediaCollection,
                                                (CustomGridView<MediaFile>) grid,
-                                               isEditable);
+                                               isEditable,
+                                               thumbnailService);
 
         cell.setAlignment(Pos.CENTER);
         cell.setEditable(false);

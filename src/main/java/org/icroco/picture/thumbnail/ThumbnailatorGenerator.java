@@ -7,16 +7,12 @@ import net.coobird.thumbnailator.resizers.configurations.Antialiasing;
 import org.icroco.picture.model.Dimension;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.views.util.ImageUtils;
-import org.springframework.stereotype.Component;
 
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.function.Consumer;
 
 @Slf4j
-@Component
+//@Component
 public class ThumbnailatorGenerator extends AbstractThumbnailGenerator {
     @Override
     public Thumbnail generate(Path path, Dimension dim) {
@@ -28,7 +24,8 @@ public class ThumbnailatorGenerator extends AbstractThumbnailGenerator {
                                              .asBufferedImage(), null);
         }
         catch (IOException e) {
-            throw new RuntimeException(e);
+            log.error("Not Yet Implemented");
+            //return Either.left(e);
         }
         // TODO: Not Yet Implemented
         return null;
@@ -50,21 +47,21 @@ public class ThumbnailatorGenerator extends AbstractThumbnailGenerator {
         }
     }
 
-    @Override
-    public void generate(List<Path> source, Dimension dim, Consumer<BufferedImage> consummer) {
-        try {
-            Thumbnails.fromFiles(source.stream().map(Path::toFile).toList())
-                      .size(dim.width(), dim.height())
-                      .keepAspectRatio(true)
-                      .antialiasing(Antialiasing.ON)
-                      .allowOverwrite(true)
-                      .asBufferedImages()
-                      .forEach(consummer);
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+//    @Override
+//    public void generate(List<Path> source, Dimension dim, Consumer<BufferedImage> consummer) {
+//        try {
+//            Thumbnails.fromFiles(source.stream().map(Path::toFile).toList())
+//                      .size(dim.width(), dim.height())
+//                      .keepAspectRatio(true)
+//                      .antialiasing(Antialiasing.ON)
+//                      .allowOverwrite(true)
+//                      .asBufferedImages()
+//                      .forEach(consummer);
+//        }
+//        catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
 
     @Override
     public void generate(Path source, Path target, Dimension dim) {

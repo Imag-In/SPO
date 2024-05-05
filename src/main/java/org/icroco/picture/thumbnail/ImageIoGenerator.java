@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.icroco.picture.model.Dimension;
 import org.icroco.picture.model.EThumbnailType;
 import org.icroco.picture.model.Thumbnail;
+import org.springframework.lang.NonNull;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 @Slf4j
 public class ImageIoGenerator extends AbstractThumbnailGenerator {
     @Override
+    @NonNull
     public Thumbnail generate(Path path, Dimension dim) {
         final var image = new Image(path.toUri().toString(), dim.width(), 0, true, true);
         return new Thumbnail(0L,
@@ -22,7 +24,8 @@ public class ImageIoGenerator extends AbstractThumbnailGenerator {
                              image,
                              EThumbnailType.GENERATED,
                              LocalDateTime.now(),
-                             new Dimension(image.getWidth(), image.getHeight())
+                             new Dimension(image.getWidth(), image.getHeight()),
+                             null
         );
     }
 

@@ -95,7 +95,7 @@ public class MediaFileTest extends AbstractDataTest<MediaFile> {
                         .collectionId(collectionId)
                         .selected(selected)
                         .keepOrThrow(keepOrThrow)
-                        .thumbnailType(thumbnailType)
+//                        .thumbnailType(thumbnailType)
                         .rating(ERating.FIVE)
                         .reference(UUID.randomUUID())
                         .build();

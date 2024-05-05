@@ -4,6 +4,7 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.icroco.picture.metadata.IMetadataExtractor;
 import org.icroco.picture.model.Dimension;
 import org.icroco.picture.model.ERotation;
@@ -11,7 +12,7 @@ import org.icroco.picture.model.EThumbnailType;
 import org.icroco.picture.model.Thumbnail;
 import org.icroco.picture.util.Constant;
 import org.icroco.picture.views.util.ImageUtils;
-import org.jooq.lambda.Unchecked;
+import org.springframework.lang.NonNull;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReadParam;
@@ -37,30 +38,42 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
     @Override
     public Thumbnail generate(Path path, Dimension dim) {
         semaphore.acquireUninterruptibly();
+        var builder = Thumbnail.builder()
+                               .fullPath(path)
+                               .lastUpdate(LocalDateTime.now());
 
         try {
 //        return new Image(path.toUri().toString(), 600D, 0, true, true);
-            return Unchecked.supplier(() -> {
-                var orientation = metadataExtractor.orientation(path).orElse(1);
-                var img       = ImageIO.read(path.toFile()); // load image
-                var thumbnail = SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null);
-                return Thumbnail.builder()
-                                .fullPath(path)
-                                .image(thumbnail)
-                                .origin(EThumbnailType.GENERATED)
-                                .lastUpdate(LocalDateTime.now())
-                                .dimension(new Dimension(thumbnail.getWidth(), thumbnail.getHeight()))
-                                .build();
-            }, throwable -> log.error("Cannot generate thumbnail for: '{}'", path, throwable)).get();
+            var orientation = metadataExtractor.orientation(path).orElse(1);
+            var img         = ImageIO.read(path.toFile()); // load image
+            var thumbnail   = SwingFXUtils.toFXImage(resize(adaptOrientation(img, orientation), dim), null);
+            builder.image(thumbnail)
+                   .origin(EThumbnailType.GENERATED)
+                   .dimension(new Dimension(thumbnail.getWidth(), thumbnail.getHeight()))
+                   .build();
+
+        } catch (Throwable t) {
+            builder.lastErrorMessage(t.getLocalizedMessage())
+                   .dimension(Dimension.EMPTY_DIM)
+                   .origin(EThumbnailType.GENERATED_ERROR);
+            log.error("Generate thumbnail from path: '{}'", path, t);
         } finally {
             semaphore.release();
         }
+
+        return builder.build();
     }
 
 
     @Override
+    @NonNull
     public Thumbnail extractThumbnail(Path path) {
         semaphore.acquireUninterruptibly();
+        var builder = Thumbnail.builder()
+                               .fullPath(path)
+                               .origin(EThumbnailType.ABSENT)
+                               .dimension(Dimension.EMPTY_DIM)
+                               .lastUpdate(LocalDateTime.now());
 
         try (ImageInputStream input = ImageIO.createImageInputStream(path.toFile())) {
             int orientation = metadataExtractor.orientation(path).orElse(0);
@@ -90,17 +103,15 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
                     // Optionally, read thumbnails, meta data, etc...
                     int numThumbs = reader.getNumThumbnails(0);
                     if (numThumbs == 0) {
-                        log.warn("Path: '{}', doesn't contains embedded thumbnail: {}", path, numThumbs);
+                        log.warn("Extracting thumbnail from path: '{}', doesn't contains embedded thumbnail: {}", path, numThumbs);
                         continue;
                     }
                     var bi = adaptOrientation(reader.readThumbnail(0, 0), orientation);
-                    return Thumbnail.builder()
-                                    .fullPath(path)
-                                    .image(SwingFXUtils.toFXImage(bi, null))
-                                    .origin(EThumbnailType.EXTRACTED)
-                                    .lastUpdate(LocalDateTime.now())
-                                    .dimension(new Dimension(bi.getWidth(), bi.getHeight()))
-                                    .build();
+                    builder.image(SwingFXUtils.toFXImage(bi, null))
+                           .origin(EThumbnailType.EXTRACTED)
+                           .dimension(new Dimension(bi.getWidth(), bi.getHeight()))
+                           .build();
+                    break;
 
 //                        new Thumbnail(path, SwingFXUtils.toFXImage(bi, null), EThumbnailType.EXTRACTED, null);
 //                byte[]        jpgs   = ImageUtils.toByteArray(t, "jpg");
@@ -113,10 +124,14 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
             }
         } catch (Throwable e) {
             log.error("Cannot extract thumbnail from: '{}', message: {}", path, e.getLocalizedMessage());
+            builder.image(null)
+                   .origin(EThumbnailType.EXTRACTED_ERROR)
+                   .lastErrorMessage(StringUtils.left(e.getLocalizedMessage(), 1024))
+                   .build();
         } finally {
             semaphore.release();
         }
-        return null;
+        return builder.build();
     }
 
     // Generate Thumbnail: Corse 2015-20072015-036.jpg Time: 664 millisecondes
@@ -1607,7 +1622,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
     }
 
     /**
-     * Used to apply a {@link Rotation} and then <code>0</code> or more
+     * Used to apply a {@link ERotation} and then <code>0</code> or more
      * {@link BufferedImageOp}s to a given image and return the result.
      * <p/>
      * <strong>TIP</strong>: This operation leaves the original <code>src</code>
@@ -1634,7 +1649,7 @@ public class ImgscalrGenerator extends AbstractThumbnailGenerator {
      *                                  most common pitfalls that will cause {@link BufferedImageOp}s
      *                                  to fail, even when using straight forward JDK-image
      *                                  operations.
-     * @see Rotation
+     * @see ERotation
      */
     public static BufferedImage rotate(BufferedImage src, ERotation rotation,
                                        BufferedImageOp... ops) throws IllegalArgumentException,

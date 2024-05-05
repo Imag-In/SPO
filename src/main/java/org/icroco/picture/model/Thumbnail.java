@@ -20,4 +20,5 @@ public class Thumbnail {
     private EThumbnailType origin;
     private LocalDateTime  lastUpdate;
     private Dimension      dimension;
+    private String lastErrorMessage;
 }

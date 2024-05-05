@@ -39,7 +39,7 @@ public class MediaFile implements IMediaFile {
     private Integer        collectionId;
     private boolean        selected;
     private EKeepOrThrow  keepOrThrow;
-    private EThumbnailType thumbnailType;
+    //    private EThumbnailType thumbnailType;
     private ERating       rating;
     private UUID          reference;
 
@@ -64,7 +64,7 @@ public class MediaFile implements IMediaFile {
                      Integer collectionId,
                      boolean selected,
                      EKeepOrThrow keepOrThrow,
-                     EThumbnailType thumbnailType,
+//                     EThumbnailType thumbnailType,
                      ERating rating,
                      UUID reference) {
         this.id = id;
@@ -82,7 +82,7 @@ public class MediaFile implements IMediaFile {
         this.selected = selected;
         this.rating = rating;
         this.reference = reference;
-        this.thumbnailType = Objects.requireNonNullElse(thumbnailType, EThumbnailType.ABSENT);
+//        this.thumbnailType = Objects.requireNonNullElse(thumbnailType, EThumbnailType.ABSENT);
         this.keepOrThrow = Objects.requireNonNullElse(keepOrThrow, EKeepOrThrow.UNKNOW);
 
         // TODO: use JavaBeanObjectPropertyBuilder.create() ?
@@ -186,7 +186,7 @@ public class MediaFile implements IMediaFile {
         this.camera = source.camera;
         this.collectionId = source.collectionId;
         this.selected = source.selected;
-        this.thumbnailType = source.thumbnailType;
+//        this.thumbnailType = source.thumbnailType;
         this.rating = source.rating;
         this.reference = source.reference;
     }

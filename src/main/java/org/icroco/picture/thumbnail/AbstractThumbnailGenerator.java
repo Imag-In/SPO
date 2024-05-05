@@ -2,6 +2,7 @@ package org.icroco.picture.thumbnail;
 
 import org.icroco.picture.model.Dimension;
 import org.icroco.picture.model.Thumbnail;
+import org.springframework.lang.NonNull;
 
 import java.nio.file.Path;
 
@@ -12,7 +13,7 @@ public abstract class AbstractThumbnailGenerator implements IThumbnailGenerator 
     }
 
     @Override
-    public Thumbnail extractThumbnail(Path path) {
+    public @NonNull Thumbnail extractThumbnail(Path path) {
         throw new RuntimeException("NotYetImplemented");
     }
 

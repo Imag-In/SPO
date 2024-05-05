@@ -25,11 +25,11 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class ThumbnailGeneratorBenchmark {
 
-    List<Path>             paths;
+    List<Path> paths;
 
     IMetadataExtractor metadataExtractor = new DefaultMetadataExtractor(TagManagerTest.TAG_MANAGER,
                                                                         Mockito.mock(TaskService.class));
-    ImgscalrGenerator imgscalrGenerator = new ImgscalrGenerator(metadataExtractor);
+    ImgscalrGenerator  imgscalrGenerator = new ImgscalrGenerator(metadataExtractor);
     ThumbnailatorGenerator thumbnailatorGenerator = new ThumbnailatorGenerator();
 
     static Dimension dimension = new Dimension(600, 600);
